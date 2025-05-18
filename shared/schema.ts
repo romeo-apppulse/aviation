@@ -1,0 +1,159 @@
+import { pgTable, text, serial, integer, boolean, timestamp, json, doublePrecision, date } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// Aircraft table
+export const aircraft = pgTable("aircraft", {
+  id: serial("id").primaryKey(),
+  registration: text("registration").notNull().unique(),
+  make: text("make").notNull(),
+  model: text("model").notNull(),
+  year: integer("year").notNull(),
+  engineType: text("engine_type"),
+  totalTime: integer("total_time"),
+  avionics: text("avionics"),
+  image: text("image"),
+  notes: text("notes"),
+  ownerId: integer("owner_id"),
+  status: text("status").default("Available"), // Available, Leased, Maintenance, etc.
+});
+
+// Owner table
+export const owners = pgTable("owners", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  address: text("address"),
+  notes: text("notes"),
+  paymentDetails: text("payment_details"),
+});
+
+// Lessee table (Flight Schools)
+export const lessees = pgTable("lessees", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  address: text("address"),
+  contactPerson: text("contact_person"),
+  notes: text("notes"),
+});
+
+// Lease Agreements
+export const leases = pgTable("leases", {
+  id: serial("id").primaryKey(),
+  aircraftId: integer("aircraft_id").notNull(),
+  lesseeId: integer("lessee_id").notNull(),
+  startDate: date("start_date").notNull(),
+  endDate: date("end_date").notNull(),
+  monthlyRate: doublePrecision("monthly_rate").notNull(),
+  minimumHours: integer("minimum_hours").notNull(),
+  hourlyRate: doublePrecision("hourly_rate").notNull(),
+  maintenanceTerms: text("maintenance_terms"),
+  notes: text("notes"),
+  status: text("status").default("Active"), // Active, Expired, Terminated
+  documentUrl: text("document_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Payments
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  leaseId: integer("lease_id").notNull(),
+  amount: doublePrecision("amount").notNull(),
+  period: text("period").notNull(), // e.g., "January 2023"
+  dueDate: date("due_date").notNull(),
+  paidDate: date("paid_date"),
+  status: text("status").default("Pending"), // Pending, Paid, Overdue
+  notes: text("notes"),
+});
+
+// Maintenance Records
+export const maintenance = pgTable("maintenance", {
+  id: serial("id").primaryKey(),
+  aircraftId: integer("aircraft_id").notNull(),
+  type: text("type").notNull(), // e.g., "100 Hour Inspection", "Annual Inspection"
+  scheduledDate: date("scheduled_date").notNull(),
+  completedDate: date("completed_date"),
+  cost: doublePrecision("cost"),
+  status: text("status").default("Scheduled"), // Scheduled, Completed, Overdue
+  notes: text("notes"),
+  performedBy: text("performed_by"),
+});
+
+// Documents
+export const documents = pgTable("documents", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // Lease, Registration, Insurance, etc.
+  url: text("url").notNull(),
+  relatedId: integer("related_id"), // Can be ID of aircraft, lease, etc.
+  relatedType: text("related_type"), // "aircraft", "lease", "owner", etc.
+  uploadDate: timestamp("upload_date").defaultNow(),
+});
+
+// Create insert schemas
+export const insertAircraftSchema = createInsertSchema(aircraft).omit({ id: true });
+export const insertOwnerSchema = createInsertSchema(owners).omit({ id: true });
+export const insertLesseeSchema = createInsertSchema(lessees).omit({ id: true });
+export const insertLeaseSchema = createInsertSchema(leases).omit({ id: true, createdAt: true });
+export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true });
+export const insertMaintenanceSchema = createInsertSchema(maintenance).omit({ id: true });
+export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, uploadDate: true });
+
+// Export types
+export type Aircraft = typeof aircraft.$inferSelect;
+export type InsertAircraft = z.infer<typeof insertAircraftSchema>;
+
+export type Owner = typeof owners.$inferSelect;
+export type InsertOwner = z.infer<typeof insertOwnerSchema>;
+
+export type Lessee = typeof lessees.$inferSelect;
+export type InsertLessee = z.infer<typeof insertLesseeSchema>;
+
+export type Lease = typeof leases.$inferSelect;
+export type InsertLease = z.infer<typeof insertLeaseSchema>;
+
+export type Payment = typeof payments.$inferSelect;
+export type InsertPayment = z.infer<typeof insertPaymentSchema>;
+
+export type Maintenance = typeof maintenance.$inferSelect;
+export type InsertMaintenance = z.infer<typeof insertMaintenanceSchema>;
+
+export type Document = typeof documents.$inferSelect;
+export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+
+// Dashboard Stats
+export type DashboardStats = {
+  totalAircraft: number;
+  activeLeases: number;
+  monthlyRevenue: number;
+  managementFees: number;
+  paymentStatus: {
+    paid: number;
+    pending: number;
+    overdue: number;
+  };
+  revenueByMonth: Array<{
+    month: string;
+    revenue: number;
+    managementFee: number;
+  }>;
+};
+
+// Combined types for UI
+export type AircraftWithDetails = Aircraft & {
+  owner?: Owner;
+  currentLease?: Lease & { lessee?: Lessee };
+};
+
+export type LeaseWithDetails = Lease & {
+  aircraft?: Aircraft;
+  lessee?: Lessee;
+  payments?: Payment[];
+};
+
+export type MaintenanceWithDetails = Maintenance & {
+  aircraft?: Aircraft;
+};
