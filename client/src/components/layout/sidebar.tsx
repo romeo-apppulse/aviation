@@ -43,108 +43,100 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       <div className="p-4">
         <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">Main Navigation</div>
         <nav>
-          <Link href="/">
-            <a
-              onClick={closeSidebarIfMobile}
-              className={cn(
-                "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
-                location === "/" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
-              )}
-            >
-              <LayoutDashboard className="h-5 w-5" />
-              <span>Dashboard</span>
-            </a>
+          <Link 
+            href="/"
+            onClick={closeSidebarIfMobile}
+            className={cn(
+              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              location === "/" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+            )}
+          >
+            <LayoutDashboard className="h-5 w-5" />
+            <span>Dashboard</span>
           </Link>
           
-          <Link href="/aircraft">
-            <a
-              onClick={closeSidebarIfMobile}
-              className={cn(
-                "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
-                location === "/aircraft" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
-              )}
-            >
-              <Plane className="h-5 w-5" />
-              <span>Aircraft</span>
-            </a>
+          <Link 
+            href="/aircraft"
+            onClick={closeSidebarIfMobile}
+            className={cn(
+              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              location === "/aircraft" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+            )}
+          >
+            <Plane className="h-5 w-5" />
+            <span>Aircraft</span>
           </Link>
           
-          <Link href="/owners">
-            <a
-              onClick={closeSidebarIfMobile}
-              className={cn(
-                "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
-                location === "/owners" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
-              )}
-            >
-              <UserCircle className="h-5 w-5" />
-              <span>Owners</span>
-            </a>
+          <Link 
+            href="/owners"
+            onClick={closeSidebarIfMobile}
+            className={cn(
+              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              location === "/owners" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+            )}
+          >
+            <UserCircle className="h-5 w-5" />
+            <span>Owners</span>
           </Link>
           
-          <Link href="/lessees">
-            <a
-              onClick={closeSidebarIfMobile}
-              className={cn(
-                "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
-                location === "/lessees" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
-              )}
-            >
-              <Building2 className="h-5 w-5" />
-              <span>Flight Schools</span>
-            </a>
+          <Link 
+            href="/lessees"
+            onClick={closeSidebarIfMobile}
+            className={cn(
+              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              location === "/lessees" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+            )}
+          >
+            <Building2 className="h-5 w-5" />
+            <span>Flight Schools</span>
           </Link>
           
-          <Link href="/leases">
-            <a
-              onClick={closeSidebarIfMobile}
-              className={cn(
-                "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
-                location === "/leases" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
-              )}
-            >
-              <FileText className="h-5 w-5" />
-              <span>Lease Agreements</span>
-            </a>
+          <Link 
+            href="/leases"
+            onClick={closeSidebarIfMobile}
+            className={cn(
+              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              location === "/leases" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+            )}
+          >
+            <FileText className="h-5 w-5" />
+            <span>Lease Agreements</span>
           </Link>
           
-          <Link href="/payments">
-            <a
-              onClick={closeSidebarIfMobile}
-              className={cn(
-                "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
-                location === "/payments" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
-              )}
-            >
-              <DollarSign className="h-5 w-5" />
-              <span>Payments</span>
-            </a>
+          <Link 
+            href="/payments"
+            onClick={closeSidebarIfMobile}
+            className={cn(
+              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              location === "/payments" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+            )}
+          >
+            <DollarSign className="h-5 w-5" />
+            <span>Payments</span>
           </Link>
           
-          <Link href="/maintenance">
-            <a
-              onClick={closeSidebarIfMobile}
-              className={cn(
-                "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
-                location === "/maintenance" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
-              )}
-            >
-              <Wrench className="h-5 w-5" />
-              <span>Maintenance</span>
-            </a>
+          <Link 
+            href="/maintenance"
+            onClick={closeSidebarIfMobile}
+            className={cn(
+              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              location === "/maintenance" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+            )}
+          >
+            <Wrench className="h-5 w-5" />
+            <span>Maintenance</span>
           </Link>
           
-          <Link href="/documents">
-            <a
-              onClick={closeSidebarIfMobile}
-              className={cn(
-                "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
-                location === "/documents" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
-              )}
-            >
-              <FolderOpen className="h-5 w-5" />
-              <span>Documents</span>
-            </a>
+          <Link 
+            href="/documents"
+            onClick={closeSidebarIfMobile}
+            className={cn(
+              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              location === "/documents" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+            )}
+          >
+            <FolderOpen className="h-5 w-5" />
+            <span>Documents</span>
           </Link>
         </nav>
       </div>
