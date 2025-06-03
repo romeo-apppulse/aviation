@@ -76,9 +76,9 @@ export function AnimatedCounter({
   prefix = "",
   suffix = ""
 }: AnimatedCounterProps) {
-  const [count, setCount] = React.useState(0);
+  const [count, setCount] = useState(0);
 
-  React.useEffect(() => {
+  useEffect(() => {
     let startTime: number;
     const startValue = count;
     const endValue = value;
