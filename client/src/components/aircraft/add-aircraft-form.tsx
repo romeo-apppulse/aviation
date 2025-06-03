@@ -66,9 +66,9 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
       registration: "",
       make: "",
       model: "",
-      year: "",
+      year: 2024,
       engineType: "",
-      totalTime: "",
+      totalTime: 0,
       avionics: "",
       image: "",
       notes: "",
@@ -273,7 +273,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">Unassigned</SelectItem>
+                      <SelectItem value="unassigned">Unassigned</SelectItem>
                       {owners?.map(owner => (
                         <SelectItem key={owner.id} value={owner.id.toString()}>
                           {owner.name}

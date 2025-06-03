@@ -3,9 +3,12 @@ import RevenueChart from "@/components/dashboard/revenue-chart";
 import PaymentStatus from "@/components/dashboard/payment-status";
 import AircraftFleet from "@/components/dashboard/aircraft-fleet";
 import MaintenanceSchedule from "@/components/dashboard/maintenance-schedule";
+import { useRealTimeUpdates } from "@/hooks/use-realtime";
 import { Helmet } from "react-helmet";
 
 export default function Dashboard() {
+  // Enable real-time updates for dashboard data
+  useRealTimeUpdates();
   return (
     <>
       <Helmet>
