@@ -17,6 +17,15 @@ Preferred communication style: Simple, everyday language.
 - Updated all aircraft image displays across the application
 - Enhanced user experience by eliminating broken image icons
 
+### Updated Aircraft Images (January 2025)
+- Fixed expired Pixabay URLs with fresh aircraft images
+- Updated database with working image URLs for all aircraft
+- Cessna 172 (N159G): Fresh Pixabay image from 2022
+- Piper Cherokee (N428KS): Dreamstime aircraft image
+- Cessna 182 (N891TB): Updated Pixabay image from 2016
+- Piper Archer (N247JP): Dreamstime aircraft image
+- All images verified and tested for accessibility
+
 ## System Architecture
 
 ### Full-Stack Architecture

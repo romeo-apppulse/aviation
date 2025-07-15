@@ -172,54 +172,54 @@ export class MemStorage implements IStorage {
     const aircraft1 = this.createAircraft({
       registration: "N159G",
       make: "Cessna",
-      model: "172S Skyhawk",
+      model: "172",
       year: 2018,
       engineType: "Lycoming IO-360-L2A",
       totalTime: 1245,
       avionics: "Garmin G1000 NXi",
-      image: "https://pixabay.com/get/g8ef761b4edb26fd2f832aca8a921b9b37b583c7e33e62db23962a81257f33892d6c8803977391faf10762f318a53e93a2a4d6bd2d0de50e3bae945b68c537ea2_1280.jpg",
+      image: "https://cdn.pixabay.com/photo/2022/10/14/09/12/aircraft-7520859_1280.jpg",
       notes: "Aircraft is in excellent condition with recent interior refurbishment. Popular with flight students due to modern avionics package.",
       ownerId: owner1.id,
       status: "Leased"
     });
 
     const aircraft2 = this.createAircraft({
-      registration: "N227AB",
+      registration: "N428KS",
       make: "Piper",
-      model: "PA-28 Cherokee",
+      model: "Cherokee",
       year: 2016,
       engineType: "Lycoming O-360",
       totalTime: 2100,
       avionics: "Garmin G500",
-      image: "https://images.unsplash.com/photo-1503560683205-acf61ac68a3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
+      image: "https://thumbs.dreamstime.com/b/piper-cherokee-general-aviation-pa-tarmac-arizona-several-buttes-can-be-seen-background-34236858.jpg",
       notes: "Reliable training aircraft with good maintenance history.",
       ownerId: owner2.id,
       status: "Leased"
     });
 
     const aircraft3 = this.createAircraft({
-      registration: "N443FL",
-      make: "Diamond",
-      model: "DA40 Star",
+      registration: "N891TB",
+      make: "Cessna",
+      model: "182",
       year: 2020,
       engineType: "Continental IO-360",
       totalTime: 850,
       avionics: "Garmin G1000",
-      image: "https://images.unsplash.com/photo-1529074963764-98f45c47344b?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100",
+      image: "https://cdn.pixabay.com/photo/2016/02/08/16/29/plane-1186848_1280.jpg",
       notes: "Modern aircraft with excellent fuel efficiency.",
       ownerId: owner3.id,
       status: "Maintenance"
     });
 
     const aircraft4 = this.createAircraft({
-      registration: "N789SR",
-      make: "Cirrus",
-      model: "SR22 G6",
+      registration: "N247JP",
+      make: "Piper",
+      model: "Archer",
       year: 2021,
       engineType: "Continental IO-550-N",
       totalTime: 450,
       avionics: "Cirrus Perspective+",
-      image: "https://pixabay.com/get/g6d3d07393b5e5e17fa18cc361cdda250d2e889838899340703fc467856ae77924644561a37920fbdc3541af2c8c7ab3f62bbe2f8f8917941f63c0eb757b786f9_1280.jpg",
+      image: "https://thumbs.dreamstime.com/b/piper-24753799.jpg",
       notes: "High-performance aircraft with CAPS system.",
       ownerId: 2,
       status: "Available"
