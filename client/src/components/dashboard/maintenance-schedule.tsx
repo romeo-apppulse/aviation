@@ -100,11 +100,11 @@ export default function MaintenanceSchedule() {
               })}
               
               <Button 
-                className="w-full mt-2 py-2 px-4 border border-gray-300 text-gray-700 hover:bg-gray-50"
+                className="w-full mt-2 py-2 px-4 border border-gray-300 text-gray-700 hover:bg-gray-50 whitespace-normal break-words"
                 variant="outline"
               >
-                <Calendar className="h-4 w-4 mr-2" />
-                Schedule Maintenance
+                <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="break-words">Schedule Maintenance</span>
               </Button>
             </>
           ) : (
@@ -112,11 +112,11 @@ export default function MaintenanceSchedule() {
               <Clock className="h-10 w-10 mx-auto text-gray-400 mb-2" />
               <p className="text-gray-500">No upcoming maintenance scheduled</p>
               <Button 
-                className="mt-4"
+                className="mt-4 whitespace-normal break-words"
                 variant="outline"
               >
-                <Calendar className="h-4 w-4 mr-2" />
-                Schedule Maintenance
+                <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
+                <span className="break-words">Schedule Maintenance</span>
               </Button>
             </div>
           )}
