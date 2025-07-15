@@ -7,7 +7,7 @@ import { AircraftImage } from "@/components/ui/aircraft-image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Helmet } from "react-helmet";
-import { Search, Plus, Filter } from "lucide-react";
+import { Search, Plus, Filter, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import AircraftDetailsModal from "@/components/aircraft/aircraft-details-modal";
 import AddAircraftForm from "@/components/aircraft/add-aircraft-form";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -25,10 +25,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+
+type ViewMode = 'grid' | 'list';
+type SortField = 'registration' | 'make' | 'model' | 'year' | 'status' | 'owner' | 'monthlyRate';
+type SortDirection = 'asc' | 'desc';
 
 export default function Aircraft() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [sortField, setSortField] = useState<SortField>('registration');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const addAircraftModal = useModal(false);
   const detailsModal = useModal<AircraftWithDetails>(false);
 
@@ -36,17 +52,75 @@ export default function Aircraft() {
     queryKey: ["/api/aircraft"],
   });
 
-  const filteredAircraft = aircraft
-    ? aircraft.filter((a) => {
-        const matchesSearch =
-          a.registration.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          a.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          a.model.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        const matchesStatus = statusFilter === "all" || a.status === statusFilter;
-        
-        return matchesSearch && matchesStatus;
-      })
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4" />;
+    }
+    return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+  };
+
+  const filteredAndSortedAircraft = aircraft
+    ? aircraft
+        .filter((a) => {
+          const matchesSearch =
+            a.registration.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            a.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            a.model.toLowerCase().includes(searchTerm.toLowerCase());
+          
+          const matchesStatus = statusFilter === "all" || a.status === statusFilter;
+          
+          return matchesSearch && matchesStatus;
+        })
+        .sort((a, b) => {
+          let aValue: any;
+          let bValue: any;
+          
+          switch (sortField) {
+            case 'registration':
+              aValue = a.registration.toLowerCase();
+              bValue = b.registration.toLowerCase();
+              break;
+            case 'make':
+              aValue = a.make.toLowerCase();
+              bValue = b.make.toLowerCase();
+              break;
+            case 'model':
+              aValue = a.model.toLowerCase();
+              bValue = b.model.toLowerCase();
+              break;
+            case 'year':
+              aValue = a.year;
+              bValue = b.year;
+              break;
+            case 'status':
+              aValue = a.status.toLowerCase();
+              bValue = b.status.toLowerCase();
+              break;
+            case 'owner':
+              aValue = (a.owner?.name || "").toLowerCase();
+              bValue = (b.owner?.name || "").toLowerCase();
+              break;
+            case 'monthlyRate':
+              aValue = a.currentLease?.monthlyRate || 0;
+              bValue = b.currentLease?.monthlyRate || 0;
+              break;
+            default:
+              return 0;
+          }
+          
+          if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+          if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
+        })
     : [];
 
   return (
@@ -107,11 +181,31 @@ export default function Aircraft() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="flex rounded-md border border-gray-200 bg-gray-50">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="rounded-r-none"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="rounded-l-none"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {viewMode === 'grid' ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading ? (
           Array(6)
             .fill(null)
@@ -129,8 +223,8 @@ export default function Aircraft() {
                 </CardContent>
               </Card>
             ))
-        ) : filteredAircraft.length > 0 ? (
-          filteredAircraft.map((aircraft) => (
+        ) : filteredAndSortedAircraft.length > 0 ? (
+          filteredAndSortedAircraft.map((aircraft) => (
             <Card 
               key={aircraft.id} 
               className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
@@ -190,7 +284,160 @@ export default function Aircraft() {
             </Button>
           </div>
         )}
-      </div>
+        </div>
+      ) : (
+        <Card>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-20">Image</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort('registration')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Registration
+                    {getSortIcon('registration')}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort('make')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Make
+                    {getSortIcon('make')}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort('model')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Model
+                    {getSortIcon('model')}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort('year')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Year
+                    {getSortIcon('year')}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort('status')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Status
+                    {getSortIcon('status')}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort('owner')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Owner
+                    {getSortIcon('owner')}
+                  </Button>
+                </TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort('monthlyRate')}
+                    className="h-auto p-0 font-semibold hover:bg-transparent"
+                  >
+                    Monthly Rate
+                    {getSortIcon('monthlyRate')}
+                  </Button>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                Array(5)
+                  .fill(null)
+                  .map((_, index) => (
+                    <TableRow key={index}>
+                      <TableCell><div className="h-12 w-16 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                    </TableRow>
+                  ))
+              ) : filteredAndSortedAircraft.length > 0 ? (
+                filteredAndSortedAircraft.map((aircraft) => (
+                  <TableRow 
+                    key={aircraft.id} 
+                    className="cursor-pointer hover:bg-gray-50"
+                    onClick={() => detailsModal.openModal(aircraft)}
+                  >
+                    <TableCell>
+                      <div className="h-12 w-16 rounded overflow-hidden">
+                        <AircraftImage
+                          src={aircraft.image}
+                          alt={`${aircraft.make} ${aircraft.model}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-medium">{aircraft.registration}</TableCell>
+                    <TableCell>{aircraft.make}</TableCell>
+                    <TableCell>{aircraft.model}</TableCell>
+                    <TableCell>{aircraft.year}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(aircraft.status)}>
+                        {aircraft.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{aircraft.owner?.name || "Unassigned"}</TableCell>
+                    <TableCell className="font-mono">
+                      {aircraft.currentLease ? formatCurrency(aircraft.currentLease.monthlyRate) : "$0"}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-12">
+                    <div className="mx-auto h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                      <Search className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-1">No aircraft found</h3>
+                    <p className="text-gray-500 mb-4">Try adjusting your search or filters</p>
+                    <Button onClick={() => {
+                      setSearchTerm("");
+                      setStatusFilter("all");
+                    }}>
+                      Clear Filters
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
 
       {addAircraftModal.isOpen && (
         <AddAircraftForm isOpen={addAircraftModal.isOpen} onClose={addAircraftModal.closeModal} />
