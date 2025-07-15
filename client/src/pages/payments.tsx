@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarIcon, Check, Clock, DollarSign, Plus, Search, Filter, FileText, Plane } from "lucide-react";
+import { CalendarIcon, Check, Clock, DollarSign, Plus, Search, Filter, FileText, Plane, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -74,11 +74,16 @@ const paymentFormSchema = z.object({
 
 type PaymentFormValues = z.infer<typeof paymentFormSchema>;
 
+type SortField = 'period' | 'amount' | 'dueDate' | 'paidDate' | 'status';
+type SortDirection = 'asc' | 'desc';
+
 export default function Payments() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
   const [markAsPaidId, setMarkAsPaidId] = useState<number | null>(null);
+  const [sortField, setSortField] = useState<SortField>('dueDate');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const { toast } = useToast();
 
   const { data: payments, isLoading } = useQuery<Payment[]>({
@@ -90,16 +95,66 @@ export default function Payments() {
     enabled: addPaymentOpen,
   });
 
-  const filteredPayments = payments
-    ? payments.filter((payment) => {
-        const matchesSearch =
-          payment.period.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (payment.notes && payment.notes.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-        const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
-        
-        return matchesSearch && matchesStatus;
-      })
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4" />;
+    }
+    return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+  };
+
+  const filteredAndSortedPayments = payments
+    ? payments
+        .filter((payment) => {
+          const matchesSearch =
+            payment.period.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (payment.notes && payment.notes.toLowerCase().includes(searchTerm.toLowerCase()));
+          
+          const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
+          
+          return matchesSearch && matchesStatus;
+        })
+        .sort((a, b) => {
+          let aValue: any;
+          let bValue: any;
+          
+          switch (sortField) {
+            case 'period':
+              aValue = a.period.toLowerCase();
+              bValue = b.period.toLowerCase();
+              break;
+            case 'amount':
+              aValue = a.amount;
+              bValue = b.amount;
+              break;
+            case 'dueDate':
+              aValue = new Date(a.dueDate);
+              bValue = new Date(b.dueDate);
+              break;
+            case 'paidDate':
+              aValue = a.paidDate ? new Date(a.paidDate) : new Date('1900-01-01');
+              bValue = b.paidDate ? new Date(b.paidDate) : new Date('1900-01-01');
+              break;
+            case 'status':
+              aValue = a.status.toLowerCase();
+              bValue = b.status.toLowerCase();
+              break;
+            default:
+              return 0;
+          }
+          
+          if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+          if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
+        })
     : [];
 
   const createPaymentMutation = useMutation({
@@ -245,21 +300,56 @@ export default function Payments() {
             <div className="p-8 flex items-center justify-center">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3498db]"></div>
             </div>
-          ) : filteredPayments.length > 0 ? (
+          ) : filteredAndSortedPayments.length > 0 ? (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Period</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Due Date</TableHead>
-                    <TableHead>Paid Date</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>
+                      <button 
+                        onClick={() => handleSort('period')}
+                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                      >
+                        Period {getSortIcon('period')}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button 
+                        onClick={() => handleSort('amount')}
+                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                      >
+                        Amount {getSortIcon('amount')}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button 
+                        onClick={() => handleSort('dueDate')}
+                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                      >
+                        Due Date {getSortIcon('dueDate')}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button 
+                        onClick={() => handleSort('paidDate')}
+                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                      >
+                        Paid Date {getSortIcon('paidDate')}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button 
+                        onClick={() => handleSort('status')}
+                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                      >
+                        Status {getSortIcon('status')}
+                      </button>
+                    </TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPayments.map((payment) => (
+                  {filteredAndSortedPayments.map((payment) => (
                     <TableRow key={payment.id}>
                       <TableCell className="font-medium">
                         {payment.period}
