@@ -11,7 +11,8 @@ import {
   FolderOpen,
   Settings,
   HelpCircle,
-  LogOut
+  LogOut,
+  Home
 } from "lucide-react";
 
 type SidebarProps = {
@@ -49,6 +50,18 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
             className={cn(
               "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
               location === "/" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+            )}
+          >
+            <Home className="h-5 w-5" />
+            <span>Home</span>
+          </Link>
+          
+          <Link 
+            href="/dashboard"
+            onClick={closeSidebarIfMobile}
+            className={cn(
+              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              location === "/dashboard" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
             )}
           >
             <LayoutDashboard className="h-5 w-5" />
