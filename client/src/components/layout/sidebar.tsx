@@ -45,22 +45,29 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}
     >
-      <div className="p-4 flex items-center justify-between border-b border-[#34495e]">
-        <div className="flex items-center space-x-3 min-w-0">
-          <Plane className="text-[#3498db] h-6 w-6 flex-shrink-0" />
-          {!collapsed && <h1 className="font-sans font-bold text-xl truncate">AeroLease</h1>}
+      <div className="p-4 border-b border-[#34495e]">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3 overflow-hidden">
+            <Plane className="text-[#3498db] h-6 w-6 flex-shrink-0" />
+            <h1 className={cn(
+              "font-sans font-bold text-xl transition-all duration-300",
+              collapsed ? "w-0 opacity-0" : "w-auto opacity-100"
+            )}>
+              AeroLease
+            </h1>
+          </div>
+          <button
+            onClick={toggleCollapse}
+            className="p-1.5 rounded hover:bg-[#34495e] transition-colors flex-shrink-0 ml-2"
+            title={collapsed ? "Expand menu" : "Collapse menu"}
+          >
+            {collapsed ? (
+              <Menu className="h-4 w-4" />
+            ) : (
+              <X className="h-4 w-4" />
+            )}
+          </button>
         </div>
-        <button
-          onClick={toggleCollapse}
-          className="p-1.5 rounded hover:bg-[#34495e] transition-colors flex-shrink-0"
-          title={collapsed ? "Expand menu" : "Collapse menu"}
-        >
-          {collapsed ? (
-            <Menu className="h-4 w-4" />
-          ) : (
-            <X className="h-4 w-4" />
-          )}
-        </button>
       </div>
       
       <div className="p-4">

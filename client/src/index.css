@@ -56,3 +56,13 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Hide scrollbar for sidebar */
+.sidebar::-webkit-scrollbar {
+  display: none;
+}
+
+.sidebar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* Internet Explorer 10+ */
+}
