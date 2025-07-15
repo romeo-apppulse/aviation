@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Plus, Search, Filter, Download, Trash2, Upload, File, FileSpreadsheet, FilePen } from "lucide-react";
+import { FileText, Plus, Search, Filter, Download, Trash2, Upload, File, FileSpreadsheet, FilePen, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -24,6 +24,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Dialog,
   DialogContent,
@@ -64,9 +72,16 @@ const documentFormSchema = z.object({
 
 type DocumentFormValues = z.infer<typeof documentFormSchema>;
 
+type ViewMode = 'grid' | 'list';
+type SortField = 'name' | 'type' | 'uploadDate' | 'relatedType';
+type SortDirection = 'asc' | 'desc';
+
 export default function Documents() {
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [addDocumentOpen, setAddDocumentOpen] = useState(false);
   const [deleteDocument, setDeleteDocument] = useState<DocumentType | null>(null);
   const { toast } = useToast();
@@ -86,6 +101,33 @@ export default function Documents() {
         return matchesSearch && matchesType;
       })
     : [];
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="ml-1 h-4 w-4" />;
+    }
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="ml-1 h-4 w-4" /> : 
+      <ArrowDown className="ml-1 h-4 w-4" />;
+  };
+
+  const sortedDocuments = [...filteredDocuments].sort((a, b) => {
+    const aValue = a[sortField];
+    const bValue = b[sortField];
+    
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   const createDocumentMutation = useMutation({
     mutationFn: (data: InsertDocument) => 
@@ -213,6 +255,25 @@ export default function Documents() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="flex border rounded-lg bg-gray-50 p-1">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="px-3"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="px-3"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -239,10 +300,11 @@ export default function Documents() {
               </Card>
             ))}
         </div>
-      ) : filteredDocuments.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredDocuments.map((document) => (
-            <Card key={document.id} className="hover:shadow-md transition-shadow">
+      ) : sortedDocuments.length > 0 ? (
+        viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sortedDocuments.map((document) => (
+              <Card key={document.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex items-start">
@@ -283,8 +345,106 @@ export default function Documents() {
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead 
+                    className="cursor-pointer select-none hover:bg-gray-50"
+                    onClick={() => handleSort('name')}
+                  >
+                    <div className="flex items-center">
+                      Name
+                      {getSortIcon('name')}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer select-none hover:bg-gray-50"
+                    onClick={() => handleSort('type')}
+                  >
+                    <div className="flex items-center">
+                      Type
+                      {getSortIcon('type')}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer select-none hover:bg-gray-50"
+                    onClick={() => handleSort('uploadDate')}
+                  >
+                    <div className="flex items-center">
+                      Upload Date
+                      {getSortIcon('uploadDate')}
+                    </div>
+                  </TableHead>
+                  <TableHead 
+                    className="cursor-pointer select-none hover:bg-gray-50"
+                    onClick={() => handleSort('relatedType')}
+                  >
+                    <div className="flex items-center">
+                      Related To
+                      {getSortIcon('relatedType')}
+                    </div>
+                  </TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sortedDocuments.map((document) => (
+                  <TableRow key={document.id} className="hover:bg-gray-50">
+                    <TableCell>
+                      <div className="flex items-center">
+                        {getDocumentIcon(document.type)}
+                        <div className="ml-3">
+                          <div className="font-medium text-gray-900">{document.name}</div>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {document.type}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-sm text-gray-900">
+                        {formatDate(document.uploadDate)}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {document.relatedType && document.relatedId ? (
+                        <div className="text-sm text-gray-900 capitalize">
+                          {document.relatedType} #{document.relatedId}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(document.url, '_blank')}
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeleteDocument(document)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )
       ) : (
         <div className="text-center py-12">
           <div className="mx-auto h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
