@@ -14,7 +14,7 @@ import {
   LogOut,
   Home,
   Menu,
-  X
+  PanelLeftClose
 } from "lucide-react";
 import { useState } from "react";
 
@@ -69,7 +69,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
               className="p-1.5 rounded hover:bg-[#34495e] transition-colors flex-shrink-0 ml-2"
               title="Collapse menu"
             >
-              <X className="h-4 w-4" />
+              <PanelLeftClose className="h-4 w-4" />
             </button>
           </div>
         )}
