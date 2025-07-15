@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { CheckCircle2, Clock } from "lucide-react";
+import { Link } from "wouter";
 
 export default function PaymentStatus() {
   const { data: dashboardData, isLoading: isDashboardLoading } = useQuery<DashboardStats>({
@@ -64,7 +65,9 @@ export default function PaymentStatus() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-sans font-semibold text-gray-700">Payment Status</CardTitle>
-        <Button variant="link" size="sm" className="text-[#3498db]">View All</Button>
+        <Button variant="link" size="sm" className="text-[#3498db]" asChild>
+          <Link href="/payments">View All</Link>
+        </Button>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
