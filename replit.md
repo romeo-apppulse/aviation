@@ -8,6 +8,15 @@ AeroLease Manager is a full-stack aircraft management system built for tracking 
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+### Image Fallback System (January 2025)
+- Created AeroLeaseIcon component with branded blue gradient design
+- Implemented AircraftImage component with proper error handling
+- Added fallback to AeroLease icon when aircraft images fail to load
+- Updated all aircraft image displays across the application
+- Enhanced user experience by eliminating broken image icons
+
 ## System Architecture
 
 ### Full-Stack Architecture

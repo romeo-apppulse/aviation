@@ -3,6 +3,7 @@ import { AircraftWithDetails } from "@shared/schema";
 import { useState } from "react";
 import { useModal } from "@/hooks/use-modal";
 import { formatCurrency, getStatusColor } from "@/lib/utils";
+import { AircraftImage } from "@/components/ui/aircraft-image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Helmet } from "react-helmet";
@@ -136,8 +137,8 @@ export default function Aircraft() {
               onClick={() => detailsModal.openModal(aircraft)}
             >
               <div className="h-40 relative">
-                <img
-                  src={aircraft.image || "https://pixabay.com/get/g8ef761b4edb26fd2f832aca8a921b9b37b583c7e33e62db23962a81257f33892d6c8803977391faf10762f318a53e93a2a4d6bd2d0de50e3bae945b68c537ea2_1280.jpg"}
+                <AircraftImage
+                  src={aircraft.image}
                   alt={`${aircraft.make} ${aircraft.model}`}
                   className="w-full h-full object-cover"
                 />

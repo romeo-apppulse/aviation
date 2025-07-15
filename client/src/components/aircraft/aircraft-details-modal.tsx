@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Maintenance } from "@shared/schema";
 import { Check, FileText, Plane, Calendar, Clock, Wrench } from "lucide-react";
+import { AircraftImage } from "@/components/ui/aircraft-image";
 
 interface AircraftDetailsModalProps {
   isOpen: boolean;
@@ -37,9 +38,9 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
         <div className="flex flex-col md:flex-row gap-6">
           {/* Aircraft image */}
           <div className="w-full md:w-1/3">
-            <img 
+            <AircraftImage 
               className="w-full h-48 object-cover rounded-lg" 
-              src={aircraft.image || "https://pixabay.com/get/g8ef761b4edb26fd2f832aca8a921b9b37b583c7e33e62db23962a81257f33892d6c8803977391faf10762f318a53e93a2a4d6bd2d0de50e3bae945b68c537ea2_1280.jpg"} 
+              src={aircraft.image} 
               alt={`${aircraft.make} ${aircraft.model}`} 
             />
           </div>

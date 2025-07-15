@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { AircraftWithDetails } from "@shared/schema";
 import { formatCurrency, getStatusColor } from "@/lib/utils";
+import { AeroLeaseIcon } from "@/components/ui/aero-lease-icon";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -139,7 +140,9 @@ export default function AircraftFleet() {
                       <div className="flex items-center">
                         <Avatar className="h-8 w-8 rounded-full">
                           <AvatarImage src={aircraft.image} alt={`${aircraft.make} ${aircraft.model}`} />
-                          <AvatarFallback>{aircraft.make.charAt(0)}</AvatarFallback>
+                          <AvatarFallback>
+                            <AeroLeaseIcon className="h-4 w-4" />
+                          </AvatarFallback>
                         </Avatar>
                         <div className="ml-3">
                           <p className="text-sm font-medium">{aircraft.make} {aircraft.model}</p>
