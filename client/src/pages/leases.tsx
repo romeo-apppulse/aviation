@@ -4,7 +4,7 @@ import { useState } from "react";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { useModal } from "@/hooks/use-modal";
 import { Helmet } from "react-helmet";
-import { Plus, FileText, Search, Filter, Calendar, DollarSign, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, FileText, Search, Filter, Calendar, DollarSign, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown, Building2 } from "lucide-react";
 import LeaseAgreementModal from "@/components/leases/lease-agreement-modal";
 import LeaseForm from "@/components/leases/lease-form";
 import {
