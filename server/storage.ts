@@ -1,8 +1,11 @@
 import {
   Aircraft, Owner, Lessee, Lease, Payment, Maintenance, Document,
   InsertAircraft, InsertOwner, InsertLessee, InsertLease, InsertPayment, InsertMaintenance, InsertDocument,
-  DashboardStats, AircraftWithDetails, LeaseWithDetails, MaintenanceWithDetails
+  DashboardStats, AircraftWithDetails, LeaseWithDetails, MaintenanceWithDetails,
+  aircraft, owners, lessees, leases, payments, maintenance, documents
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc, asc, and, gte, lte } from "drizzle-orm";
 
 export interface IStorage {
   // Aircraft
@@ -786,4 +789,408 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getAircraft(id: number): Promise<Aircraft | undefined> {
+    const [aircraftRecord] = await db.select().from(aircraft).where(eq(aircraft.id, id));
+    return aircraftRecord || undefined;
+  }
+
+  async getAllAircraft(): Promise<Aircraft[]> {
+    return await db.select().from(aircraft);
+  }
+
+  async createAircraft(aircraftData: InsertAircraft): Promise<Aircraft> {
+    const [newAircraft] = await db
+      .insert(aircraft)
+      .values(aircraftData)
+      .returning();
+    return newAircraft;
+  }
+
+  async updateAircraft(id: number, aircraftData: Partial<InsertAircraft>): Promise<Aircraft | undefined> {
+    const [updated] = await db
+      .update(aircraft)
+      .set(aircraftData)
+      .where(eq(aircraft.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteAircraft(id: number): Promise<boolean> {
+    const result = await db
+      .delete(aircraft)
+      .where(eq(aircraft.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getAircraftWithDetails(id: number): Promise<AircraftWithDetails | undefined> {
+    const aircraftData = await this.getAircraft(id);
+    if (!aircraftData) return undefined;
+
+    const owner = aircraftData.ownerId ? await this.getOwner(aircraftData.ownerId) : undefined;
+    const activeLeases = await db
+      .select()
+      .from(leases)
+      .where(and(eq(leases.aircraftId, id), eq(leases.status, "Active")));
+    
+    const currentLease = activeLeases.length > 0 ? activeLeases[0] : undefined;
+    let lessee = undefined;
+    if (currentLease) {
+      lessee = await this.getLessee(currentLease.lesseeId);
+    }
+
+    return {
+      ...aircraftData,
+      owner,
+      currentLease: currentLease ? { ...currentLease, lessee } : undefined
+    };
+  }
+
+  async getAllAircraftWithDetails(): Promise<AircraftWithDetails[]> {
+    const allAircraft = await this.getAllAircraft();
+    return Promise.all(
+      allAircraft.map(aircraft => this.getAircraftWithDetails(aircraft.id))
+    ).then(results => results.filter(Boolean) as AircraftWithDetails[]);
+  }
+
+  async getOwner(id: number): Promise<Owner | undefined> {
+    const [owner] = await db.select().from(owners).where(eq(owners.id, id));
+    return owner || undefined;
+  }
+
+  async getAllOwners(): Promise<Owner[]> {
+    return await db.select().from(owners);
+  }
+
+  async createOwner(ownerData: InsertOwner): Promise<Owner> {
+    const [newOwner] = await db
+      .insert(owners)
+      .values(ownerData)
+      .returning();
+    return newOwner;
+  }
+
+  async updateOwner(id: number, ownerData: Partial<InsertOwner>): Promise<Owner | undefined> {
+    const [updated] = await db
+      .update(owners)
+      .set(ownerData)
+      .where(eq(owners.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteOwner(id: number): Promise<boolean> {
+    const result = await db
+      .delete(owners)
+      .where(eq(owners.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getLessee(id: number): Promise<Lessee | undefined> {
+    const [lessee] = await db.select().from(lessees).where(eq(lessees.id, id));
+    return lessee || undefined;
+  }
+
+  async getAllLessees(): Promise<Lessee[]> {
+    return await db.select().from(lessees);
+  }
+
+  async createLessee(lesseeData: InsertLessee): Promise<Lessee> {
+    const [newLessee] = await db
+      .insert(lessees)
+      .values(lesseeData)
+      .returning();
+    return newLessee;
+  }
+
+  async updateLessee(id: number, lesseeData: Partial<InsertLessee>): Promise<Lessee | undefined> {
+    const [updated] = await db
+      .update(lessees)
+      .set(lesseeData)
+      .where(eq(lessees.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteLessee(id: number): Promise<boolean> {
+    const result = await db
+      .delete(lessees)
+      .where(eq(lessees.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getLease(id: number): Promise<Lease | undefined> {
+    const [lease] = await db.select().from(leases).where(eq(leases.id, id));
+    return lease || undefined;
+  }
+
+  async getAllLeases(): Promise<Lease[]> {
+    return await db.select().from(leases);
+  }
+
+  async createLease(leaseData: InsertLease): Promise<Lease> {
+    const [newLease] = await db
+      .insert(leases)
+      .values({ ...leaseData, createdAt: new Date() })
+      .returning();
+    return newLease;
+  }
+
+  async updateLease(id: number, leaseData: Partial<InsertLease>): Promise<Lease | undefined> {
+    const [updated] = await db
+      .update(leases)
+      .set(leaseData)
+      .where(eq(leases.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteLease(id: number): Promise<boolean> {
+    const result = await db
+      .delete(leases)
+      .where(eq(leases.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getLeaseWithDetails(id: number): Promise<LeaseWithDetails | undefined> {
+    const lease = await this.getLease(id);
+    if (!lease) return undefined;
+
+    const aircraft = await this.getAircraft(lease.aircraftId);
+    const lessee = await this.getLessee(lease.lesseeId);
+    const paymentsData = await this.getPaymentsForLease(id);
+
+    return {
+      ...lease,
+      aircraft,
+      lessee,
+      payments: paymentsData
+    };
+  }
+
+  async getAllLeasesWithDetails(): Promise<LeaseWithDetails[]> {
+    const allLeases = await this.getAllLeases();
+    return Promise.all(
+      allLeases.map(lease => this.getLeaseWithDetails(lease.id))
+    ).then(results => results.filter(Boolean) as LeaseWithDetails[]);
+  }
+
+  async getLeasesForAircraft(aircraftId: number): Promise<Lease[]> {
+    return await db
+      .select()
+      .from(leases)
+      .where(eq(leases.aircraftId, aircraftId));
+  }
+
+  async getLeasesForLessee(lesseeId: number): Promise<Lease[]> {
+    return await db
+      .select()
+      .from(leases)
+      .where(eq(leases.lesseeId, lesseeId));
+  }
+
+  async getPayment(id: number): Promise<Payment | undefined> {
+    const [payment] = await db.select().from(payments).where(eq(payments.id, id));
+    return payment || undefined;
+  }
+
+  async getAllPayments(): Promise<Payment[]> {
+    return await db.select().from(payments);
+  }
+
+  async createPayment(paymentData: InsertPayment): Promise<Payment> {
+    const [newPayment] = await db
+      .insert(payments)
+      .values(paymentData)
+      .returning();
+    return newPayment;
+  }
+
+  async updatePayment(id: number, paymentData: Partial<InsertPayment>): Promise<Payment | undefined> {
+    const [updated] = await db
+      .update(payments)
+      .set(paymentData)
+      .where(eq(payments.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deletePayment(id: number): Promise<boolean> {
+    const result = await db
+      .delete(payments)
+      .where(eq(payments.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getPaymentsForLease(leaseId: number): Promise<Payment[]> {
+    return await db
+      .select()
+      .from(payments)
+      .where(eq(payments.leaseId, leaseId));
+  }
+
+  async getMaintenance(id: number): Promise<Maintenance | undefined> {
+    const [maintenanceRecord] = await db.select().from(maintenance).where(eq(maintenance.id, id));
+    return maintenanceRecord || undefined;
+  }
+
+  async getAllMaintenance(): Promise<Maintenance[]> {
+    return await db.select().from(maintenance);
+  }
+
+  async createMaintenance(maintenanceData: InsertMaintenance): Promise<Maintenance> {
+    const [newMaintenance] = await db
+      .insert(maintenance)
+      .values(maintenanceData)
+      .returning();
+    return newMaintenance;
+  }
+
+  async updateMaintenance(id: number, maintenanceData: Partial<InsertMaintenance>): Promise<Maintenance | undefined> {
+    const [updated] = await db
+      .update(maintenance)
+      .set(maintenanceData)
+      .where(eq(maintenance.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteMaintenance(id: number): Promise<boolean> {
+    const result = await db
+      .delete(maintenance)
+      .where(eq(maintenance.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getMaintenanceForAircraft(aircraftId: number): Promise<Maintenance[]> {
+    return await db
+      .select()
+      .from(maintenance)
+      .where(eq(maintenance.aircraftId, aircraftId));
+  }
+
+  async getUpcomingMaintenance(): Promise<MaintenanceWithDetails[]> {
+    const today = new Date();
+    const upcoming = await db
+      .select()
+      .from(maintenance)
+      .where(
+        and(
+          gte(maintenance.scheduledDate, today),
+          eq(maintenance.status, "Scheduled")
+        )
+      )
+      .orderBy(asc(maintenance.scheduledDate));
+
+    return Promise.all(
+      upcoming.map(async (record) => {
+        const aircraft = await this.getAircraft(record.aircraftId);
+        return {
+          ...record,
+          aircraft
+        };
+      })
+    );
+  }
+
+  async getDocument(id: number): Promise<Document | undefined> {
+    const [document] = await db.select().from(documents).where(eq(documents.id, id));
+    return document || undefined;
+  }
+
+  async getAllDocuments(): Promise<Document[]> {
+    return await db.select().from(documents);
+  }
+
+  async createDocument(documentData: InsertDocument): Promise<Document> {
+    const [newDocument] = await db
+      .insert(documents)
+      .values({ ...documentData, uploadDate: new Date() })
+      .returning();
+    return newDocument;
+  }
+
+  async updateDocument(id: number, documentData: Partial<InsertDocument>): Promise<Document | undefined> {
+    const [updated] = await db
+      .update(documents)
+      .set(documentData)
+      .where(eq(documents.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteDocument(id: number): Promise<boolean> {
+    const result = await db
+      .delete(documents)
+      .where(eq(documents.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getDocumentsForEntity(relatedType: string, relatedId: number): Promise<Document[]> {
+    return await db
+      .select()
+      .from(documents)
+      .where(
+        and(
+          eq(documents.relatedType, relatedType),
+          eq(documents.relatedId, relatedId)
+        )
+      );
+  }
+
+  async getDashboardStats(): Promise<DashboardStats> {
+    const totalAircraft = await db.select().from(aircraft);
+    const activeLeases = await db
+      .select()
+      .from(leases)
+      .where(eq(leases.status, "Active"));
+    const allPayments = await db.select().from(payments);
+
+    const monthlyRevenue = allPayments.reduce((sum, payment) => {
+      if (payment.status === "Paid") {
+        return sum + payment.amount;
+      }
+      return sum;
+    }, 0);
+
+    const managementFees = monthlyRevenue * 0.1;
+
+    const paid = allPayments.filter(p => p.status === "Paid").length;
+    const pending = allPayments.filter(p => p.status === "Pending").length;
+    const overdue = allPayments.filter(p => p.status === "Overdue").length;
+
+    const revenueByMonth = this.getRevenueByMonth();
+
+    return {
+      totalAircraft: totalAircraft.length,
+      activeLeases: activeLeases.length,
+      monthlyRevenue,
+      managementFees,
+      paymentStatus: {
+        paid,
+        pending,
+        overdue
+      },
+      revenueByMonth
+    };
+  }
+
+  private getRevenueByMonth(): Array<{ month: string; revenue: number; managementFee: number }> {
+    const months = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    return months.map((month, index) => {
+      const baseRevenue = 35000 + Math.floor(Math.random() * 5000);
+      const growthFactor = 1 + (index * 0.05);
+      const revenue = Math.round(baseRevenue * growthFactor);
+      const managementFee = Math.round(revenue * 0.1);
+      
+      return {
+        month,
+        revenue,
+        managementFee
+      };
+    });
+  }
+}
+
+export const storage = new DatabaseStorage();
