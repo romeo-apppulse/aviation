@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Lessee, InsertLessee } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Plus, Mail, Phone, MapPin, Building2, User, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Mail, Phone, MapPin, Building2, User, Search, Edit, Trash2, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Helmet } from "react-helmet";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -44,6 +44,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // Extend the insert schema with validation rules
 const lesseeFormSchema = z.object({
@@ -57,8 +65,15 @@ const lesseeFormSchema = z.object({
 
 type LesseeFormValues = z.infer<typeof lesseeFormSchema>;
 
+type ViewMode = 'grid' | 'list';
+type SortField = 'name' | 'email' | 'phone' | 'address' | 'contactPerson';
+type SortDirection = 'asc' | 'desc';
+
 export default function Lessees() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [addLesseeOpen, setAddLesseeOpen] = useState(false);
   const [editingLessee, setEditingLessee] = useState<Lessee | null>(null);
   const [deleteLessee, setDeleteLessee] = useState<Lessee | null>(null);

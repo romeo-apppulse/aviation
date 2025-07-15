@@ -2,7 +2,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Owner, InsertOwner } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Plus, Mail, Phone, MapPin, User, Search, Edit, Trash2 } from "lucide-react";
+import { Plus, Mail, Phone, MapPin, User, Search, Edit, Trash2, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Helmet } from "react-helmet";
 import { formatCurrency } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,6 +45,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 // Extend the insert schema with validation rules
 const ownerFormSchema = z.object({
@@ -58,8 +66,15 @@ const ownerFormSchema = z.object({
 
 type OwnerFormValues = z.infer<typeof ownerFormSchema>;
 
+type ViewMode = 'grid' | 'list';
+type SortField = 'name' | 'email' | 'phone' | 'address';
+type SortDirection = 'asc' | 'desc';
+
 export default function Owners() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [addOwnerOpen, setAddOwnerOpen] = useState(false);
   const [editingOwner, setEditingOwner] = useState<Owner | null>(null);
   const [deleteOwner, setDeleteOwner] = useState<Owner | null>(null);
@@ -69,11 +84,57 @@ export default function Owners() {
     queryKey: ["/api/owners"],
   });
 
-  const filteredOwners = owners
-    ? owners.filter((owner) =>
-        owner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        owner.email.toLowerCase().includes(searchTerm.toLowerCase())
-      )
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4" />;
+    }
+    return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+  };
+
+  const filteredAndSortedOwners = owners
+    ? owners
+        .filter((owner) =>
+          owner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          owner.email.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        .sort((a, b) => {
+          let aValue: any;
+          let bValue: any;
+          
+          switch (sortField) {
+            case 'name':
+              aValue = a.name.toLowerCase();
+              bValue = b.name.toLowerCase();
+              break;
+            case 'email':
+              aValue = a.email.toLowerCase();
+              bValue = b.email.toLowerCase();
+              break;
+            case 'phone':
+              aValue = (a.phone || "").toLowerCase();
+              bValue = (b.phone || "").toLowerCase();
+              break;
+            case 'address':
+              aValue = (a.address || "").toLowerCase();
+              bValue = (b.address || "").toLowerCase();
+              break;
+            default:
+              return 0;
+          }
+          
+          if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+          if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
+        })
     : [];
 
   const createOwnerMutation = useMutation({
@@ -210,15 +271,35 @@ export default function Owners() {
 
       <Card className="mb-6">
         <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-            <Input
-              type="text"
-              placeholder="Search owners by name or email..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Input
+                type="text"
+                placeholder="Search owners by name or email..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex rounded-md border border-gray-200 bg-gray-50">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="rounded-r-none"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="rounded-l-none"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -241,9 +322,10 @@ export default function Owners() {
               </Card>
             ))}
         </div>
-      ) : filteredOwners.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredOwners.map((owner) => (
+      ) : filteredAndSortedOwners.length > 0 ? (
+        viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredAndSortedOwners.map((owner) => (
             <Card key={owner.id}>
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
@@ -312,7 +394,108 @@ export default function Owners() {
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
+        ) : (
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('name')}
+                      className="h-auto p-0 font-semibold hover:bg-transparent"
+                    >
+                      Name
+                      {getSortIcon('name')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('email')}
+                      className="h-auto p-0 font-semibold hover:bg-transparent"
+                    >
+                      Email
+                      {getSortIcon('email')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('phone')}
+                      className="h-auto p-0 font-semibold hover:bg-transparent"
+                    >
+                      Phone
+                      {getSortIcon('phone')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('address')}
+                      className="h-auto p-0 font-semibold hover:bg-transparent"
+                    >
+                      Address
+                      {getSortIcon('address')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAndSortedOwners.map((owner) => (
+                  <TableRow key={owner.id} className="hover:bg-gray-50">
+                    <TableCell className="font-medium">{owner.name}</TableCell>
+                    <TableCell>
+                      <a href={`mailto:${owner.email}`} className="text-[#3498db] hover:underline">
+                        {owner.email}
+                      </a>
+                    </TableCell>
+                    <TableCell>
+                      {owner.phone ? (
+                        <a href={`tel:${owner.phone}`} className="text-gray-700 hover:underline">
+                          {owner.phone}
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {owner.address ? (
+                        <span className="text-gray-700">{owner.address}</span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEditingOwner(owner)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteOwner(owner)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        )
       ) : (
         <div className="text-center py-12">
           <div className="mx-auto h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
