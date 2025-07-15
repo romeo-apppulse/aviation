@@ -13,8 +13,8 @@ import {
   HelpCircle,
   LogOut,
   Home,
-  ChevronLeft,
-  ChevronRight
+  Menu,
+  X
 } from "lucide-react";
 import { useState } from "react";
 
@@ -45,20 +45,20 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}
     >
-      <div className="p-4 flex items-center border-b border-[#34495e] relative">
-        <div className="flex items-center space-x-3">
+      <div className="p-4 flex items-center justify-between border-b border-[#34495e]">
+        <div className="flex items-center space-x-3 min-w-0">
           <Plane className="text-[#3498db] h-6 w-6 flex-shrink-0" />
-          {!collapsed && <h1 className="font-sans font-bold text-xl">AeroLease</h1>}
+          {!collapsed && <h1 className="font-sans font-bold text-xl truncate">AeroLease</h1>}
         </div>
         <button
           onClick={toggleCollapse}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[#34495e] transition-colors"
+          className="p-1.5 rounded hover:bg-[#34495e] transition-colors flex-shrink-0"
           title={collapsed ? "Expand menu" : "Collapse menu"}
         >
           {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
+            <Menu className="h-4 w-4" />
           ) : (
-            <ChevronLeft className="h-4 w-4" />
+            <X className="h-4 w-4" />
           )}
         </button>
       </div>
