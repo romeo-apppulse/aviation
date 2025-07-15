@@ -1,7 +1,8 @@
 import { useLocation } from "wouter";
-import { Bell, Menu, X } from "lucide-react";
+import { Bell, Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/useAuth";
 
 type HeaderProps = {
   sidebarOpen: boolean;
@@ -10,10 +11,12 @@ type HeaderProps = {
 
 export default function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
   const [location] = useLocation();
+  const { user } = useAuth();
   
   const getPageTitle = () => {
     const pathTitles: Record<string, string> = {
-      "/": "Dashboard",
+      "/": "Home",
+      "/dashboard": "Dashboard",
       "/aircraft": "Aircraft",
       "/owners": "Owners",
       "/lessees": "Flight Schools",
@@ -56,11 +59,26 @@ export default function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
             </Button>
           </div>
           
-          <div className="flex items-center">
-            <Avatar className="h-8 w-8 bg-[#3498db] text-white">
-              <AvatarFallback>JD</AvatarFallback>
+          <div className="flex items-center space-x-2">
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={user?.profileImageUrl || undefined} />
+              <AvatarFallback className="bg-[#3498db] text-white">
+                {user?.firstName?.[0] || user?.email?.[0] || 'U'}
+              </AvatarFallback>
             </Avatar>
-            <span className="ml-2 text-sm font-sans text-gray-700 hidden md:block">John Doe</span>
+            <span className="ml-2 text-sm font-sans text-gray-700 hidden md:block">
+              {user?.firstName || user?.lastName 
+                ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
+                : user?.email || 'User'}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => window.location.href = '/api/logout'}
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>

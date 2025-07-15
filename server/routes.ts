@@ -14,8 +14,12 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication first
+  await setupAuth(app);
+
   const apiRouter = express.Router();
 
   // Error handling middleware
@@ -28,8 +32,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.status(500).json({ error: "Internal server error" });
   };
 
+  // Authentication routes
+  apiRouter.get('/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
   // Dashboard routes
-  apiRouter.get("/dashboard", async (req: Request, res: Response) => {
+  apiRouter.get("/dashboard", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const stats = await storage.getDashboardStats();
       res.json(stats);

@@ -1,8 +1,8 @@
 import {
-  Aircraft, Owner, Lessee, Lease, Payment, Maintenance, Document,
-  InsertAircraft, InsertOwner, InsertLessee, InsertLease, InsertPayment, InsertMaintenance, InsertDocument,
+  Aircraft, Owner, Lessee, Lease, Payment, Maintenance, Document, User,
+  InsertAircraft, InsertOwner, InsertLessee, InsertLease, InsertPayment, InsertMaintenance, InsertDocument, UpsertUser,
   DashboardStats, AircraftWithDetails, LeaseWithDetails, MaintenanceWithDetails,
-  aircraft, owners, lessees, leases, payments, maintenance, documents
+  aircraft, owners, lessees, leases, payments, maintenance, documents, users
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, gte, lte } from "drizzle-orm";
@@ -69,6 +69,10 @@ export interface IStorage {
 
   // Dashboard
   getDashboardStats(): Promise<DashboardStats>;
+
+  // User operations (required for authentication)
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
 }
 
 export class MemStorage implements IStorage {
@@ -1190,6 +1194,27 @@ export class DatabaseStorage implements IStorage {
         managementFee
       };
     });
+  }
+
+  // User operations (required for authentication)
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
   }
 }
 
