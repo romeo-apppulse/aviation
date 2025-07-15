@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, Calendar } from "lucide-react";
 import { AircraftImage } from "@/components/ui/aircraft-image";
+import { Link } from "wouter";
 
 export default function MaintenanceSchedule() {
   const { data: upcomingMaintenance, isLoading } = useQuery<MaintenanceWithDetails[]>({
@@ -38,7 +39,9 @@ export default function MaintenanceSchedule() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-sans font-semibold text-gray-700">Upcoming Maintenance</CardTitle>
-        <Button variant="link" size="sm" className="text-[#3498db]">View All</Button>
+        <Button variant="link" size="sm" className="text-[#3498db]" asChild>
+          <Link href="/maintenance">View All</Link>
+        </Button>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -102,9 +105,12 @@ export default function MaintenanceSchedule() {
               <Button 
                 className="w-full mt-2 py-2 px-4 border border-gray-300 text-gray-700 hover:bg-gray-50 whitespace-normal break-words"
                 variant="outline"
+                asChild
               >
-                <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
-                <span className="break-words">Schedule Maintenance</span>
+                <Link href="/maintenance">
+                  <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <span className="break-words">Schedule Maintenance</span>
+                </Link>
               </Button>
             </>
           ) : (
@@ -114,9 +120,12 @@ export default function MaintenanceSchedule() {
               <Button 
                 className="mt-4 whitespace-normal break-words"
                 variant="outline"
+                asChild
               >
-                <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
-                <span className="break-words">Schedule Maintenance</span>
+                <Link href="/maintenance">
+                  <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
+                  <span className="break-words">Schedule Maintenance</span>
+                </Link>
               </Button>
             </div>
           )}
