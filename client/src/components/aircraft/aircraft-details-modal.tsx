@@ -6,7 +6,7 @@ import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Maintenance } from "@shared/schema";
-import { Check, FileText, Plane, Calendar, Clock } from "lucide-react";
+import { Check, FileText, Plane, Calendar, Clock, Wrench } from "lucide-react";
 
 interface AircraftDetailsModalProps {
   isOpen: boolean;

@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Owner, InsertOwner } from "@shared/schema";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Plus, Mail, Phone, MapPin, User, Search, Edit, Trash2 } from "lucide-react";
 import { Helmet } from "react-helmet";
@@ -160,7 +160,7 @@ export default function Owners() {
   }
 
   // Reset form when editingOwner changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (editingOwner) {
       form.reset({
         name: editingOwner.name,

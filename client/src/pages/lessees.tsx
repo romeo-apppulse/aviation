@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Lessee, InsertLessee } from "@shared/schema";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { Plus, Mail, Phone, MapPin, Building2, User, Search, Edit, Trash2 } from "lucide-react";
 import { Helmet } from "react-helmet";
@@ -160,7 +160,7 @@ export default function Lessees() {
   }
 
   // Reset form when editingLessee changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (editingLessee) {
       form.reset({
         name: editingLessee.name,
