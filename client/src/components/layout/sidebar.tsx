@@ -12,8 +12,11 @@ import {
   Settings,
   HelpCircle,
   LogOut,
-  Home
+  Home,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
+import { useState } from "react";
 
 type SidebarProps = {
   open: boolean;
@@ -22,154 +25,200 @@ type SidebarProps = {
 
 export default function Sidebar({ open, setOpen }: SidebarProps) {
   const [location] = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
   
   const closeSidebarIfMobile = () => {
     if (window.innerWidth < 768) {
       setOpen(false);
     }
   };
+
+  const toggleCollapse = () => {
+    setCollapsed(!collapsed);
+  };
   
   return (
     <aside 
       className={cn(
-        "sidebar fixed md:static z-20 bg-[#2c3e50] text-white w-64 h-screen flex-shrink-0 shadow-lg overflow-y-auto transition-transform duration-300",
+        "sidebar fixed md:static z-20 bg-[#2c3e50] text-white h-screen flex-shrink-0 shadow-lg overflow-y-auto transition-all duration-300",
+        collapsed ? "w-16" : "w-64",
         open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}
     >
-      <div className="p-4 flex items-center space-x-3 border-b border-[#34495e]">
-        <Plane className="text-[#3498db] h-6 w-6" />
-        <h1 className="font-sans font-bold text-xl">AeroLease</h1>
+      <div className="p-4 flex items-center border-b border-[#34495e] relative">
+        <div className="flex items-center space-x-3">
+          <Plane className="text-[#3498db] h-6 w-6 flex-shrink-0" />
+          {!collapsed && <h1 className="font-sans font-bold text-xl">AeroLease</h1>}
+        </div>
+        <button
+          onClick={toggleCollapse}
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-[#34495e] transition-colors"
+          title={collapsed ? "Expand menu" : "Collapse menu"}
+        >
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
       </div>
       
       <div className="p-4">
-        <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">Main Navigation</div>
+        {!collapsed && <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">Main Navigation</div>}
         <nav>
           <Link 
             href="/"
             onClick={closeSidebarIfMobile}
             className={cn(
-              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              collapsed ? "justify-center" : "space-x-3",
               location === "/" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
             )}
+            title={collapsed ? "Home" : ""}
           >
-            <Home className="h-5 w-5" />
-            <span>Home</span>
+            <Home className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Home</span>}
           </Link>
           
           <Link 
             href="/dashboard"
             onClick={closeSidebarIfMobile}
             className={cn(
-              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              collapsed ? "justify-center" : "space-x-3",
               location === "/dashboard" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
             )}
+            title={collapsed ? "Dashboard" : ""}
           >
-            <LayoutDashboard className="h-5 w-5" />
-            <span>Dashboard</span>
+            <LayoutDashboard className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Dashboard</span>}
           </Link>
           
           <Link 
             href="/aircraft"
             onClick={closeSidebarIfMobile}
             className={cn(
-              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              collapsed ? "justify-center" : "space-x-3",
               location === "/aircraft" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
             )}
+            title={collapsed ? "Aircraft" : ""}
           >
-            <Plane className="h-5 w-5" />
-            <span>Aircraft</span>
+            <Plane className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Aircraft</span>}
           </Link>
           
           <Link 
             href="/owners"
             onClick={closeSidebarIfMobile}
             className={cn(
-              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              collapsed ? "justify-center" : "space-x-3",
               location === "/owners" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
             )}
+            title={collapsed ? "Owners" : ""}
           >
-            <UserCircle className="h-5 w-5" />
-            <span>Owners</span>
+            <UserCircle className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Owners</span>}
           </Link>
           
           <Link 
             href="/lessees"
             onClick={closeSidebarIfMobile}
             className={cn(
-              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              collapsed ? "justify-center" : "space-x-3",
               location === "/lessees" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
             )}
+            title={collapsed ? "Flight Schools" : ""}
           >
-            <Building2 className="h-5 w-5" />
-            <span>Flight Schools</span>
+            <Building2 className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Flight Schools</span>}
           </Link>
           
           <Link 
             href="/leases"
             onClick={closeSidebarIfMobile}
             className={cn(
-              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              collapsed ? "justify-center" : "space-x-3",
               location === "/leases" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
             )}
+            title={collapsed ? "Lease Agreements" : ""}
           >
-            <FileText className="h-5 w-5" />
-            <span>Lease Agreements</span>
+            <FileText className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Lease Agreements</span>}
           </Link>
           
           <Link 
             href="/payments"
             onClick={closeSidebarIfMobile}
             className={cn(
-              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              collapsed ? "justify-center" : "space-x-3",
               location === "/payments" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
             )}
+            title={collapsed ? "Payments" : ""}
           >
-            <DollarSign className="h-5 w-5" />
-            <span>Payments</span>
+            <DollarSign className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Payments</span>}
           </Link>
           
           <Link 
             href="/maintenance"
             onClick={closeSidebarIfMobile}
             className={cn(
-              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              collapsed ? "justify-center" : "space-x-3",
               location === "/maintenance" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
             )}
+            title={collapsed ? "Maintenance" : ""}
           >
-            <Wrench className="h-5 w-5" />
-            <span>Maintenance</span>
+            <Wrench className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Maintenance</span>}
           </Link>
           
           <Link 
             href="/documents"
             onClick={closeSidebarIfMobile}
             className={cn(
-              "flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              collapsed ? "justify-center" : "space-x-3",
               location === "/documents" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
             )}
+            title={collapsed ? "Documents" : ""}
           >
-            <FolderOpen className="h-5 w-5" />
-            <span>Documents</span>
+            <FolderOpen className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Documents</span>}
           </Link>
         </nav>
       </div>
       
       <div className="p-4 mt-4">
-        <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">Settings</div>
+        {!collapsed && <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">Settings</div>}
         <nav>
-          <a href="#" className="flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1">
-            <Settings className="h-5 w-5" />
-            <span>Settings</span>
+          <a href="#" className={cn(
+            "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+            collapsed ? "justify-center" : "space-x-3"
+          )} title={collapsed ? "Settings" : ""}>
+            <Settings className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Settings</span>}
           </a>
           
-          <a href="#" className="flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1">
-            <HelpCircle className="h-5 w-5" />
-            <span>Help & Support</span>
+          <a href="#" className={cn(
+            "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+            collapsed ? "justify-center" : "space-x-3"
+          )} title={collapsed ? "Help & Support" : ""}>
+            <HelpCircle className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Help & Support</span>}
           </a>
           
-          <a href="#" className="flex items-center space-x-3 text-white p-3 rounded transition hover:bg-[#34495e] mb-1">
-            <LogOut className="h-5 w-5" />
-            <span>Logout</span>
+          <a href="#" className={cn(
+            "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+            collapsed ? "justify-center" : "space-x-3"
+          )} title={collapsed ? "Logout" : ""}>
+            <LogOut className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span>Logout</span>}
           </a>
         </nav>
       </div>
