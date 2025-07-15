@@ -91,6 +91,60 @@ export default function Lessees() {
       )
     : [];
 
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="ml-1 h-3 w-3" />;
+    }
+    return sortDirection === 'asc' ? 
+      <ArrowUp className="ml-1 h-3 w-3" /> : 
+      <ArrowDown className="ml-1 h-3 w-3" />;
+  };
+
+  const filteredAndSortedLessees = filteredLessees.length > 0
+    ? filteredLessees.sort((a, b) => {
+        let aValue = '';
+        let bValue = '';
+        
+        switch (sortField) {
+          case 'name':
+            aValue = a.name || '';
+            bValue = b.name || '';
+            break;
+          case 'email':
+            aValue = a.email || '';
+            bValue = b.email || '';
+            break;
+          case 'phone':
+            aValue = a.phone || '';
+            bValue = b.phone || '';
+            break;
+          case 'address':
+            aValue = a.address || '';
+            bValue = b.address || '';
+            break;
+          case 'contactPerson':
+            aValue = a.contactPerson || '';
+            bValue = b.contactPerson || '';
+            break;
+          default:
+            return 0;
+        }
+        
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      })
+    : [];
+
   const createLesseeMutation = useMutation({
     mutationFn: (data: InsertLessee) => 
       apiRequest("POST", "/api/lessees", data).then(res => res.json()),
@@ -225,15 +279,35 @@ export default function Lessees() {
 
       <Card className="mb-6">
         <CardContent className="pt-6">
-          <div className="relative">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-            <Input
-              type="text"
-              placeholder="Search by name, email, or contact person..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Input
+                type="text"
+                placeholder="Search by name, email, or contact person..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="flex rounded-md border border-gray-200 bg-gray-50">
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="rounded-r-none"
+              >
+                <Grid3X3 className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="rounded-l-none"
+              >
+                <List className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -256,9 +330,10 @@ export default function Lessees() {
               </Card>
             ))}
         </div>
-      ) : filteredLessees.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredLessees.map((lessee) => (
+      ) : filteredAndSortedLessees.length > 0 ? (
+        viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredAndSortedLessees.map((lessee) => (
             <Card key={lessee.id}>
               <CardContent className="p-6">
                 <div className="flex justify-between items-start">
@@ -334,7 +409,126 @@ export default function Lessees() {
               </CardContent>
             </Card>
           ))}
-        </div>
+          </div>
+        ) : (
+          <Card>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('name')}
+                      className="h-auto p-0 font-semibold hover:bg-transparent"
+                    >
+                      Name
+                      {getSortIcon('name')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('email')}
+                      className="h-auto p-0 font-semibold hover:bg-transparent"
+                    >
+                      Email
+                      {getSortIcon('email')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('contactPerson')}
+                      className="h-auto p-0 font-semibold hover:bg-transparent"
+                    >
+                      Contact Person
+                      {getSortIcon('contactPerson')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('phone')}
+                      className="h-auto p-0 font-semibold hover:bg-transparent"
+                    >
+                      Phone
+                      {getSortIcon('phone')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleSort('address')}
+                      className="h-auto p-0 font-semibold hover:bg-transparent"
+                    >
+                      Address
+                      {getSortIcon('address')}
+                    </Button>
+                  </TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredAndSortedLessees.map((lessee) => (
+                  <TableRow key={lessee.id} className="hover:bg-gray-50">
+                    <TableCell className="font-medium">{lessee.name}</TableCell>
+                    <TableCell>
+                      <a href={`mailto:${lessee.email}`} className="text-[#3498db] hover:underline">
+                        {lessee.email}
+                      </a>
+                    </TableCell>
+                    <TableCell>
+                      {lessee.contactPerson ? (
+                        <span className="text-gray-700">{lessee.contactPerson}</span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {lessee.phone ? (
+                        <a href={`tel:${lessee.phone}`} className="text-gray-700 hover:underline">
+                          {lessee.phone}
+                        </a>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {lessee.address ? (
+                        <span className="text-gray-700">{lessee.address}</span>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setEditingLessee(lessee)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setDeleteLessee(lessee)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </Card>
+        )
       ) : (
         <div className="text-center py-12">
           <div className="mx-auto h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
