@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarIcon, CheckCircle, Plus, Search, Filter, Wrench, Plane } from "lucide-react";
+import { CalendarIcon, CheckCircle, Plus, Search, Filter, Wrench, Plane, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -79,11 +79,16 @@ const maintenanceFormSchema = z.object({
 
 type MaintenanceFormValues = z.infer<typeof maintenanceFormSchema>;
 
+type SortField = 'aircraft' | 'type' | 'scheduledDate' | 'status' | 'performedBy';
+type SortDirection = 'asc' | 'desc';
+
 export default function Maintenance() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [addMaintenanceOpen, setAddMaintenanceOpen] = useState(false);
   const [markAsCompleteId, setMarkAsCompleteId] = useState<number | null>(null);
+  const [sortField, setSortField] = useState<SortField>('scheduledDate');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const { toast } = useToast();
 
   const { data: maintenance, isLoading } = useQuery<MaintenanceWithDetails[]>({
@@ -95,17 +100,67 @@ export default function Maintenance() {
     enabled: addMaintenanceOpen,
   });
 
-  const filteredMaintenance = maintenance
-    ? maintenance.filter((item) => {
-        const matchesSearch =
-          (item.type || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (item.aircraft?.registration || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (item.notes && item.notes.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-        const matchesStatus = statusFilter === "all" || item.status === statusFilter;
-        
-        return matchesSearch && matchesStatus;
-      })
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-4 w-4" />;
+    }
+    return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+  };
+
+  const filteredAndSortedMaintenance = maintenance
+    ? maintenance
+        .filter((item) => {
+          const matchesSearch =
+            (item.type || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (item.aircraft?.registration || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (item.notes && item.notes.toLowerCase().includes(searchTerm.toLowerCase()));
+          
+          const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+          
+          return matchesSearch && matchesStatus;
+        })
+        .sort((a, b) => {
+          let aValue: any;
+          let bValue: any;
+          
+          switch (sortField) {
+            case 'aircraft':
+              aValue = (a.aircraft?.registration || "").toLowerCase();
+              bValue = (b.aircraft?.registration || "").toLowerCase();
+              break;
+            case 'type':
+              aValue = (a.type || "").toLowerCase();
+              bValue = (b.type || "").toLowerCase();
+              break;
+            case 'scheduledDate':
+              aValue = new Date(a.scheduledDate);
+              bValue = new Date(b.scheduledDate);
+              break;
+            case 'status':
+              aValue = a.status.toLowerCase();
+              bValue = b.status.toLowerCase();
+              break;
+            case 'performedBy':
+              aValue = (a.performedBy || "").toLowerCase();
+              bValue = (b.performedBy || "").toLowerCase();
+              break;
+            default:
+              return 0;
+          }
+          
+          if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+          if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+          return 0;
+        })
     : [];
 
   const createMaintenanceMutation = useMutation({
@@ -244,21 +299,56 @@ export default function Maintenance() {
             <div className="p-8 flex items-center justify-center">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3498db]"></div>
             </div>
-          ) : filteredMaintenance.length > 0 ? (
+          ) : filteredAndSortedMaintenance.length > 0 ? (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Aircraft</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Scheduled Date</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Performed By</TableHead>
+                    <TableHead>
+                      <button 
+                        onClick={() => handleSort('aircraft')}
+                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                      >
+                        Aircraft {getSortIcon('aircraft')}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button 
+                        onClick={() => handleSort('type')}
+                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                      >
+                        Type {getSortIcon('type')}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button 
+                        onClick={() => handleSort('scheduledDate')}
+                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                      >
+                        Scheduled Date {getSortIcon('scheduledDate')}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button 
+                        onClick={() => handleSort('status')}
+                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                      >
+                        Status {getSortIcon('status')}
+                      </button>
+                    </TableHead>
+                    <TableHead>
+                      <button 
+                        onClick={() => handleSort('performedBy')}
+                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                      >
+                        Performed By {getSortIcon('performedBy')}
+                      </button>
+                    </TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMaintenance.map((item) => (
+                  {filteredAndSortedMaintenance.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center space-x-2">
