@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Clock, Calendar } from "lucide-react";
+import { AircraftImage } from "@/components/ui/aircraft-image";
 
 export default function MaintenanceSchedule() {
   const { data: upcomingMaintenance, isLoading } = useQuery<MaintenanceWithDetails[]>({
@@ -42,9 +43,9 @@ export default function MaintenanceSchedule() {
       <CardContent>
         <div className="space-y-4">
           <div className="rounded-lg overflow-hidden h-40 mb-4 relative">
-            <img 
+            <AircraftImage 
               className="w-full h-full object-cover" 
-              src="https://pixabay.com/get/gf297e49a969cfe8e723e56195d90c2a5a1785040394b96b374ebe43221c32a3478cecbaba5dde4d4da828d25cb8656514ad64997514ba1697fe8b2c168bbe345_1280.jpg" 
+              src="https://cdn.pixabay.com/photo/2022/10/14/09/12/aircraft-7520859_1280.jpg" 
               alt="Aircraft maintenance" 
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
