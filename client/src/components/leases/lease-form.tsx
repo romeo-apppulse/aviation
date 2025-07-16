@@ -11,7 +11,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, Plane, Building2 } from "lucide-react";
+import { CalendarIcon, Plane, Building2, Upload, Link2, X, FileText } from "lucide-react";
+import { useState } from "react";
 import {
   Form,
   FormControl,
@@ -65,6 +66,9 @@ type LeaseFormValues = z.infer<typeof leaseFormSchema>;
 
 export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
   const { toast } = useToast();
+  const [documentMode, setDocumentMode] = useState<"url" | "file">("url");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [documentPreview, setDocumentPreview] = useState<string>("");
   
   // Fetch aircraft and lessees to populate dropdowns
   const { data: aircraft } = useQuery<Aircraft[]>({
@@ -107,7 +111,7 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
         description: "The lease agreement has been created successfully",
         variant: "default",
       });
-      onClose();
+      handleClose();
     },
     onError: (error) => {
       toast({
@@ -118,15 +122,61 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
     }
   });
 
-  function onSubmit(values: LeaseFormValues) {
-    createLeaseMutation.mutate(values);
+  // Handle file selection
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setDocumentPreview(file.name);
+    }
+  };
+
+  // Convert file to base64 for storage
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Reset form and document state when dialog closes
+  const handleClose = () => {
+    setSelectedFile(null);
+    setDocumentPreview("");
+    setDocumentMode("url");
+    form.reset();
+    onClose();
+  };
+
+  async function onSubmit(values: LeaseFormValues) {
+    try {
+      let documentData = values.documentUrl;
+      
+      // If file mode and a file is selected, convert to base64
+      if (documentMode === "file" && selectedFile) {
+        documentData = await convertFileToBase64(selectedFile);
+      }
+      
+      createLeaseMutation.mutate({
+        ...values,
+        documentUrl: documentData,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process document file",
+        variant: "destructive",
+      });
+    }
   }
 
   // Filter out already leased aircraft
   const availableAircraft = aircraft?.filter(a => a.status !== "Leased") || [];
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create Lease Agreement</DialogTitle>
@@ -349,10 +399,91 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
               name="documentUrl"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Document URL (Optional)</FormLabel>
-                  <FormControl>
-                    <Input placeholder="URL to the lease document PDF" {...field} />
-                  </FormControl>
+                  <FormLabel>Lease Agreement Document (Optional)</FormLabel>
+                  
+                  {/* Toggle between URL and File upload */}
+                  <div className="flex gap-2 mb-3">
+                    <Button
+                      type="button"
+                      variant={documentMode === "url" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setDocumentMode("url");
+                        setSelectedFile(null);
+                        setDocumentPreview("");
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Link2 className="w-4 h-4" />
+                      URL
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={documentMode === "file" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setDocumentMode("file");
+                        form.setValue("documentUrl", "");
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Upload
+                    </Button>
+                  </div>
+
+                  {documentMode === "url" ? (
+                    <FormControl>
+                      <Input 
+                        placeholder="URL to the lease document PDF" 
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setDocumentPreview(e.target.value);
+                        }}
+                      />
+                    </FormControl>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          accept=".pdf,.doc,.docx,.txt"
+                          onChange={handleFileChange}
+                          className="flex-1"
+                        />
+                        {selectedFile && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedFile(null);
+                              setDocumentPreview("");
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {selectedFile && (
+                        <p className="text-sm text-gray-600">
+                          Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)}KB)
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Document Preview */}
+                  {documentPreview && documentMode === "file" && (
+                    <div className="mt-3">
+                      <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                        <FileText className="w-5 h-5 text-blue-600" />
+                        <span className="text-sm font-medium">{documentPreview}</span>
+                      </div>
+                    </div>
+                  )}
+                  
                   <FormMessage />
                 </FormItem>
               )}
@@ -403,7 +534,7 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
               <Button
                 type="button"
                 variant="outline"
-                onClick={onClose}
+                onClick={handleClose}
               >
                 Cancel
               </Button>
