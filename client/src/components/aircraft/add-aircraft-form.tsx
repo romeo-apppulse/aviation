@@ -12,6 +12,7 @@ import { InsertAircraft, Owner } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { Upload, Link2, X } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -52,6 +53,9 @@ type AircraftFormValues = z.infer<typeof aircraftFormSchema>;
 
 export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProps) {
   const { toast } = useToast();
+  const [imageMode, setImageMode] = useState<"url" | "file">("url");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
   
   // Fetch owners to populate the owner dropdown
   const { data: owners } = useQuery<Owner[]>({
@@ -77,6 +81,15 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
     }
   });
 
+  // Reset form and image state when dialog closes
+  const handleClose = () => {
+    setSelectedFile(null);
+    setImagePreview("");
+    setImageMode("url");
+    form.reset();
+    onClose();
+  };
+
   // Mutation for creating a new aircraft
   const createAircraftMutation = useMutation({
     mutationFn: (data: InsertAircraft) => 
@@ -88,7 +101,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
         description: "The aircraft has been added successfully",
         variant: "default",
       });
-      onClose();
+      handleClose();
     },
     onError: (error) => {
       toast({
@@ -99,12 +112,54 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
     }
   });
 
-  function onSubmit(values: AircraftFormValues) {
-    createAircraftMutation.mutate(values);
+  // Handle file selection
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Convert file to base64 for storage
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  async function onSubmit(values: AircraftFormValues) {
+    try {
+      let imageData = values.image;
+      
+      // If file mode and a file is selected, convert to base64
+      if (imageMode === "file" && selectedFile) {
+        imageData = await convertFileToBase64(selectedFile);
+      }
+      
+      createAircraftMutation.mutate({
+        ...values,
+        image: imageData,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process image file",
+        variant: "destructive",
+      });
+    }
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Add New Aircraft</DialogTitle>
@@ -248,10 +303,95 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
               name="image"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Image URL</FormLabel>
-                  <FormControl>
-                    <Input placeholder="URL to aircraft image" {...field} />
-                  </FormControl>
+                  <FormLabel>Aircraft Image</FormLabel>
+                  
+                  {/* Toggle between URL and File upload */}
+                  <div className="flex gap-2 mb-3">
+                    <Button
+                      type="button"
+                      variant={imageMode === "url" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setImageMode("url");
+                        setSelectedFile(null);
+                        setImagePreview("");
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Link2 className="w-4 h-4" />
+                      URL
+                    </Button>
+                    <Button
+                      type="button"
+                      variant={imageMode === "file" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        setImageMode("file");
+                        form.setValue("image", "");
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <Upload className="w-4 h-4" />
+                      Upload
+                    </Button>
+                  </div>
+
+                  {imageMode === "url" ? (
+                    <FormControl>
+                      <Input 
+                        placeholder="URL to aircraft image" 
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setImagePreview(e.target.value);
+                        }}
+                      />
+                    </FormControl>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <Input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                          className="flex-1"
+                        />
+                        {selectedFile && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedFile(null);
+                              setImagePreview("");
+                            }}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        )}
+                      </div>
+                      {selectedFile && (
+                        <p className="text-sm text-gray-600">
+                          Selected: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)}KB)
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Image Preview */}
+                  {imagePreview && (
+                    <div className="mt-3">
+                      <div className="relative w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
+                        <img
+                          src={imagePreview}
+                          alt="Aircraft preview"
+                          className="w-full h-full object-cover"
+                          onError={() => setImagePreview("")}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
                   <FormMessage />
                 </FormItem>
               )}
@@ -304,7 +444,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
               <Button
                 type="button"
                 variant="outline"
-                onClick={onClose}
+                onClick={handleClose}
               >
                 Cancel
               </Button>
