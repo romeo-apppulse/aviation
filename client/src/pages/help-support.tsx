@@ -112,10 +112,7 @@ export default function HelpSupport() {
         <div className="lg:col-span-1">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Phone className="w-5 h-5" />
-                Contact Information
-              </CardTitle>
+              <CardTitle>Contact Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-start gap-3">
