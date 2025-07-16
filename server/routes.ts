@@ -10,7 +10,8 @@ import {
   insertLeaseSchema, 
   insertPaymentSchema, 
   insertMaintenanceSchema, 
-  insertDocumentSchema 
+  insertDocumentSchema,
+  insertNotificationSchema 
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -559,6 +560,90 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to fetch documents for entity" });
+    }
+  });
+
+  // Notification routes
+  apiRouter.get("/notifications", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const notifications = await storage.getAllNotifications(userId);
+      res.json(notifications);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
+  apiRouter.get("/notifications/unread", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const notifications = await storage.getUnreadNotifications(userId);
+      res.json(notifications);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch unread notifications" });
+    }
+  });
+
+  apiRouter.get("/notifications/count", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const count = await storage.getNotificationCount(userId);
+      res.json(count);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch notification count" });
+    }
+  });
+
+  apiRouter.post("/notifications", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const validatedData = insertNotificationSchema.parse({ ...req.body, userId });
+      const notification = await storage.createNotification(validatedData);
+      res.status(201).json(notification);
+    } catch (err) {
+      handleZodError(err, res);
+    }
+  });
+
+  apiRouter.put("/notifications/:id/read", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updated = await storage.markNotificationAsRead(id);
+      if (!updated) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+      res.json({ success: true });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to mark notification as read" });
+    }
+  });
+
+  apiRouter.put("/notifications/read-all", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const updated = await storage.markAllNotificationsAsRead(userId);
+      res.json({ success: updated });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to mark all notifications as read" });
+    }
+  });
+
+  apiRouter.delete("/notifications/:id", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteNotification(id);
+      if (!deleted) {
+        return res.status(404).json({ error: "Notification not found" });
+      }
+      res.status(204).send();
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to delete notification" });
     }
   });
 

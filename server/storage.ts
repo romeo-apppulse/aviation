@@ -1,8 +1,8 @@
 import {
-  Aircraft, Owner, Lessee, Lease, Payment, Maintenance, Document, User,
-  InsertAircraft, InsertOwner, InsertLessee, InsertLease, InsertPayment, InsertMaintenance, InsertDocument, UpsertUser,
+  Aircraft, Owner, Lessee, Lease, Payment, Maintenance, Document, User, Notification,
+  InsertAircraft, InsertOwner, InsertLessee, InsertLease, InsertPayment, InsertMaintenance, InsertDocument, UpsertUser, InsertNotification,
   DashboardStats, AircraftWithDetails, LeaseWithDetails, MaintenanceWithDetails,
-  aircraft, owners, lessees, leases, payments, maintenance, documents, users
+  aircraft, owners, lessees, leases, payments, maintenance, documents, users, notifications
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, gte, lte } from "drizzle-orm";
@@ -70,6 +70,16 @@ export interface IStorage {
   // Dashboard
   getDashboardStats(): Promise<DashboardStats>;
 
+  // Notifications
+  getNotification(id: number): Promise<Notification | undefined>;
+  getAllNotifications(userId: string): Promise<Notification[]>;
+  getUnreadNotifications(userId: string): Promise<Notification[]>;
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  markNotificationAsRead(id: number): Promise<boolean>;
+  markAllNotificationsAsRead(userId: string): Promise<boolean>;
+  deleteNotification(id: number): Promise<boolean>;
+  getNotificationCount(userId: string): Promise<{ total: number; unread: number }>;
+
   // User operations (required for authentication)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
@@ -83,6 +93,7 @@ export class MemStorage implements IStorage {
   private payments: Map<number, Payment>;
   private maintenance: Map<number, Maintenance>;
   private documents: Map<number, Document>;
+  private notifications: Map<number, Notification>;
   private currentIds: {
     aircraft: number;
     owner: number;
@@ -91,6 +102,7 @@ export class MemStorage implements IStorage {
     payment: number;
     maintenance: number;
     document: number;
+    notification: number;
   };
 
   constructor() {
@@ -101,6 +113,7 @@ export class MemStorage implements IStorage {
     this.payments = new Map();
     this.maintenance = new Map();
     this.documents = new Map();
+    this.notifications = new Map();
     this.currentIds = {
       aircraft: 1,
       owner: 1,
@@ -108,11 +121,13 @@ export class MemStorage implements IStorage {
       lease: 1,
       payment: 1,
       maintenance: 1,
-      document: 1
+      document: 1,
+      notification: 1
     };
 
     // Add sample data for development
     this.initSampleData();
+    this.initSampleNotifications();
   }
 
   private initSampleData() {
@@ -1196,6 +1211,165 @@ export class DatabaseStorage implements IStorage {
     });
   }
 
+  // Notification Methods
+  async getNotification(id: number): Promise<Notification | undefined> {
+    return this.notifications.get(id);
+  }
+
+  async getAllNotifications(userId: string): Promise<Notification[]> {
+    return Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async getUnreadNotifications(userId: string): Promise<Notification[]> {
+    return Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId && !notification.read)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const id = this.currentIds.notification++;
+    const createdAt = new Date();
+    const newNotification: Notification = { 
+      ...notification, 
+      id, 
+      createdAt,
+      read: false
+    };
+    this.notifications.set(id, newNotification);
+    return newNotification;
+  }
+
+  async markNotificationAsRead(id: number): Promise<boolean> {
+    const notification = this.notifications.get(id);
+    if (!notification) return false;
+
+    const updatedNotification = { 
+      ...notification, 
+      read: true, 
+      readAt: new Date() 
+    };
+    this.notifications.set(id, updatedNotification);
+    return true;
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<boolean> {
+    const notifications = Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId && !notification.read);
+    
+    notifications.forEach(notification => {
+      const updatedNotification = { 
+        ...notification, 
+        read: true, 
+        readAt: new Date() 
+      };
+      this.notifications.set(notification.id, updatedNotification);
+    });
+    
+    return true;
+  }
+
+  async deleteNotification(id: number): Promise<boolean> {
+    return this.notifications.delete(id);
+  }
+
+  async getNotificationCount(userId: string): Promise<{ total: number; unread: number }> {
+    const userNotifications = Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId);
+    
+    const unreadCount = userNotifications.filter(n => !n.read).length;
+    
+    return {
+      total: userNotifications.length,
+      unread: unreadCount
+    };
+  }
+
+  // User operations (for authentication compatibility)
+  async getUser(id: string): Promise<User | undefined> {
+    // In memory storage, we'll just return a mock user
+    return {
+      id,
+      email: "test@example.com",
+      firstName: "Test",
+      lastName: "User",
+      profileImageUrl: null,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    // In memory storage, we'll just return the user data with timestamps
+    return {
+      ...userData,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+  }
+
+  private initSampleNotifications() {
+    // Create sample notifications for testing
+    const userId = "44266197"; // Use a test user ID
+    
+    // Sample notifications of different types and priorities
+    this.createNotification({
+      userId,
+      type: "payment",
+      priority: "high",
+      title: "Payment Overdue",
+      message: "Payment for lease N159G is 3 days overdue. Please follow up with Infinity Aero Club.",
+      relatedType: "payment",
+      relatedId: 1,
+      actionUrl: "/payments"
+    });
+
+    this.createNotification({
+      userId,
+      type: "maintenance",
+      priority: "urgent",
+      title: "Urgent Maintenance Required",
+      message: "N428KS requires immediate inspection. 100-hour check is due.",
+      relatedType: "maintenance",
+      relatedId: 1,
+      actionUrl: "/maintenance"
+    });
+
+    this.createNotification({
+      userId,
+      type: "lease",
+      priority: "medium",
+      title: "Lease Renewal Due",
+      message: "Lease agreement for N891TB expires in 30 days. Time to start renewal process.",
+      relatedType: "lease",
+      relatedId: 1,
+      actionUrl: "/leases"
+    });
+
+    this.createNotification({
+      userId,
+      type: "document",
+      priority: "low",
+      title: "Document Uploaded",
+      message: "New insurance certificate uploaded for N247JP.",
+      relatedType: "document",
+      relatedId: 1,
+      actionUrl: "/documents"
+    });
+
+    this.createNotification({
+      userId,
+      type: "system",
+      priority: "medium",
+      title: "System Maintenance",
+      message: "Scheduled system maintenance will occur tonight from 2-4 AM EST.",
+      relatedType: null,
+      relatedId: null,
+      actionUrl: null
+    });
+  }
+
   // User operations (required for authentication)
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
@@ -1215,6 +1389,86 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  // Notification operations
+  async getNotification(id: number): Promise<Notification | undefined> {
+    const [notification] = await db.select().from(notifications).where(eq(notifications.id, id));
+    return notification || undefined;
+  }
+
+  async getAllNotifications(userId: string): Promise<Notification[]> {
+    return await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId))
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async getUnreadNotifications(userId: string): Promise<Notification[]> {
+    return await db
+      .select()
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.read, false)
+        )
+      )
+      .orderBy(desc(notifications.createdAt));
+  }
+
+  async createNotification(notificationData: InsertNotification): Promise<Notification> {
+    const [newNotification] = await db
+      .insert(notifications)
+      .values({ ...notificationData, createdAt: new Date() })
+      .returning();
+    return newNotification;
+  }
+
+  async markNotificationAsRead(id: number): Promise<boolean> {
+    const result = await db
+      .update(notifications)
+      .set({ read: true, readAt: new Date() })
+      .where(eq(notifications.id, id));
+    return result.rowCount > 0;
+  }
+
+  async markAllNotificationsAsRead(userId: string): Promise<boolean> {
+    const result = await db
+      .update(notifications)
+      .set({ read: true, readAt: new Date() })
+      .where(eq(notifications.userId, userId));
+    return result.rowCount > 0;
+  }
+
+  async deleteNotification(id: number): Promise<boolean> {
+    const result = await db
+      .delete(notifications)
+      .where(eq(notifications.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getNotificationCount(userId: string): Promise<{ total: number; unread: number }> {
+    const total = await db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.userId, userId));
+    
+    const unread = await db
+      .select()
+      .from(notifications)
+      .where(
+        and(
+          eq(notifications.userId, userId),
+          eq(notifications.read, false)
+        )
+      );
+
+    return {
+      total: total.length,
+      unread: unread.length
+    };
   }
 }
 

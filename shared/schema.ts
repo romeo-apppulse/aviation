@@ -115,6 +115,22 @@ export const documents = pgTable("documents", {
   uploadDate: timestamp("upload_date").defaultNow(),
 });
 
+// Notifications
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull(), // 'payment', 'maintenance', 'lease', 'document', 'system'
+  priority: text("priority").default("medium"), // 'low', 'medium', 'high', 'urgent'
+  read: boolean("read").default(false),
+  actionUrl: text("action_url"),
+  relatedType: text("related_type"),
+  relatedId: integer("related_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  readAt: timestamp("read_at"),
+});
+
 // Create insert schemas
 export const insertAircraftSchema = createInsertSchema(aircraft).omit({ id: true });
 export const insertOwnerSchema = createInsertSchema(owners).omit({ id: true });
@@ -123,6 +139,7 @@ export const insertLeaseSchema = createInsertSchema(leases).omit({ id: true, cre
 export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true });
 export const insertMaintenanceSchema = createInsertSchema(maintenance).omit({ id: true });
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, uploadDate: true });
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true, readAt: true });
 
 // User authentication schemas
 export const upsertUserSchema = createInsertSchema(users).omit({ createdAt: true, updatedAt: true });
@@ -151,6 +168,9 @@ export type InsertMaintenance = z.infer<typeof insertMaintenanceSchema>;
 
 export type Document = typeof documents.$inferSelect;
 export type InsertDocument = z.infer<typeof insertDocumentSchema>;
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 // Dashboard Stats
 export type DashboardStats = {

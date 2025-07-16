@@ -1,8 +1,9 @@
 import { useLocation } from "wouter";
-import { Bell, Menu, X, LogOut } from "lucide-react";
+import { Menu, X, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
+import { NotificationsDropdown } from "@/components/ui/notifications-dropdown";
 
 type HeaderProps = {
   sidebarOpen: boolean;
@@ -48,16 +49,7 @@ export default function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
         </div>
         
         <div className="flex items-center space-x-4">
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label="Notifications"
-            >
-              <Bell className="h-5 w-5" />
-              <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-[#e74c3c]"></span>
-            </Button>
-          </div>
+          <NotificationsDropdown />
           
           <div className="flex items-center space-x-2">
             <Avatar className="h-8 w-8">
