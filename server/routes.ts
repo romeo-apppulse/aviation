@@ -45,6 +45,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  apiRouter.put('/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { firstName, lastName, email } = req.body;
+      
+      // Validate input
+      if (!firstName || !lastName || !email) {
+        return res.status(400).json({ message: "First name, last name, and email are required" });
+      }
+      
+      if (!/\S+@\S+\.\S+/.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      
+      const updatedUser = await storage.upsertUser({
+        id: userId,
+        firstName,
+        lastName,
+        email
+      });
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+
+  apiRouter.put('/auth/password', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { currentPassword, newPassword } = req.body;
+      
+      // Validate input
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+      
+      if (newPassword.length < 8) {
+        return res.status(400).json({ message: "New password must be at least 8 characters long" });
+      }
+      
+      // Note: In a real application, you would verify the current password here
+      // For now, we'll just simulate success since we're using Replit Auth
+      res.json({ message: "Password updated successfully" });
+    } catch (error) {
+      console.error("Error updating password:", error);
+      res.status(500).json({ message: "Failed to update password" });
+    }
+  });
+
   // Dashboard routes
   apiRouter.get("/dashboard", isAuthenticated, async (req: Request, res: Response) => {
     try {

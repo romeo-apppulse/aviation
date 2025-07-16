@@ -13,6 +13,7 @@ import Leases from "@/pages/leases";
 import Payments from "@/pages/payments";
 import Maintenance from "@/pages/maintenance";
 import Documents from "@/pages/documents";
+import Settings from "@/pages/settings";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Sidebar from "@/components/layout/sidebar";
@@ -55,6 +56,7 @@ function Router() {
       <Route path="/payments" component={Payments} />
       <Route path="/maintenance" component={Maintenance} />
       <Route path="/documents" component={Documents} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );

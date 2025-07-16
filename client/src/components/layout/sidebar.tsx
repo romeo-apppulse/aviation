@@ -209,13 +209,19 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       <div className="p-4 mt-4">
         {!collapsed && <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">Settings</div>}
         <nav>
-          <a href="#" className={cn(
-            "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
-            collapsed ? "justify-center" : "space-x-3"
-          )} title={collapsed ? "Settings" : ""}>
+          <Link
+            href="/settings"
+            onClick={closeSidebarIfMobile}
+            className={cn(
+              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              collapsed ? "justify-center" : "space-x-3",
+              location === "/settings" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+            )}
+            title={collapsed ? "Settings" : ""}
+          >
             <Settings className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Settings</span>}
-          </a>
+          </Link>
           
           <a href="#" className={cn(
             "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
