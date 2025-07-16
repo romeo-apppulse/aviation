@@ -223,13 +223,19 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
             {!collapsed && <span>Settings</span>}
           </Link>
           
-          <a href="#" className={cn(
-            "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
-            collapsed ? "justify-center" : "space-x-3"
-          )} title={collapsed ? "Help & Support" : ""}>
+          <Link
+            href="/help-support"
+            onClick={closeSidebarIfMobile}
+            className={cn(
+              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              collapsed ? "justify-center" : "space-x-3",
+              location === "/help-support" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+            )}
+            title={collapsed ? "Help & Support" : ""}
+          >
             <HelpCircle className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Help & Support</span>}
-          </a>
+          </Link>
           
           <a href="#" className={cn(
             "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",

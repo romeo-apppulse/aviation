@@ -14,6 +14,7 @@ import Payments from "@/pages/payments";
 import Maintenance from "@/pages/maintenance";
 import Documents from "@/pages/documents";
 import Settings from "@/pages/settings";
+import HelpSupport from "@/pages/help-support";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Sidebar from "@/components/layout/sidebar";
@@ -57,6 +58,7 @@ function Router() {
       <Route path="/maintenance" component={Maintenance} />
       <Route path="/documents" component={Documents} />
       <Route path="/settings" component={Settings} />
+      <Route path="/help-support" component={HelpSupport} />
       <Route component={NotFound} />
     </Switch>
   );

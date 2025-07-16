@@ -698,6 +698,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Support request endpoint
+  apiRouter.post("/support/request", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const { name, email, subject, priority, category, message } = req.body;
+      
+      // Validate required fields
+      if (!name || !email || !subject || !priority || !category || !message) {
+        return res.status(400).json({ message: "All fields are required" });
+      }
+      
+      // Validate email format
+      if (!/\S+@\S+\.\S+/.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+      
+      // Validate priority and category
+      const validPriorities = ["low", "medium", "high", "urgent"];
+      const validCategories = ["technical", "billing", "feature", "bug", "general"];
+      
+      if (!validPriorities.includes(priority)) {
+        return res.status(400).json({ message: "Invalid priority level" });
+      }
+      
+      if (!validCategories.includes(category)) {
+        return res.status(400).json({ message: "Invalid category" });
+      }
+      
+      // In a real application, this would save to database and send email
+      // For now, we'll just log the request and return success
+      console.log("Support request received:", {
+        userId: req.user?.claims?.sub,
+        name,
+        email,
+        subject,
+        priority,
+        category,
+        message,
+        timestamp: new Date().toISOString()
+      });
+      
+      res.json({ 
+        message: "Support request submitted successfully",
+        requestId: `SR-${Date.now()}` 
+      });
+    } catch (error) {
+      console.error("Error submitting support request:", error);
+      res.status(500).json({ message: "Failed to submit support request" });
+    }
+  });
+
   // Mount API routes
   app.use("/api", apiRouter);
 

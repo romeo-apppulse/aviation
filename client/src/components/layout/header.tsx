@@ -25,7 +25,8 @@ export default function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
       "/payments": "Payments",
       "/maintenance": "Maintenance",
       "/documents": "Documents",
-      "/settings": "Settings"
+      "/settings": "Settings",
+      "/help-support": "Help & Support"
     };
     
     return pathTitles[location] || "Dashboard";
