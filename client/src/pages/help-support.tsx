@@ -73,14 +73,14 @@ export default function HelpSupport() {
 
   if (submitted) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
         <Card className="max-w-md mx-auto text-center">
           <CardHeader>
             <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
               <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
-            <CardTitle className="text-green-700">Request Submitted!</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-green-700 text-lg sm:text-xl">Request Submitted!</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
               Thank you for contacting us. We've received your support request and will respond within 24 hours.
             </CardDescription>
           </CardHeader>
@@ -99,15 +99,15 @@ export default function HelpSupport() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Help & Support</h1>
-        <p className="text-gray-600">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Help & Support</h1>
+        <p className="text-gray-600 text-sm sm:text-base">
           Get help with your aircraft management system or contact our support team
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Contact Information */}
         <div className="lg:col-span-1">
           <Card>
@@ -119,44 +119,44 @@ export default function HelpSupport() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-start gap-3">
-                <Phone className="w-5 h-5 text-blue-600 mt-1" />
-                <div>
-                  <h3 className="font-semibold text-gray-900">Phone Support</h3>
-                  <p className="text-gray-600">1-800-AERO-LEASE</p>
-                  <p className="text-gray-600">(1-800-237-6532)</p>
+                <Phone className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-gray-900 mb-1">Phone Support</h3>
+                  <p className="text-gray-600 text-sm sm:text-base break-all">1-800-AERO-LEASE</p>
+                  <p className="text-gray-600 text-sm sm:text-base break-all">(1-800-237-6532)</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <Mail className="w-5 h-5 text-blue-600 mt-1" />
-                <div>
-                  <h3 className="font-semibold text-gray-900">Email Support</h3>
-                  <p className="text-gray-600">support@aerolease.com</p>
-                  <p className="text-gray-600">billing@aerolease.com</p>
+                <Mail className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-gray-900 mb-1">Email Support</h3>
+                  <p className="text-gray-600 text-sm sm:text-base break-all">support@aerolease.com</p>
+                  <p className="text-gray-600 text-sm sm:text-base break-all">billing@aerolease.com</p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-blue-600 mt-1" />
-                <div>
-                  <h3 className="font-semibold text-gray-900">Office Address</h3>
-                  <p className="text-gray-600">
-                    123 Aviation Way<br />
-                    Suite 500<br />
-                    Miami, FL 33142
-                  </p>
+                <MapPin className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-gray-900 mb-1">Office Address</h3>
+                  <div className="text-gray-600 text-sm sm:text-base">
+                    <p className="break-words">123 Aviation Way</p>
+                    <p className="break-words">Suite 500</p>
+                    <p className="break-words">Miami, FL 33142</p>
+                  </div>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-blue-600 mt-1" />
-                <div>
-                  <h3 className="font-semibold text-gray-900">Business Hours</h3>
-                  <p className="text-gray-600">
-                    Monday - Friday: 8:00 AM - 8:00 PM EST<br />
-                    Saturday: 9:00 AM - 5:00 PM EST<br />
-                    Sunday: Closed
-                  </p>
+                <Clock className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-semibold text-gray-900 mb-1">Business Hours</h3>
+                  <div className="text-gray-600 text-sm sm:text-base space-y-1">
+                    <p className="break-words">Monday - Friday: 8:00 AM - 8:00 PM EST</p>
+                    <p className="break-words">Saturday: 9:00 AM - 5:00 PM EST</p>
+                    <p className="break-words">Sunday: Closed</p>
+                  </div>
                 </div>
               </div>
             </CardContent>
@@ -168,13 +168,13 @@ export default function HelpSupport() {
               <CardTitle className="text-red-600">Emergency Support</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-600 mb-3">
+              <p className="text-gray-600 mb-3 text-sm sm:text-base break-words">
                 For urgent aircraft maintenance or safety issues:
               </p>
-              <p className="font-semibold text-red-600">
+              <p className="font-semibold text-red-600 text-sm sm:text-base break-all">
                 Emergency Hotline: 1-800-AERO-911
               </p>
-              <p className="text-sm text-gray-500 mt-2">
+              <p className="text-xs sm:text-sm text-gray-500 mt-2 break-words">
                 Available 24/7 for critical aircraft issues
               </p>
             </CardContent>
