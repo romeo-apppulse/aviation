@@ -89,6 +89,8 @@ export const payments = pgTable("payments", {
   paidDate: date("paid_date"),
   status: text("status").default("Pending"), // Pending, Paid, Overdue
   notes: text("notes"),
+  invoiceUrl: text("invoice_url"), // URL or base64 data for invoice
+  invoiceNumber: text("invoice_number"), // Invoice number for tracking
 });
 
 // Maintenance Records

@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarIcon, Check, Clock, DollarSign, Plus, Search, Filter, FileText, Plane, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { CalendarIcon, Check, Clock, DollarSign, Plus, Search, Filter, FileText, Plane, ArrowUpDown, ArrowUp, ArrowDown, Upload, Link2, X, Download } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -70,6 +70,8 @@ const paymentFormSchema = z.object({
   paidDate: z.date().optional(),
   status: z.string().min(1, "Status is required"),
   notes: z.string().optional(),
+  invoiceUrl: z.string().optional(),
+  invoiceNumber: z.string().optional(),
 });
 
 type PaymentFormValues = z.infer<typeof paymentFormSchema>;
@@ -84,6 +86,9 @@ export default function Payments() {
   const [markAsPaidId, setMarkAsPaidId] = useState<number | null>(null);
   const [sortField, setSortField] = useState<SortField>('dueDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [invoiceMode, setInvoiceMode] = useState<"url" | "file">("url");
+  const [selectedInvoiceFile, setSelectedInvoiceFile] = useState<File | null>(null);
+  const [invoicePreview, setInvoicePreview] = useState<string>("");
   const { toast } = useToast();
 
   const { data: payments, isLoading } = useQuery<Payment[]>({
@@ -163,7 +168,7 @@ export default function Payments() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
-      setAddPaymentOpen(false);
+      handleCloseForm();
       toast({
         title: "Payment created",
         description: "The payment has been created successfully",
@@ -201,6 +206,59 @@ export default function Payments() {
     }
   });
 
+  // Handle invoice file selection
+  const handleInvoiceFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedInvoiceFile(file);
+      setInvoicePreview(file.name);
+    }
+  };
+
+  // Convert file to base64 for storage
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Generate invoice download
+  const generateInvoiceDownload = (payment: Payment) => {
+    if (!payment.invoiceUrl) {
+      toast({
+        title: "No invoice available",
+        description: "This payment doesn't have an invoice attached.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // If it's a base64 string, create a download link
+    if (payment.invoiceUrl.startsWith('data:')) {
+      const link = document.createElement('a');
+      link.href = payment.invoiceUrl;
+      link.download = `invoice-${payment.invoiceNumber || payment.id}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // If it's a URL, open in new tab
+      window.open(payment.invoiceUrl, '_blank');
+    }
+  };
+
+  // Reset form and invoice state when dialog closes
+  const handleCloseForm = () => {
+    setSelectedInvoiceFile(null);
+    setInvoicePreview("");
+    setInvoiceMode("url");
+    form.reset();
+    setAddPaymentOpen(false);
+  };
+
   const form = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentFormSchema),
     defaultValues: {
@@ -211,11 +269,31 @@ export default function Payments() {
       paidDate: undefined,
       status: "Pending",
       notes: "",
+      invoiceUrl: "",
+      invoiceNumber: "",
     },
   });
 
-  function onSubmit(values: PaymentFormValues) {
-    createPaymentMutation.mutate(values);
+  async function onSubmit(values: PaymentFormValues) {
+    try {
+      let invoiceData = values.invoiceUrl;
+      
+      // If file mode and a file is selected, convert to base64
+      if (invoiceMode === "file" && selectedInvoiceFile) {
+        invoiceData = await convertFileToBase64(selectedInvoiceFile);
+      }
+      
+      createPaymentMutation.mutate({
+        ...values,
+        invoiceUrl: invoiceData,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to process invoice file",
+        variant: "destructive",
+      });
+    }
   }
 
   // Handling lease selection to auto-populate amount
@@ -372,17 +450,30 @@ export default function Payments() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {payment.status !== "Paid" && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="text-green-600 border-green-200 hover:bg-green-50"
-                            onClick={() => setMarkAsPaidId(payment.id)}
-                          >
-                            <Check className="h-4 w-4 mr-1" />
-                            Mark as Paid
-                          </Button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {payment.status !== "Paid" && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-green-600 border-green-200 hover:bg-green-50"
+                              onClick={() => setMarkAsPaidId(payment.id)}
+                            >
+                              <Check className="h-4 w-4 mr-1" />
+                              Mark as Paid
+                            </Button>
+                          )}
+                          {payment.invoiceUrl && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                              onClick={() => generateInvoiceDownload(payment)}
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Invoice
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -424,7 +515,7 @@ export default function Payments() {
       </Card>
 
       {/* Add Payment Dialog */}
-      <Dialog open={addPaymentOpen} onOpenChange={setAddPaymentOpen}>
+      <Dialog open={addPaymentOpen} onOpenChange={handleCloseForm}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle>Record New Payment</DialogTitle>
@@ -622,12 +713,121 @@ export default function Payments() {
                   </FormItem>
                 )}
               />
+
+              <FormField
+                control={form.control}
+                name="invoiceNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Invoice Number (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g. INV-2024-001" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="invoiceUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Invoice Document (Optional)</FormLabel>
+                    
+                    {/* Toggle between URL and File upload */}
+                    <div className="flex gap-2 mb-3">
+                      <Button
+                        type="button"
+                        variant={invoiceMode === "url" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          setInvoiceMode("url");
+                          setSelectedInvoiceFile(null);
+                          setInvoicePreview("");
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <Link2 className="w-4 h-4" />
+                        URL
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={invoiceMode === "file" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          setInvoiceMode("file");
+                          form.setValue("invoiceUrl", "");
+                        }}
+                        className="flex items-center gap-2"
+                      >
+                        <Upload className="w-4 h-4" />
+                        Upload
+                      </Button>
+                    </div>
+
+                    {invoiceMode === "url" ? (
+                      <FormControl>
+                        <Input 
+                          placeholder="URL to invoice document" 
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setInvoicePreview(e.target.value);
+                          }}
+                        />
+                      </FormControl>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="file"
+                            accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                            onChange={handleInvoiceFileChange}
+                            className="flex-1"
+                          />
+                          {selectedInvoiceFile && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedInvoiceFile(null);
+                                setInvoicePreview("");
+                              }}
+                            >
+                              <X className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                        {selectedInvoiceFile && (
+                          <p className="text-sm text-gray-600">
+                            Selected: {selectedInvoiceFile.name} ({(selectedInvoiceFile.size / 1024).toFixed(1)}KB)
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Invoice Preview */}
+                    {invoicePreview && invoiceMode === "file" && (
+                      <div className="mt-3">
+                        <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                          <span className="text-sm font-medium">{invoicePreview}</span>
+                        </div>
+                      </div>
+                    )}
+                    
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               
               <DialogFooter>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setAddPaymentOpen(false)}
+                  onClick={handleCloseForm}
                 >
                   Cancel
                 </Button>
