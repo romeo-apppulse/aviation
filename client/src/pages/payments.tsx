@@ -536,18 +536,7 @@ export default function Payments() {
       }}>
         <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              Record New Payment
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={handleCloseForm}
-                className="p-2"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </DialogTitle>
+            <DialogTitle>Record New Payment</DialogTitle>
             <DialogDescription>
               Enter the payment details for an aircraft lease
             </DialogDescription>
