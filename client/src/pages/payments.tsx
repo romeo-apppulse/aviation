@@ -252,11 +252,17 @@ export default function Payments() {
 
   // Reset form and invoice state when dialog closes
   const handleCloseForm = () => {
-    setSelectedInvoiceFile(null);
-    setInvoicePreview("");
-    setInvoiceMode("url");
-    form.reset();
-    setAddPaymentOpen(false);
+    try {
+      setSelectedInvoiceFile(null);
+      setInvoicePreview("");
+      setInvoiceMode("url");
+      form.reset();
+      setAddPaymentOpen(false);
+    } catch (error) {
+      console.error("Error closing form:", error);
+      // Force close even if there's an error
+      setAddPaymentOpen(false);
+    }
   };
 
   const form = useForm<PaymentFormValues>({
@@ -275,19 +281,27 @@ export default function Payments() {
   });
 
   async function onSubmit(values: PaymentFormValues) {
+    if (createPaymentMutation.isPending) return;
+    
     try {
-      let invoiceData = values.invoiceUrl;
+      let invoiceData = values.invoiceUrl || "";
       
       // If file mode and a file is selected, convert to base64
       if (invoiceMode === "file" && selectedInvoiceFile) {
         invoiceData = await convertFileToBase64(selectedInvoiceFile);
       }
       
-      createPaymentMutation.mutate({
+      // Prepare the final data
+      const finalData = {
         ...values,
         invoiceUrl: invoiceData,
-      });
+        invoiceNumber: values.invoiceNumber || "",
+        notes: values.notes || "",
+      };
+      
+      createPaymentMutation.mutate(finalData);
     } catch (error) {
+      console.error("Form submission error:", error);
       toast({
         title: "Error",
         description: "Failed to process invoice file",
@@ -515,10 +529,25 @@ export default function Payments() {
       </Card>
 
       {/* Add Payment Dialog */}
-      <Dialog open={addPaymentOpen} onOpenChange={handleCloseForm}>
-        <DialogContent className="sm:max-w-[500px]">
+      <Dialog open={addPaymentOpen} onOpenChange={(open) => {
+        if (!open) {
+          handleCloseForm();
+        }
+      }}>
+        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Record New Payment</DialogTitle>
+            <DialogTitle className="flex items-center justify-between">
+              Record New Payment
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleCloseForm}
+                className="p-2"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
             <DialogDescription>
               Enter the payment details for an aircraft lease
             </DialogDescription>
