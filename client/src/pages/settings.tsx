@@ -417,18 +417,18 @@ export default function Settings() {
           )}
 
           {activeTab === "notifications" && (
-            <div className="max-w-4xl mb-4">
-              <div className="mb-4">
+            <div className="max-w-4xl">
+              <div className="mb-3">
                 <h2 className="text-2xl font-semibold flex items-center">
                   <Mail className="h-6 w-6 mr-3" />
                   Email Notifications
                 </h2>
-                <p className="text-gray-600 mt-2">
+                <p className="text-gray-600 mt-1">
                   Test and configure email notification settings
                 </p>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Email Service Status */}
                 <div className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-4">
@@ -635,7 +635,7 @@ export default function Settings() {
                       <Button 
                         type="submit" 
                         disabled={updateEmailPreferencesMutation.isPending}
-                        className="w-full md:w-auto"
+                        className="w-full md:w-auto mb-0"
                       >
                         <Save className="h-4 w-4 mr-2" />
                         {updateEmailPreferencesMutation.isPending ? "Saving..." : "Save Preferences"}
