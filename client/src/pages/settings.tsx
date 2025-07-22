@@ -237,8 +237,8 @@ export default function Settings() {
         </nav>
       </div>
 
-      {/* Main Content Area - No Scroll */}
-      <div className="flex-1 overflow-hidden p-4">
+      {/* Main Content Area - Single Scroll */}
+      <div className="flex-1 overflow-y-auto p-4">
           {activeTab === "profile" && (
             <Card>
               <CardHeader>
@@ -417,7 +417,7 @@ export default function Settings() {
           )}
 
           {activeTab === "notifications" && (
-            <div className="max-w-4xl h-full overflow-hidden">
+            <div className="max-w-4xl">
               <div className="mb-2">
                 <h2 className="text-2xl font-semibold flex items-center">
                   <Mail className="h-6 w-6 mr-3" />
@@ -428,7 +428,7 @@ export default function Settings() {
                 </p>
               </div>
               
-              <div className="space-y-2 h-[calc(100%-6rem)] overflow-hidden">
+              <div className="space-y-2">
                 {/* Email Service Status */}
                 <div className="border rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
