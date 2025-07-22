@@ -40,7 +40,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
   return (
     <aside 
       className={cn(
-        "sidebar fixed md:static z-20 bg-[#2c3e50] text-white h-screen flex-shrink-0 shadow-lg overflow-y-auto transition-all duration-300",
+        "sidebar fixed md:sticky md:top-0 z-20 bg-[#2c3e50] text-white h-screen flex-shrink-0 shadow-lg overflow-y-auto transition-all duration-300",
         collapsed ? "w-16" : "w-64",
         open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}
