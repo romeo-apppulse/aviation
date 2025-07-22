@@ -202,13 +202,17 @@ export default function Settings() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl min-h-screen">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
-        <p className="text-gray-600">Manage your account settings and preferences</p>
+    <div className="h-screen flex flex-col overflow-hidden">
+      <div className="flex-shrink-0 px-4 py-6 border-b bg-white">
+        <div className="container mx-auto max-w-4xl">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
+          <p className="text-gray-600">Manage your account settings and preferences</p>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pb-8">
+      <div className="flex-1 overflow-hidden">
+        <div className="container mx-auto px-4 py-6 max-w-4xl h-full">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-full">
         {/* Settings Navigation */}
         <div className="md:col-span-1">
           <Card>
@@ -243,8 +247,8 @@ export default function Settings() {
           </Card>
         </div>
 
-        {/* Settings Content */}
-        <div className="md:col-span-3">
+            {/* Settings Content */}
+            <div className="md:col-span-3 overflow-y-auto">
           {activeTab === "profile" && (
             <Card>
               <CardHeader>
@@ -423,8 +427,8 @@ export default function Settings() {
           )}
 
           {activeTab === "notifications" && (
-            <Card className="overflow-hidden">
-              <CardHeader>
+            <Card className="h-full flex flex-col overflow-hidden">
+              <CardHeader className="flex-shrink-0">
                 <CardTitle className="flex items-center">
                   <Mail className="h-5 w-5 mr-2" />
                   Email Notifications
@@ -433,7 +437,7 @@ export default function Settings() {
                   Test and configure email notification settings
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4 max-h-[calc(100vh-16rem)] overflow-y-auto">
+              <CardContent className="flex-1 overflow-y-auto space-y-4 p-6">
                 {/* Email Service Status */}
                 <div className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -507,13 +511,13 @@ export default function Settings() {
 
                 {/* Email Preferences Form */}
                 <div className="border rounded-lg p-4">
-                  <h3 className="text-base font-medium mb-3">Email Preferences</h3>
+                  <h3 className="text-base font-medium mb-2">Email Preferences</h3>
                   <p className="text-sm text-gray-600 mb-3">
-                    Control which email notifications you receive from AeroLease Manager.
+                    Control which email notifications you receive.
                   </p>
                   
                   <Form {...emailPreferencesForm}>
-                    <form onSubmit={emailPreferencesForm.handleSubmit(onEmailPreferencesSubmit)} className="space-y-3">
+                    <form onSubmit={emailPreferencesForm.handleSubmit(onEmailPreferencesSubmit)} className="space-y-2">
                       {/* Master email toggle */}
                       <FormField
                         control={emailPreferencesForm.control}
@@ -651,6 +655,8 @@ export default function Settings() {
               </CardContent>
             </Card>
           )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
