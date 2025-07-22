@@ -202,47 +202,43 @@ export default function Settings() {
   }
 
   return (
-    <div className="h-screen flex flex-col">
-      {/* Fixed Header */}
-      <div className="flex-shrink-0 px-6 py-4 border-b bg-white">
-        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-        <p className="text-sm text-gray-600">Manage your account settings and preferences</p>
+    <div className="flex min-h-screen">
+      {/* Sticky Sidebar Navigation */}
+      <div className="w-64 bg-gray-50 border-r sticky top-0 h-screen">
+        <div className="p-6 border-b">
+          <h1 className="text-xl font-bold text-gray-900">Settings</h1>
+          <p className="text-sm text-gray-600 mt-1">Manage your preferences</p>
+        </div>
+        <nav className="p-4 space-y-2">
+          <Button
+            variant={activeTab === "profile" ? "default" : "ghost"}
+            className="w-full justify-start"
+            onClick={() => setActiveTab("profile")}
+          >
+            <UserIcon className="h-4 w-4 mr-2" />
+            Profile
+          </Button>
+          <Button
+            variant={activeTab === "password" ? "default" : "ghost"}
+            className="w-full justify-start"
+            onClick={() => setActiveTab("password")}
+          >
+            <Lock className="h-4 w-4 mr-2" />
+            Password
+          </Button>
+          <Button
+            variant={activeTab === "notifications" ? "default" : "ghost"}
+            className="w-full justify-start"
+            onClick={() => setActiveTab("notifications")}
+          >
+            <Mail className="h-4 w-4 mr-2" />
+            Email Notifications
+          </Button>
+        </nav>
       </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar Navigation */}
-        <div className="w-64 flex-shrink-0 bg-gray-50 border-r p-4">
-          <nav className="space-y-2">
-            <Button
-              variant={activeTab === "profile" ? "default" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => setActiveTab("profile")}
-            >
-              <UserIcon className="h-4 w-4 mr-2" />
-              Profile
-            </Button>
-            <Button
-              variant={activeTab === "password" ? "default" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => setActiveTab("password")}
-            >
-              <Lock className="h-4 w-4 mr-2" />
-              Password
-            </Button>
-            <Button
-              variant={activeTab === "notifications" ? "default" : "ghost"}
-              className="w-full justify-start"
-              onClick={() => setActiveTab("notifications")}
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              Email Notifications
-            </Button>
-          </nav>
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-6">
+      {/* Main Content Area - Scrollable */}
+      <div className="flex-1 p-6">
           {activeTab === "profile" && (
             <Card>
               <CardHeader>
@@ -421,22 +417,22 @@ export default function Settings() {
           )}
 
           {activeTab === "notifications" && (
-            <div className="h-full max-w-4xl">
+            <div className="max-w-4xl">
               <div className="mb-6">
-                <h2 className="text-xl font-semibold flex items-center">
-                  <Mail className="h-5 w-5 mr-2" />
+                <h2 className="text-2xl font-semibold flex items-center">
+                  <Mail className="h-6 w-6 mr-3" />
                   Email Notifications
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-gray-600 mt-2">
                   Test and configure email notification settings
                 </p>
               </div>
               
-              <div className="space-y-4 max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
+              <div className="space-y-6">
                 {/* Email Service Status */}
-                <div className="border rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-medium">Email Service Status</h3>
+                <div className="border rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium">Email Service Status</h3>
                     {emailStatusLoading ? (
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                     ) : emailStatus?.emailServiceReady ? (
@@ -468,10 +464,10 @@ export default function Settings() {
                 </div>
 
                 {/* Test Email Section */}
-                <div className="border rounded-lg p-3">
-                  <h3 className="text-sm font-medium mb-2">Test Email Notifications</h3>
-                  <p className="text-xs text-gray-600 mb-3">
-                    Send a test email to verify the system is working.
+                <div className="border rounded-lg p-6">
+                  <h3 className="text-lg font-medium mb-4">Test Email Notifications</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Send a test email notification to verify that the email system is working properly.
                   </p>
                   
                   <div className="flex flex-col sm:flex-row gap-3">
@@ -505,10 +501,10 @@ export default function Settings() {
                 </div>
 
                 {/* Email Preferences Form */}
-                <div className="border rounded-lg p-3">
-                  <h3 className="text-sm font-medium mb-2">Email Preferences</h3>
-                  <p className="text-xs text-gray-600 mb-2">
-                    Control which email notifications you receive.
+                <div className="border rounded-lg p-6">
+                  <h3 className="text-lg font-medium mb-4">Email Preferences</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Control which email notifications you receive from AeroLease Manager.
                   </p>
                   
                   <Form {...emailPreferencesForm}>
@@ -650,7 +646,6 @@ export default function Settings() {
               </div>
             </div>
           )}
-        </div>
       </div>
     </div>
   );
