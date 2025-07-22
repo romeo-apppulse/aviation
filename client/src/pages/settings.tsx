@@ -238,7 +238,7 @@ export default function Settings() {
       </div>
 
       {/* Main Content Area - Scrollable */}
-      <div className="flex-1 p-4">
+      <div className="flex-1 p-4 pb-0">
           {activeTab === "profile" && (
             <Card>
               <CardHeader>
@@ -428,7 +428,7 @@ export default function Settings() {
                 </p>
               </div>
               
-              <div className="space-y-3">
+              <div className="space-y-3 pb-0">
                 {/* Email Service Status */}
                 <div className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-4">
@@ -501,7 +501,7 @@ export default function Settings() {
                 </div>
 
                 {/* Email Preferences Form */}
-                <div className="border rounded-lg p-4">
+                <div className="border rounded-lg p-4 mb-0">
                   <h3 className="text-lg font-medium mb-3">Email Preferences</h3>
                   <p className="text-sm text-gray-600 mb-4">
                     Control which email notifications you receive from AeroLease Manager.
@@ -632,14 +632,16 @@ export default function Settings() {
                         />
                       </div>
 
-                      <Button 
-                        type="submit" 
-                        disabled={updateEmailPreferencesMutation.isPending}
-                        className="w-full md:w-auto mb-0"
-                      >
-                        <Save className="h-4 w-4 mr-2" />
-                        {updateEmailPreferencesMutation.isPending ? "Saving..." : "Save Preferences"}
-                      </Button>
+                      <div className="mt-4 mb-0">
+                        <Button 
+                          type="submit" 
+                          disabled={updateEmailPreferencesMutation.isPending}
+                          className="w-full md:w-auto"
+                        >
+                          <Save className="h-4 w-4 mr-2" />
+                          {updateEmailPreferencesMutation.isPending ? "Saving..." : "Save Preferences"}
+                        </Button>
+                      </div>
                     </form>
                   </Form>
                 </div>
