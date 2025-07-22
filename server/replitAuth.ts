@@ -84,32 +84,96 @@ export async function setupAuth(app: Express) {
     verified(null, user);
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
-    const strategy = new Strategy(
-      {
-        name: `replitauth:${domain}`,
-        config,
-        scope: "openid email profile offline_access",
-        callbackURL: `https://${domain}/api/callback`,
-      },
-      verify,
-    );
-    passport.use(strategy);
+  // Get domains from environment variable and ensure we include the current domain
+  const envDomains = process.env.REPLIT_DOMAINS!.split(",").map(d => d.trim());
+  
+  // Add common deployment domains that might not be in REPLIT_DOMAINS
+  const allDomains = new Set([
+    ...envDomains,
+    'portal.aviationape.com',
+    'localhost:5000',
+    'localhost'
+  ]);
+
+  const domains = Array.from(allDomains);
+  console.log('Setting up auth strategies for domains:', domains);
+
+  for (const domain of domains) {
+    try {
+      const strategy = new Strategy(
+        {
+          name: `replitauth:${domain}`,
+          config,
+          scope: "openid email profile offline_access",
+          callbackURL: `https://${domain}/api/callback`,
+        },
+        verify,
+      );
+      passport.use(strategy);
+      console.log(`Registered auth strategy for domain: ${domain}`);
+    } catch (error) {
+      console.error(`Failed to register auth strategy for domain ${domain}:`, error);
+    }
   }
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    const hostname = req.hostname;
+    const strategyName = `replitauth:${hostname}`;
+    
+    // Check if strategy exists, if not, log available strategies
+    const strategies = (passport as any)._strategies || {};
+    if (!strategies[strategyName]) {
+      console.error(`Strategy ${strategyName} not found. Available strategies:`, Object.keys(strategies));
+      console.error(`Request hostname: ${hostname}, REPLIT_DOMAINS: ${process.env.REPLIT_DOMAINS}`);
+      
+      // Try to find the first available replitauth strategy as fallback
+      const availableStrategies = Object.keys(strategies);
+      const fallbackStrategy = availableStrategies.find(name => name.startsWith('replitauth:'));
+      
+      if (fallbackStrategy) {
+        console.log(`Using fallback strategy: ${fallbackStrategy}`);
+        return passport.authenticate(fallbackStrategy, {
+          prompt: "login consent",
+          scope: ["openid", "email", "profile", "offline_access"],
+        })(req, res, next);
+      } else {
+        return res.status(500).json({ 
+          message: `No authentication strategy found for domain: ${hostname}`,
+          available: availableStrategies 
+        });
+      }
+    }
+    
+    passport.authenticate(strategyName, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    const hostname = req.hostname;
+    const strategyName = `replitauth:${hostname}`;
+    
+    // Check if strategy exists, if not, use fallback
+    const strategies = (passport as any)._strategies || {};
+    if (!strategies[strategyName]) {
+      const availableStrategies = Object.keys(strategies);
+      const fallbackStrategy = availableStrategies.find(name => name.startsWith('replitauth:'));
+      
+      if (fallbackStrategy) {
+        return passport.authenticate(fallbackStrategy, {
+          successReturnToOrRedirect: "/",
+          failureRedirect: "/api/login",
+        })(req, res, next);
+      } else {
+        return res.status(500).json({ message: `No callback strategy found for domain: ${hostname}` });
+      }
+    }
+    
+    passport.authenticate(strategyName, {
       successReturnToOrRedirect: "/",
       failureRedirect: "/api/login",
     })(req, res, next);
