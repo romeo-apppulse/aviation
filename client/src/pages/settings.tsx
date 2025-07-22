@@ -202,9 +202,9 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      {/* Sticky Sidebar Navigation */}
-      <div className="w-64 bg-gray-50 border-r sticky top-0 h-screen">
+    <div className="flex h-full">
+      {/* Sidebar Navigation */}
+      <div className="w-64 bg-gray-50 border-r">
         <div className="p-6 border-b">
           <h1 className="text-xl font-bold text-gray-900">Settings</h1>
           <p className="text-sm text-gray-600 mt-1">Manage your preferences</p>
