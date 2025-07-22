@@ -16,6 +16,7 @@ import {
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { emailService, type NotificationEmailData } from "./emailService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication first
@@ -653,6 +654,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user.claims.sub;
       const validatedData = insertNotificationSchema.parse({ ...req.body, userId });
       const notification = await storage.createNotification(validatedData);
+      
+      // Send email notification if email service is available
+      if (emailService.isReady()) {
+        const user = await storage.getUser(userId);
+        if (user && user.email) {
+          // Determine notification type based on title/content
+          let emailType: NotificationEmailData['type'] = 'general';
+          const title = validatedData.title.toLowerCase();
+          
+          if (title.includes('payment') && title.includes('due')) {
+            emailType = 'payment_due';
+          } else if (title.includes('maintenance')) {
+            emailType = 'maintenance_reminder';
+          } else if (title.includes('lease') && title.includes('expir')) {
+            emailType = 'lease_expiry';
+          } else if (title.includes('system') || title.includes('update')) {
+            emailType = 'system_update';
+          }
+          
+          // Send email notification
+          emailService.sendNotificationEmail({
+            user,
+            title: validatedData.title,
+            message: validatedData.message,
+            actionUrl: validatedData.actionUrl || undefined,
+            type: emailType
+          }).catch(error => {
+            console.error('Failed to send email notification:', error);
+          });
+        }
+      }
+      
       res.status(201).json(notification);
     } catch (err) {
       handleZodError(err, res);
@@ -695,6 +728,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to delete notification" });
+    }
+  });
+
+  // Email notification endpoints
+  apiRouter.get("/notifications/email/status", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const status = {
+        emailServiceReady: emailService.isReady(),
+        timestamp: new Date().toISOString()
+      };
+      res.json(status);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to get email service status" });
+    }
+  });
+
+  apiRouter.post("/notifications/email/test", isAuthenticated, async (req: any, res: Response) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !user.email) {
+        return res.status(400).json({ error: "User email not available" });
+      }
+
+      if (!emailService.isReady()) {
+        return res.status(503).json({ error: "Email service not available" });
+      }
+
+      const success = await emailService.sendNotificationEmail({
+        user,
+        title: "Test Email Notification",
+        message: "This is a test email to verify that the notification system is working correctly. If you receive this email, the system is configured properly.",
+        type: 'system_update',
+        actionUrl: `${req.protocol}://${req.get('host')}/settings`
+      });
+
+      if (success) {
+        res.json({ message: "Test email sent successfully" });
+      } else {
+        res.status(500).json({ error: "Failed to send test email" });
+      }
+    } catch (err) {
+      console.error("Error sending test email:", err);
+      res.status(500).json({ error: "Failed to send test email" });
     }
   });
 

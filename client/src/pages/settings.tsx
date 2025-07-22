@@ -36,7 +36,31 @@ type PasswordFormData = z.infer<typeof passwordSchema>;
 
 export default function Settings() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"profile" | "password">("profile");
+  const [activeTab, setActiveTab] = useState<"profile" | "password" | "notifications">("profile");
+
+  // Email service status
+  const { data: emailStatus, isLoading: emailStatusLoading } = useQuery({
+    queryKey: ["/api/notifications/email/status"],
+  });
+
+  // Test email mutation
+  const sendTestEmailMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/notifications/email/test", {}),
+    onSuccess: () => {
+      toast({
+        title: "Test email sent",
+        description: "Check your email inbox for the test notification",
+        variant: "default",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Failed to send test email",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      });
+    }
+  });
 
   const { data: user, isLoading } = useQuery<User>({
     queryKey: ["/api/auth/user"],
@@ -151,6 +175,14 @@ export default function Settings() {
                 >
                   <Lock className="h-4 w-4 mr-2" />
                   Password
+                </Button>
+                <Button
+                  variant={activeTab === "notifications" ? "default" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => setActiveTab("notifications")}
+                >
+                  <Mail className="h-4 w-4 mr-2" />
+                  Email Notifications
                 </Button>
               </nav>
             </CardContent>
@@ -332,6 +364,106 @@ export default function Settings() {
                     </Button>
                   </form>
                 </Form>
+              </CardContent>
+            </Card>
+          )}
+
+          {activeTab === "notifications" && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Mail className="h-5 w-5 mr-2" />
+                  Email Notifications
+                </CardTitle>
+                <CardDescription>
+                  Test and configure email notification settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Email Service Status */}
+                <div className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-medium">Email Service Status</h3>
+                    {emailStatusLoading ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                    ) : emailStatus?.emailServiceReady ? (
+                      <div className="flex items-center text-green-600">
+                        <CheckCircle className="h-5 w-5 mr-2" />
+                        Online
+                      </div>
+                    ) : (
+                      <div className="flex items-center text-red-600">
+                        <XCircle className="h-5 w-5 mr-2" />
+                        Offline
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <p>
+                      <strong>Status:</strong> {emailStatus?.emailServiceReady ? 'Connected' : 'Not Available'}
+                    </p>
+                    <p>
+                      <strong>Your Email:</strong> {user?.email || 'Not provided'}
+                    </p>
+                    {emailStatus?.timestamp && (
+                      <p>
+                        <strong>Last Checked:</strong> {new Date(emailStatus.timestamp).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Test Email Section */}
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-medium mb-4">Test Email Notifications</h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Send a test email notification to verify that the email system is working properly.
+                  </p>
+                  
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button 
+                      onClick={() => sendTestEmailMutation.mutate()}
+                      disabled={sendTestEmailMutation.isPending || !emailStatus?.emailServiceReady || !user?.email}
+                      className="flex-1 sm:flex-none"
+                    >
+                      <Send className="h-4 w-4 mr-2" />
+                      {sendTestEmailMutation.isPending ? "Sending..." : "Send Test Email"}
+                    </Button>
+                  </div>
+
+                  {!user?.email && (
+                    <Alert className="mt-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        You need to provide an email address in your profile to receive email notifications.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {!emailStatus?.emailServiceReady && (
+                    <Alert className="mt-4">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        Email service is currently unavailable. Please try again later or contact support.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+
+                {/* Email Preferences */}
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-medium mb-4">Email Preferences</h3>
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <p>✓ Payment due reminders</p>
+                    <p>✓ Maintenance schedule notifications</p>
+                    <p>✓ Lease expiration alerts</p>
+                    <p>✓ System updates and announcements</p>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-4">
+                    Email preferences are currently managed automatically. Individual preferences will be available in a future update.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           )}
