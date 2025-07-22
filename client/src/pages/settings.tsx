@@ -199,13 +199,13 @@ export default function Settings() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8 max-w-4xl min-h-screen">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
         <p className="text-gray-600">Manage your account settings and preferences</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pb-8">
         {/* Settings Navigation */}
         <div className="md:col-span-1">
           <Card>
@@ -420,7 +420,7 @@ export default function Settings() {
           )}
 
           {activeTab === "notifications" && (
-            <Card>
+            <Card className="overflow-hidden">
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Mail className="h-5 w-5 mr-2" />
@@ -430,11 +430,11 @@ export default function Settings() {
                   Test and configure email notification settings
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-4 max-h-[calc(100vh-16rem)] overflow-y-auto">
                 {/* Email Service Status */}
                 <div className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium">Email Service Status</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-base font-medium">Email Service Status</h3>
                     {emailStatusLoading ? (
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                     ) : emailStatus?.emailServiceReady ? (
@@ -467,7 +467,7 @@ export default function Settings() {
 
                 {/* Test Email Section */}
                 <div className="border rounded-lg p-4">
-                  <h3 className="text-lg font-medium mb-4">Test Email Notifications</h3>
+                  <h3 className="text-base font-medium mb-3">Test Email Notifications</h3>
                   <p className="text-sm text-gray-600 mb-4">
                     Send a test email notification to verify that the email system is working properly.
                   </p>
@@ -504,13 +504,13 @@ export default function Settings() {
 
                 {/* Email Preferences Form */}
                 <div className="border rounded-lg p-4">
-                  <h3 className="text-lg font-medium mb-4">Email Preferences</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <h3 className="text-base font-medium mb-3">Email Preferences</h3>
+                  <p className="text-sm text-gray-600 mb-3">
                     Control which email notifications you receive from AeroLease Manager.
                   </p>
                   
                   <Form {...emailPreferencesForm}>
-                    <form onSubmit={emailPreferencesForm.handleSubmit(onEmailPreferencesSubmit)} className="space-y-4">
+                    <form onSubmit={emailPreferencesForm.handleSubmit(onEmailPreferencesSubmit)} className="space-y-3">
                       {/* Master email toggle */}
                       <FormField
                         control={emailPreferencesForm.control}
@@ -536,7 +536,7 @@ export default function Settings() {
                       />
 
                       {/* Individual notification types */}
-                      <div className="space-y-3">
+                      <div className="space-y-2">
                         <FormField
                           control={emailPreferencesForm.control}
                           name="emailPaymentReminders"
