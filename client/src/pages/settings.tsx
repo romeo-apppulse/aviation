@@ -418,7 +418,7 @@ export default function Settings() {
 
           {activeTab === "notifications" && (
             <div className="max-w-4xl">
-              <div className="mb-3">
+              <div className="mb-2">
                 <h2 className="text-2xl font-semibold flex items-center">
                   <Mail className="h-6 w-6 mr-3" />
                   Email Notifications
@@ -428,11 +428,11 @@ export default function Settings() {
                 </p>
               </div>
               
-              <div className="space-y-3 pb-0">
+              <div className="space-y-2">
                 {/* Email Service Status */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-medium">Email Service Status</h3>
+                <div className="border rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-base font-medium">Email Service Status</h3>
                     {emailStatusLoading ? (
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                     ) : emailStatus?.emailServiceReady ? (
@@ -464,9 +464,9 @@ export default function Settings() {
                 </div>
 
                 {/* Test Email Section */}
-                <div className="border rounded-lg p-4">
-                  <h3 className="text-lg font-medium mb-3">Test Email Notifications</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                <div className="border rounded-lg p-3">
+                  <h3 className="text-base font-medium mb-2">Test Email Notifications</h3>
+                  <p className="text-sm text-gray-600 mb-3">
                     Send a test email notification to verify that the email system is working properly.
                   </p>
                   
@@ -501,20 +501,20 @@ export default function Settings() {
                 </div>
 
                 {/* Email Preferences Form */}
-                <div className="border rounded-lg p-4 mb-0">
-                  <h3 className="text-lg font-medium mb-3">Email Preferences</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                <div className="border rounded-lg p-3">
+                  <h3 className="text-base font-medium mb-2">Email Preferences</h3>
+                  <p className="text-sm text-gray-600 mb-3">
                     Control which email notifications you receive from AeroLease Manager.
                   </p>
                   
                   <Form {...emailPreferencesForm}>
-                    <form onSubmit={emailPreferencesForm.handleSubmit(onEmailPreferencesSubmit)} className="space-y-2">
+                    <form onSubmit={emailPreferencesForm.handleSubmit(onEmailPreferencesSubmit)} className="space-y-1">
                       {/* Master email toggle */}
                       <FormField
                         control={emailPreferencesForm.control}
                         name="emailNotificationsEnabled"
                         render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
                             <div className="space-y-0.5">
                               <FormLabel className="text-base font-medium">
                                 Email Notifications
@@ -534,12 +534,12 @@ export default function Settings() {
                       />
 
                       {/* Individual notification types */}
-                      <div className="space-y-2">
+                      <div className="space-y-1">
                         <FormField
                           control={emailPreferencesForm.control}
                           name="emailPaymentReminders"
                           render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
                               <div className="space-y-0.5">
                                 <FormLabel className="text-sm font-medium">
                                   Payment Reminders
@@ -563,7 +563,7 @@ export default function Settings() {
                           control={emailPreferencesForm.control}
                           name="emailMaintenanceAlerts"
                           render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
                               <div className="space-y-0.5">
                                 <FormLabel className="text-sm font-medium">
                                   Maintenance Alerts
@@ -587,7 +587,7 @@ export default function Settings() {
                           control={emailPreferencesForm.control}
                           name="emailLeaseExpiry"
                           render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
                               <div className="space-y-0.5">
                                 <FormLabel className="text-sm font-medium">
                                   Lease Expiration Alerts
@@ -611,7 +611,7 @@ export default function Settings() {
                           control={emailPreferencesForm.control}
                           name="emailSystemUpdates"
                           render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
                               <div className="space-y-0.5">
                                 <FormLabel className="text-sm font-medium">
                                   System Updates
@@ -632,7 +632,7 @@ export default function Settings() {
                         />
                       </div>
 
-                      <div className="mt-4 mb-0">
+                      <div className="mt-2 mb-0">
                         <Button 
                           type="submit" 
                           disabled={updateEmailPreferencesMutation.isPending}
