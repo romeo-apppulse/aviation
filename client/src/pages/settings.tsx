@@ -238,7 +238,7 @@ export default function Settings() {
       </div>
 
       {/* Main Content Area - Scrollable */}
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4">
           {activeTab === "profile" && (
             <Card>
               <CardHeader>
@@ -417,8 +417,8 @@ export default function Settings() {
           )}
 
           {activeTab === "notifications" && (
-            <div className="max-w-4xl">
-              <div className="mb-6">
+            <div className="max-w-4xl mb-4">
+              <div className="mb-4">
                 <h2 className="text-2xl font-semibold flex items-center">
                   <Mail className="h-6 w-6 mr-3" />
                   Email Notifications
@@ -428,9 +428,9 @@ export default function Settings() {
                 </p>
               </div>
               
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {/* Email Service Status */}
-                <div className="border rounded-lg p-6">
+                <div className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-medium">Email Service Status</h3>
                     {emailStatusLoading ? (
@@ -464,8 +464,8 @@ export default function Settings() {
                 </div>
 
                 {/* Test Email Section */}
-                <div className="border rounded-lg p-6">
-                  <h3 className="text-lg font-medium mb-4">Test Email Notifications</h3>
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-medium mb-3">Test Email Notifications</h3>
                   <p className="text-sm text-gray-600 mb-4">
                     Send a test email notification to verify that the email system is working properly.
                   </p>
@@ -501,8 +501,8 @@ export default function Settings() {
                 </div>
 
                 {/* Email Preferences Form */}
-                <div className="border rounded-lg p-6">
-                  <h3 className="text-lg font-medium mb-4">Email Preferences</h3>
+                <div className="border rounded-lg p-4">
+                  <h3 className="text-lg font-medium mb-3">Email Preferences</h3>
                   <p className="text-sm text-gray-600 mb-4">
                     Control which email notifications you receive from AeroLease Manager.
                   </p>
