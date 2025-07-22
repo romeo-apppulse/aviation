@@ -49,7 +49,10 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState<"profile" | "password" | "notifications">("profile");
 
   // Email service status
-  const { data: emailStatus, isLoading: emailStatusLoading } = useQuery({
+  const { data: emailStatus, isLoading: emailStatusLoading } = useQuery<{
+    emailServiceReady: boolean;
+    timestamp: string;
+  }>({
     queryKey: ["/api/notifications/email/status"],
   });
 
