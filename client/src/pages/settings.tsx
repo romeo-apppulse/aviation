@@ -202,53 +202,47 @@ export default function Settings() {
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
-      <div className="flex-shrink-0 px-4 py-6 border-b bg-white">
-        <div className="container mx-auto max-w-4xl">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
-          <p className="text-gray-600">Manage your account settings and preferences</p>
-        </div>
+    <div className="h-screen flex flex-col">
+      {/* Fixed Header */}
+      <div className="flex-shrink-0 px-6 py-4 border-b bg-white">
+        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <p className="text-sm text-gray-600">Manage your account settings and preferences</p>
       </div>
 
-      <div className="flex-1 overflow-hidden">
-        <div className="container mx-auto px-4 py-6 max-w-4xl h-full">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 h-full">
-        {/* Settings Navigation */}
-        <div className="md:col-span-1">
-          <Card>
-            <CardContent className="p-4">
-              <nav className="space-y-2">
-                <Button
-                  variant={activeTab === "profile" ? "default" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => setActiveTab("profile")}
-                >
-                  <UserIcon className="h-4 w-4 mr-2" />
-                  Profile
-                </Button>
-                <Button
-                  variant={activeTab === "password" ? "default" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => setActiveTab("password")}
-                >
-                  <Lock className="h-4 w-4 mr-2" />
-                  Password
-                </Button>
-                <Button
-                  variant={activeTab === "notifications" ? "default" : "ghost"}
-                  className="w-full justify-start"
-                  onClick={() => setActiveTab("notifications")}
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Email Notifications
-                </Button>
-              </nav>
-            </CardContent>
-          </Card>
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar Navigation */}
+        <div className="w-64 flex-shrink-0 bg-gray-50 border-r p-4">
+          <nav className="space-y-2">
+            <Button
+              variant={activeTab === "profile" ? "default" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setActiveTab("profile")}
+            >
+              <UserIcon className="h-4 w-4 mr-2" />
+              Profile
+            </Button>
+            <Button
+              variant={activeTab === "password" ? "default" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setActiveTab("password")}
+            >
+              <Lock className="h-4 w-4 mr-2" />
+              Password
+            </Button>
+            <Button
+              variant={activeTab === "notifications" ? "default" : "ghost"}
+              className="w-full justify-start"
+              onClick={() => setActiveTab("notifications")}
+            >
+              <Mail className="h-4 w-4 mr-2" />
+              Email Notifications
+            </Button>
+          </nav>
         </div>
 
-            {/* Settings Content */}
-            <div className="md:col-span-3 overflow-y-auto">
+        {/* Content Area */}
+        <div className="flex-1 overflow-y-auto p-6">
           {activeTab === "profile" && (
             <Card>
               <CardHeader>
@@ -427,21 +421,22 @@ export default function Settings() {
           )}
 
           {activeTab === "notifications" && (
-            <Card className="h-full flex flex-col overflow-hidden">
-              <CardHeader className="flex-shrink-0">
-                <CardTitle className="flex items-center">
+            <div className="h-full max-w-4xl">
+              <div className="mb-6">
+                <h2 className="text-xl font-semibold flex items-center">
                   <Mail className="h-5 w-5 mr-2" />
                   Email Notifications
-                </CardTitle>
-                <CardDescription>
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
                   Test and configure email notification settings
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="flex-1 overflow-y-auto space-y-4 p-6">
+                </p>
+              </div>
+              
+              <div className="space-y-4 max-h-[calc(100vh-12rem)] overflow-y-auto pr-2">
                 {/* Email Service Status */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-base font-medium">Email Service Status</h3>
+                <div className="border rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-sm font-medium">Email Service Status</h3>
                     {emailStatusLoading ? (
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                     ) : emailStatus?.emailServiceReady ? (
@@ -473,10 +468,10 @@ export default function Settings() {
                 </div>
 
                 {/* Test Email Section */}
-                <div className="border rounded-lg p-4">
-                  <h3 className="text-base font-medium mb-3">Test Email Notifications</h3>
-                  <p className="text-sm text-gray-600 mb-4">
-                    Send a test email notification to verify that the email system is working properly.
+                <div className="border rounded-lg p-3">
+                  <h3 className="text-sm font-medium mb-2">Test Email Notifications</h3>
+                  <p className="text-xs text-gray-600 mb-3">
+                    Send a test email to verify the system is working.
                   </p>
                   
                   <div className="flex flex-col sm:flex-row gap-3">
@@ -510,9 +505,9 @@ export default function Settings() {
                 </div>
 
                 {/* Email Preferences Form */}
-                <div className="border rounded-lg p-4">
-                  <h3 className="text-base font-medium mb-2">Email Preferences</h3>
-                  <p className="text-sm text-gray-600 mb-3">
+                <div className="border rounded-lg p-3">
+                  <h3 className="text-sm font-medium mb-2">Email Preferences</h3>
+                  <p className="text-xs text-gray-600 mb-2">
                     Control which email notifications you receive.
                   </p>
                   
@@ -652,11 +647,9 @@ export default function Settings() {
                     </form>
                   </Form>
                 </div>
-              </CardContent>
-            </Card>
-          )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>
