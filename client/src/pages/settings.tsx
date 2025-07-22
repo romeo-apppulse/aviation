@@ -417,18 +417,18 @@ export default function Settings() {
           )}
 
           {activeTab === "notifications" && (
-            <div className="max-w-4xl">
-              <div className="mb-2">
-                <h2 className="text-2xl font-semibold flex items-center">
-                  <Mail className="h-6 w-6 mr-3" />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Mail className="h-5 w-5 mr-2" />
                   Email Notifications
-                </h2>
-                <p className="text-gray-600 mt-1">
+                </CardTitle>
+                <CardDescription>
                   Test and configure email notification settings
-                </p>
-              </div>
-              
-              <div className="space-y-2">
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
                 {/* Email Service Status */}
                 <div className="border rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
@@ -645,8 +645,9 @@ export default function Settings() {
                     </form>
                   </Form>
                 </div>
-              </div>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
       </div>
     </div>
