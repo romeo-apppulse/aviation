@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AlertCircle, Save, User as UserIcon, Mail, Lock, Shield, CheckCircle, XCircle, Send } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50, "First name must be less than 50 characters"),
@@ -31,8 +32,17 @@ const passwordSchema = z.object({
   path: ["confirmPassword"],
 });
 
+const emailPreferencesSchema = z.object({
+  emailNotificationsEnabled: z.boolean(),
+  emailPaymentReminders: z.boolean(),
+  emailMaintenanceAlerts: z.boolean(),
+  emailLeaseExpiry: z.boolean(),
+  emailSystemUpdates: z.boolean(),
+});
+
 type ProfileFormData = z.infer<typeof profileSchema>;
 type PasswordFormData = z.infer<typeof passwordSchema>;
+type EmailPreferencesFormData = z.infer<typeof emailPreferencesSchema>;
 
 export default function Settings() {
   const { toast } = useToast();
@@ -84,7 +94,18 @@ export default function Settings() {
     },
   });
 
-  // Reset form when user data loads
+  const emailPreferencesForm = useForm<EmailPreferencesFormData>({
+    resolver: zodResolver(emailPreferencesSchema),
+    defaultValues: {
+      emailNotificationsEnabled: user?.emailNotificationsEnabled ?? true,
+      emailPaymentReminders: user?.emailPaymentReminders ?? true,
+      emailMaintenanceAlerts: user?.emailMaintenanceAlerts ?? true,
+      emailLeaseExpiry: user?.emailLeaseExpiry ?? true,
+      emailSystemUpdates: user?.emailSystemUpdates ?? true,
+    },
+  });
+
+  // Reset forms when user data loads
   React.useEffect(() => {
     if (user) {
       profileForm.reset({
@@ -92,8 +113,16 @@ export default function Settings() {
         lastName: user.lastName || "",
         email: user.email || "",
       });
+      
+      emailPreferencesForm.reset({
+        emailNotificationsEnabled: user.emailNotificationsEnabled ?? true,
+        emailPaymentReminders: user.emailPaymentReminders ?? true,
+        emailMaintenanceAlerts: user.emailMaintenanceAlerts ?? true,
+        emailLeaseExpiry: user.emailLeaseExpiry ?? true,
+        emailSystemUpdates: user.emailSystemUpdates ?? true,
+      });
     }
-  }, [user, profileForm]);
+  }, [user, profileForm, emailPreferencesForm]);
 
   const updateProfileMutation = useMutation({
     mutationFn: (data: ProfileFormData) => apiRequest("PUT", "/api/auth/user", data),
@@ -131,12 +160,34 @@ export default function Settings() {
     },
   });
 
+  const updateEmailPreferencesMutation = useMutation({
+    mutationFn: (data: EmailPreferencesFormData) => apiRequest("PUT", "/api/auth/email-preferences", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Email Preferences Updated",
+        description: "Your email notification preferences have been saved.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Update Failed",
+        description: error.message || "Failed to update email preferences. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onProfileSubmit = (data: ProfileFormData) => {
     updateProfileMutation.mutate(data);
   };
 
   const onPasswordSubmit = (data: PasswordFormData) => {
     updatePasswordMutation.mutate(data);
+  };
+
+  const onEmailPreferencesSubmit = (data: EmailPreferencesFormData) => {
+    updateEmailPreferencesMutation.mutate(data);
   };
 
   if (isLoading) {
@@ -451,18 +502,148 @@ export default function Settings() {
                   )}
                 </div>
 
-                {/* Email Preferences */}
+                {/* Email Preferences Form */}
                 <div className="border rounded-lg p-4">
                   <h3 className="text-lg font-medium mb-4">Email Preferences</h3>
-                  <div className="text-sm text-gray-600 space-y-2">
-                    <p>✓ Payment due reminders</p>
-                    <p>✓ Maintenance schedule notifications</p>
-                    <p>✓ Lease expiration alerts</p>
-                    <p>✓ System updates and announcements</p>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-4">
-                    Email preferences are currently managed automatically. Individual preferences will be available in a future update.
+                  <p className="text-sm text-gray-600 mb-4">
+                    Control which email notifications you receive from AeroLease Manager.
                   </p>
+                  
+                  <Form {...emailPreferencesForm}>
+                    <form onSubmit={emailPreferencesForm.handleSubmit(onEmailPreferencesSubmit)} className="space-y-4">
+                      {/* Master email toggle */}
+                      <FormField
+                        control={emailPreferencesForm.control}
+                        name="emailNotificationsEnabled"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-base font-medium">
+                                Email Notifications
+                              </FormLabel>
+                              <div className="text-sm text-gray-500">
+                                Enable or disable all email notifications
+                              </div>
+                            </div>
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+
+                      {/* Individual notification types */}
+                      <div className="space-y-3">
+                        <FormField
+                          control={emailPreferencesForm.control}
+                          name="emailPaymentReminders"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-sm font-medium">
+                                  Payment Reminders
+                                </FormLabel>
+                                <div className="text-xs text-gray-500">
+                                  Receive notifications when payments are due
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  disabled={!emailPreferencesForm.watch('emailNotificationsEnabled')}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={emailPreferencesForm.control}
+                          name="emailMaintenanceAlerts"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-sm font-medium">
+                                  Maintenance Alerts
+                                </FormLabel>
+                                <div className="text-xs text-gray-500">
+                                  Get notified about upcoming maintenance schedules
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  disabled={!emailPreferencesForm.watch('emailNotificationsEnabled')}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={emailPreferencesForm.control}
+                          name="emailLeaseExpiry"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-sm font-medium">
+                                  Lease Expiration Alerts
+                                </FormLabel>
+                                <div className="text-xs text-gray-500">
+                                  Receive alerts when leases are about to expire
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  disabled={!emailPreferencesForm.watch('emailNotificationsEnabled')}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={emailPreferencesForm.control}
+                          name="emailSystemUpdates"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-sm font-medium">
+                                  System Updates
+                                </FormLabel>
+                                <div className="text-xs text-gray-500">
+                                  Get notified about system updates and new features
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  disabled={!emailPreferencesForm.watch('emailNotificationsEnabled')}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <Button 
+                        type="submit" 
+                        disabled={updateEmailPreferencesMutation.isPending}
+                        className="w-full md:w-auto"
+                      >
+                        <Save className="h-4 w-4 mr-2" />
+                        {updateEmailPreferencesMutation.isPending ? "Saving..." : "Save Preferences"}
+                      </Button>
+                    </form>
+                  </Form>
                 </div>
               </CardContent>
             </Card>

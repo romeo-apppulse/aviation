@@ -46,6 +46,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  apiRouter.put('/auth/email-preferences', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const preferences = req.body;
+      
+      // Validate the preferences object
+      const validFields = ['emailNotificationsEnabled', 'emailPaymentReminders', 'emailMaintenanceAlerts', 'emailLeaseExpiry', 'emailSystemUpdates'];
+      const filteredPreferences: any = {};
+      
+      for (const [key, value] of Object.entries(preferences)) {
+        if (validFields.includes(key) && typeof value === 'boolean') {
+          filteredPreferences[key] = value;
+        }
+      }
+      
+      if (Object.keys(filteredPreferences).length === 0) {
+        return res.status(400).json({ message: "No valid preferences provided" });
+      }
+      
+      const updatedUser = await storage.updateEmailPreferences(userId, filteredPreferences);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating email preferences:", error);
+      res.status(500).json({ message: "Failed to update email preferences" });
+    }
+  });
+
   apiRouter.put('/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
@@ -658,31 +690,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send email notification if email service is available
       if (emailService.isReady()) {
         const user = await storage.getUser(userId);
-        if (user && user.email) {
+        if (user && user.email && user.emailNotificationsEnabled) {
           // Determine notification type based on title/content
           let emailType: NotificationEmailData['type'] = 'general';
           const title = validatedData.title.toLowerCase();
+          let shouldSendEmail = true;
           
           if (title.includes('payment') && title.includes('due')) {
             emailType = 'payment_due';
+            shouldSendEmail = user.emailPaymentReminders;
           } else if (title.includes('maintenance')) {
             emailType = 'maintenance_reminder';
+            shouldSendEmail = user.emailMaintenanceAlerts;
           } else if (title.includes('lease') && title.includes('expir')) {
             emailType = 'lease_expiry';
+            shouldSendEmail = user.emailLeaseExpiry;
           } else if (title.includes('system') || title.includes('update')) {
             emailType = 'system_update';
+            shouldSendEmail = user.emailSystemUpdates;
           }
           
-          // Send email notification
-          emailService.sendNotificationEmail({
-            user,
-            title: validatedData.title,
-            message: validatedData.message,
-            actionUrl: validatedData.actionUrl || undefined,
-            type: emailType
-          }).catch(error => {
-            console.error('Failed to send email notification:', error);
-          });
+          // Send email notification only if user has enabled this type
+          if (shouldSendEmail) {
+            emailService.sendNotificationEmail({
+              user,
+              title: validatedData.title,
+              message: validatedData.message,
+              actionUrl: validatedData.actionUrl || undefined,
+              type: emailType
+            }).catch(error => {
+              console.error('Failed to send email notification:', error);
+            });
+          }
         }
       }
       

@@ -84,6 +84,7 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getAllUsers(): Promise<User[]>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateEmailPreferences(id: string, preferences: Partial<Pick<User, 'emailNotificationsEnabled' | 'emailPaymentReminders' | 'emailMaintenanceAlerts' | 'emailLeaseExpiry' | 'emailSystemUpdates'>>): Promise<User | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -1395,6 +1396,18 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async updateEmailPreferences(id: string, preferences: Partial<Pick<User, 'emailNotificationsEnabled' | 'emailPaymentReminders' | 'emailMaintenanceAlerts' | 'emailLeaseExpiry' | 'emailSystemUpdates'>>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...preferences,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
   }
 
   // Notification operations

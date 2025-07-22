@@ -10,6 +10,21 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Email Notification System Implementation (January 2025)
+- Implemented comprehensive email notification system using nodemailer
+- Added email preferences management with granular controls:
+  - Master email notifications toggle
+  - Payment due reminders 
+  - Maintenance alerts
+  - Lease expiration alerts
+  - System updates and announcements
+- Created email service with test account for development
+- Added automatic email sending when notifications are created
+- Built email testing interface in settings page with status monitoring
+- Updated database schema with user email preference fields
+- Added API endpoints for updating email preferences (/api/auth/email-preferences)
+- Enhanced notification creation to respect user email preferences
+
 ### Image Fallback System (January 2025)
 - Created AeroLeaseIcon component with branded blue gradient design
 - Implemented AircraftImage component with proper error handling

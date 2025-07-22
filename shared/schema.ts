@@ -20,6 +20,11 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  emailNotificationsEnabled: boolean("email_notifications_enabled").default(true),
+  emailPaymentReminders: boolean("email_payment_reminders").default(true),
+  emailMaintenanceAlerts: boolean("email_maintenance_alerts").default(true),
+  emailLeaseExpiry: boolean("email_lease_expiry").default(true),
+  emailSystemUpdates: boolean("email_system_updates").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
