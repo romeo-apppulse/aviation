@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { AlertCircle, Save, User as UserIcon, Mail, Lock, Shield } from "lucide-react";
+import { AlertCircle, Save, User as UserIcon, Mail, Lock, Shield, CheckCircle, XCircle, Send } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const profileSchema = z.object({
