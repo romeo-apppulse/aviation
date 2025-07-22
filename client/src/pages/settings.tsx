@@ -202,7 +202,7 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex min-h-screen">
+    <div className="flex h-screen">
       {/* Sticky Sidebar Navigation */}
       <div className="w-64 bg-gray-50 border-r sticky top-0 h-screen">
         <div className="p-6 border-b">
@@ -238,7 +238,7 @@ export default function Settings() {
       </div>
 
       {/* Main Content Area - Scrollable */}
-      <div className="flex-1 p-4 pb-0">
+      <div className="flex-1 overflow-y-auto p-4">
           {activeTab === "profile" && (
             <Card>
               <CardHeader>
