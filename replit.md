@@ -1,8 +1,8 @@
-# AeroLease Manager - Aircraft Management System
+# Aviation Ape Manager - Aircraft Management System
 
 ## Overview
 
-AeroLease Manager is a full-stack aircraft management system built for tracking aircraft leases, owners, lessees (flight schools), payments, and maintenance schedules. The application provides a comprehensive dashboard for managing aircraft fleet operations with real-time updates and detailed reporting capabilities.
+Aviation Ape Manager is a full-stack aircraft management system built for tracking aircraft leases, owners, lessees (flight schools), payments, and maintenance schedules. The application provides a comprehensive dashboard for managing aircraft fleet operations with real-time updates and detailed reporting capabilities.
 
 ## User Preferences
 

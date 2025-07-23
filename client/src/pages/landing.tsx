@@ -8,8 +8,12 @@ export default function Landing() {
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-16">
           <div className="flex items-center justify-center mb-6">
-            <Plane className="h-12 w-12 text-blue-600 mr-3" />
-            <h1 className="text-4xl font-bold text-gray-900">AeroLease Manager</h1>
+            <img 
+              src="@assets/aircraft-removebg-preview_1753289219831.png" 
+              alt="Aviation Ape" 
+              className="h-12 w-12 mr-3"
+            />
+            <h1 className="text-4xl font-bold text-gray-900">Aviation Ape Manager</h1>
           </div>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
             Comprehensive aircraft management system for tracking leases, owners, lessees, payments, and maintenance schedules

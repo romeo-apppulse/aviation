@@ -47,7 +47,12 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
     >
       <div className="p-4 border-b border-[#34495e]">
         {collapsed ? (
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center space-y-2">
+            <img 
+              src="@assets/aircraft-removebg-preview_1753289219831.png" 
+              alt="Aviation Ape" 
+              className="h-8 w-8"
+            />
             <button
               onClick={toggleCollapse}
               className="p-1.5 rounded hover:bg-[#34495e] transition-colors"
@@ -59,9 +64,13 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         ) : (
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 overflow-hidden">
-              <Plane className="text-[#3498db] h-6 w-6 flex-shrink-0" />
+              <img 
+                src="@assets/aircraft-removebg-preview_1753289219831.png" 
+                alt="Aviation Ape" 
+                className="h-8 w-8 flex-shrink-0"
+              />
               <h1 className="font-sans font-bold text-xl">
-                AeroLease
+                Aviation Ape
               </h1>
             </div>
             <button

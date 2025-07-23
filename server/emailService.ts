@@ -61,8 +61,8 @@ class EmailService {
   private generateEmailTemplate(data: NotificationEmailData): EmailTemplate {
     const { user, title, message, actionUrl, type } = data;
     
-    const logoUrl = 'https://via.placeholder.com/200x60/3498db/ffffff?text=AeroLease';
-    const companyName = 'AeroLease Manager';
+    const logoUrl = 'https://via.placeholder.com/200x60/3498db/ffffff?text=Aviation+Ape';
+    const companyName = 'Aviation Ape Manager';
     
     // Color scheme based on notification type
     const colors = {
