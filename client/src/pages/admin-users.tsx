@@ -546,9 +546,12 @@ export default function AdminUsers() {
 
       {/* Edit User Dialog */}
       <Dialog open={!!editingUser} onOpenChange={() => setEditingUser(null)}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px]" aria-describedby="edit-user-description">
           <DialogHeader>
             <DialogTitle>Edit User</DialogTitle>
+            <p id="edit-user-description" className="text-sm text-gray-600">
+              Update user information, role, and account status.
+            </p>
           </DialogHeader>
           <Form {...editForm}>
             <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
@@ -658,9 +661,12 @@ export default function AdminUsers() {
 
       {/* New User Dialog */}
       <Dialog open={showNewUserDialog} onOpenChange={setShowNewUserDialog}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px]" aria-describedby="new-user-description">
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
+            <p id="new-user-description" className="text-sm text-gray-600">
+              Create a new user account with email, password, and role assignment.
+            </p>
           </DialogHeader>
           <Form {...newUserForm}>
             <form onSubmit={newUserForm.handleSubmit(onNewUserSubmit)} className="space-y-4">

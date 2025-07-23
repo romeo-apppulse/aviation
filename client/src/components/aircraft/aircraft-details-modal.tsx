@@ -54,15 +54,18 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/aircraft"] });
       setIsEditing(false);
+      setImageFile(null);
+      setImagePreview("");
       toast({
         title: "Success",
         description: "Aircraft updated successfully",
       });
     },
     onError: (error) => {
+      console.error("Aircraft update error:", error);
       toast({
         title: "Error",
-        description: "Failed to update aircraft",
+        description: error instanceof Error ? error.message : "Failed to update aircraft",
         variant: "destructive",
       });
     },
@@ -88,41 +91,70 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        toast({
-          title: "Error",
-          description: "Image file size must be less than 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Check if it's a valid image type
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Error",
-          description: "Please upload a valid image file",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      toast({
+        title: "Error",
+        description: "Image file size must be less than 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if it's a valid image type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Error",
+        description: "Please upload a valid image file",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setImageFile(file);
+    const reader = new FileReader();
+    
+    reader.onload = (e) => {
+      try {
         const preview = e.target?.result as string;
-        setImagePreview(preview);
-        form.setValue("image", preview);
-      };
-      reader.onerror = () => {
+        if (preview) {
+          setImagePreview(preview);
+          form.setValue("image", preview);
+        }
+      } catch (error) {
+        console.error("Error setting image preview:", error);
         toast({
           title: "Error",
-          description: "Failed to read image file",
+          description: "Failed to process image",
           variant: "destructive",
         });
-      };
+      }
+    };
+    
+    reader.onerror = (error) => {
+      console.error("FileReader error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to read image file",
+        variant: "destructive",
+      });
+    };
+    
+    try {
       reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Error reading file:", error);
+      toast({
+        title: "Error",
+        description: "Failed to read image file",
+        variant: "destructive",
+      });
+    }
+    
+    // Clear the file input to allow re-uploading the same file
+    if (event.target) {
+      event.target.value = '';
     }
   };
 
@@ -133,17 +165,32 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
   };
 
   const onSubmit = (data: UpdateAircraft) => {
-    updateAircraftMutation.mutate(data);
+    try {
+      // The mutation itself handles async operations and errors
+      updateAircraftMutation.mutate(data);
+    } catch (error) {
+      console.error("Error submitting aircraft update:", error);
+      toast({
+        title: "Error",
+        description: "Failed to submit aircraft update",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto" aria-describedby="aircraft-details-description">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-sans font-semibold">
               {isEditing ? "Edit Aircraft" : "Aircraft Details"}
             </DialogTitle>
+            <p id="aircraft-details-description" className="sr-only">
+              {isEditing 
+                ? "Edit aircraft information including registration, specifications, and image" 
+                : "View detailed aircraft information, maintenance records, and documents"}
+            </p>
             <div className="flex space-x-2">
               {isEditing ? (
                 <>
@@ -164,7 +211,10 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
                     size="sm"
                     className="bg-[#3498db] hover:bg-[#2980b9]"
                     disabled={updateAircraftMutation.isPending}
-                    onClick={form.handleSubmit(onSubmit)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      form.handleSubmit(onSubmit)();
+                    }}
                   >
                     <Save className="h-4 w-4 mr-1" />
                     {updateAircraftMutation.isPending ? "Saving..." : "Save"}  
@@ -206,7 +256,13 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
                               type="button"
                               variant="outline"
                               size="sm"
-                              onClick={() => document.getElementById('image-upload')?.click()}
+                              onClick={() => {
+                                const input = document.getElementById('image-upload') as HTMLInputElement;
+                                if (input) {
+                                  input.value = ''; // Clear previous selection
+                                  input.click();
+                                }
+                              }}
                               className="flex-1"
                             >
                               <Upload className="h-4 w-4 mr-2" />
