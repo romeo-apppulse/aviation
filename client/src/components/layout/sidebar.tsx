@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+import aircraft_removebg_preview from "@assets/aircraft-removebg-preview.png";
+
 type SidebarProps = {
   open: boolean;
   setOpen: (open: boolean) => void;
@@ -65,7 +67,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3 overflow-hidden">
               <img 
-                src="@assets/aircraft-removebg-preview_1753289219831.png" 
+                src={aircraft_removebg_preview} 
                 alt="Aviation Ape" 
                 className="h-8 w-8 flex-shrink-0"
               />
@@ -83,7 +85,6 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
           </div>
         )}
       </div>
-      
       <div className="p-4">
         {!collapsed && <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">Main Navigation</div>}
         <nav>
@@ -214,7 +215,6 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
           </Link>
         </nav>
       </div>
-      
       <div className="p-4 mt-4">
         {!collapsed && <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">Settings</div>}
         <nav>
