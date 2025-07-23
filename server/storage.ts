@@ -88,7 +88,7 @@ export interface IStorage {
   approveUser(id: string, approvedBy: string): Promise<User | undefined>;
   blockUser(id: string): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
-  updateUser(id: string, data: Partial<UpsertUser>): Promise<User | undefined>;
+  updateUser(id: string, data: Partial<UpsertUser & { password?: string }>): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(data: { firstName: string; lastName: string; email: string; password: string; role: string; status: string; }): Promise<User>;
   getPendingUsers(): Promise<User[]>;
@@ -1531,11 +1531,17 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
-  async updateUser(id: string, data: Partial<UpsertUser>): Promise<User | undefined> {
+  async updateUser(id: string, data: Partial<UpsertUser & { password?: string }>): Promise<User | undefined> {
+    // Remove password from data if it's empty or undefined
+    const updateData = { ...data };
+    if (!updateData.password) {
+      delete updateData.password;
+    }
+    
     const [user] = await db
       .update(users)
       .set({
-        ...data,
+        ...updateData,
         updatedAt: new Date(),
       })
       .where(eq(users.id, id))

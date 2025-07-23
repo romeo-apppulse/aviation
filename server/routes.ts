@@ -221,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.put('/admin/users/:id', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
-      const { firstName, lastName, email, role, status } = req.body;
+      const { firstName, lastName, email, password, role, status } = req.body;
       
       // Prevent actions on Zach's account
       const targetUser = await storage.getUser(id);
@@ -229,13 +229,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Cannot modify permanent admin account" });
       }
       
-      const updatedUser = await storage.updateUser(id, {
+      const updateData: any = {
         firstName,
         lastName,
         email,
         role,
         status
-      });
+      };
+      
+      // Only include password if it's provided and not empty
+      if (password && password.trim()) {
+        updateData.password = password;
+      }
+      
+      const updatedUser = await storage.updateUser(id, updateData);
       
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });

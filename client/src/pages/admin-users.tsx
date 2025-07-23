@@ -32,6 +32,7 @@ const userEditSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
+  password: z.string().optional(),
   role: z.enum(["user", "admin", "super_admin"]),
   status: z.enum(["pending", "approved", "blocked"])
 });
@@ -66,7 +67,8 @@ export default function AdminUsers() {
 
   const approveUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest(`/api/admin/users/${userId}/approve`, "PUT");
+      const response = await apiRequest("PUT", `/api/admin/users/${userId}/approve`);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
@@ -87,7 +89,8 @@ export default function AdminUsers() {
 
   const blockUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest(`/api/admin/users/${userId}/block`, "PUT");
+      const response = await apiRequest("PUT", `/api/admin/users/${userId}/block`);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
@@ -107,7 +110,8 @@ export default function AdminUsers() {
 
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
-      return await apiRequest(`/api/admin/users/${userId}`, "DELETE");
+      const response = await apiRequest("DELETE", `/api/admin/users/${userId}`);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
@@ -131,6 +135,7 @@ export default function AdminUsers() {
       firstName: "",
       lastName: "",
       email: "",
+      password: "",
       role: "user",
       status: "pending"
     }
@@ -149,7 +154,8 @@ export default function AdminUsers() {
 
   const editUserMutation = useMutation({
     mutationFn: async ({ userId, data }: { userId: string; data: UserEditForm }) => {
-      return await apiRequest(`/api/admin/users/${userId}`, "PUT", data);
+      const response = await apiRequest("PUT", `/api/admin/users/${userId}`, data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
@@ -172,7 +178,8 @@ export default function AdminUsers() {
 
   const createUserMutation = useMutation({
     mutationFn: async (data: NewUserForm) => {
-      return await apiRequest("/api/admin/users", "POST", data);
+      const response = await apiRequest("POST", "/api/admin/users", data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
@@ -200,6 +207,7 @@ export default function AdminUsers() {
       firstName: user.firstName || "",
       lastName: user.lastName || "",
       email: user.email || "",
+      password: "",
       role: user.role || "user",
       status: user.status || "pending"
     });
@@ -592,6 +600,20 @@ export default function AdminUsers() {
                     <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input type="email" placeholder="Email address" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={editForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Password (optional)</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Leave blank to keep current password" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

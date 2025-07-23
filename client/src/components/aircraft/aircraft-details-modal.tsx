@@ -49,7 +49,8 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
 
   const updateAircraftMutation = useMutation({
     mutationFn: async (data: UpdateAircraft) => {
-      return await apiRequest(`/api/aircraft/${aircraft.id}`, "PUT", data);
+      const response = await apiRequest("PUT", `/api/aircraft/${aircraft.id}`, data);
+      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/aircraft"] });
