@@ -148,6 +148,9 @@ export const insertMaintenanceSchema = createInsertSchema(maintenance).omit({ id
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, uploadDate: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true, readAt: true });
 
+// Create update schemas (allow partial updates)
+export const updateAircraftSchema = insertAircraftSchema.partial();
+
 // User authentication schemas
 export const upsertUserSchema = createInsertSchema(users).omit({ createdAt: true, updatedAt: true });
 
@@ -157,6 +160,7 @@ export type User = typeof users.$inferSelect;
 
 export type Aircraft = typeof aircraft.$inferSelect;
 export type InsertAircraft = z.infer<typeof insertAircraftSchema>;
+export type UpdateAircraft = z.infer<typeof updateAircraftSchema>;
 
 export type Owner = typeof owners.$inferSelect;
 export type InsertOwner = z.infer<typeof insertOwnerSchema>;

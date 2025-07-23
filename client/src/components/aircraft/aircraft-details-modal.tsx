@@ -1,13 +1,21 @@
-import { AircraftWithDetails } from "@shared/schema";
+import { AircraftWithDetails, UpdateAircraft, updateAircraftSchema } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Maintenance } from "@shared/schema";
-import { Check, FileText, Plane, Calendar, Clock, Wrench } from "lucide-react";
+import { Check, FileText, Plane, Calendar, Clock, Wrench, Edit, Save, X } from "lucide-react";
 import { AircraftImage } from "@/components/ui/aircraft-image";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 interface AircraftDetailsModalProps {
   isOpen: boolean;
@@ -17,7 +25,50 @@ interface AircraftDetailsModalProps {
 
 export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: AircraftDetailsModalProps) {
   const [activeTab, setActiveTab] = useState("overview");
+  const [isEditing, setIsEditing] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
+  const form = useForm<UpdateAircraft>({
+    resolver: zodResolver(updateAircraftSchema),
+    defaultValues: {
+      registration: aircraft.registration,
+      make: aircraft.make,
+      model: aircraft.model,
+      year: aircraft.year,
+      status: aircraft.status,
+      engineType: aircraft.engineType || "",
+      totalTime: aircraft.totalTime || undefined,
+      avionics: aircraft.avionics || "",
+      notes: aircraft.notes || "",
+      image: aircraft.image || "",
+    },
+  });
+
+  const updateAircraftMutation = useMutation({
+    mutationFn: async (data: UpdateAircraft) => {
+      return await apiRequest(`/api/aircraft/${aircraft.id}`, {
+        method: "PUT",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/aircraft"] });
+      setIsEditing(false);
+      toast({
+        title: "Success",
+        description: "Aircraft updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update aircraft",
+        variant: "destructive",
+      });
+    },
+  });
+
   const { data: maintenanceRecords } = useQuery<Maintenance[]>({
     queryKey: [`/api/aircraft/${aircraft.id}/maintenance`],
     enabled: isOpen && activeTab === "maintenance",
@@ -28,14 +79,255 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
     enabled: isOpen && activeTab === "documents",
   });
 
+  const handleClose = () => {
+    setIsEditing(false);
+    form.reset();
+    onClose();
+  };
+
+  const onSubmit = (data: UpdateAircraft) => {
+    updateAircraftMutation.mutate(data);
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-sans font-semibold">Aircraft Details</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="text-xl font-sans font-semibold">
+              {isEditing ? "Edit Aircraft" : "Aircraft Details"}
+            </DialogTitle>
+            <div className="flex space-x-2">
+              {isEditing ? (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsEditing(false);
+                      form.reset();
+                    }}
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    size="sm"
+                    className="bg-[#3498db] hover:bg-[#2980b9]"
+                    disabled={updateAircraftMutation.isPending}
+                    onClick={form.handleSubmit(onSubmit)}
+                  >
+                    <Save className="h-4 w-4 mr-1" />
+                    {updateAircraftMutation.isPending ? "Saving..." : "Save"}  
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              )}
+            </div>
+          </div>
         </DialogHeader>
         
-        <div className="flex flex-col md:flex-row gap-6">
+        {isEditing ? (
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <div className="flex flex-col md:flex-row gap-6">
+                {/* Aircraft image */}
+                <div className="w-full md:w-1/3">
+                  <FormField
+                    control={form.control}
+                    name="image"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Aircraft Image URL</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Image URL" {...field} />
+                        </FormControl>
+                        <FormMessage /> 
+                      </FormItem>
+                    )}
+                  />
+                  <AircraftImage 
+                    className="w-full h-48 object-cover rounded-lg mt-3" 
+                    src={form.watch("image") || aircraft.image} 
+                    alt={`${aircraft.make} ${aircraft.model}`} 
+                  />
+                </div>
+                
+                {/* Edit form fields */}
+                <div className="w-full md:w-2/3 space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="registration"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Registration</FormLabel>
+                          <FormControl>
+                            <Input placeholder="N123AB" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Status</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select status" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="available">Available</SelectItem>
+                              <SelectItem value="leased">Leased</SelectItem>
+                              <SelectItem value="maintenance">Maintenance</SelectItem>
+                              <SelectItem value="inactive">Inactive</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="make"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Make</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Cessna" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="model"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Model</FormLabel>
+                          <FormControl>
+                            <Input placeholder="172" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="year"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Year</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="2020" 
+                              {...field}
+                              onChange={(e) => field.onChange(parseInt(e.target.value))}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="totalTime"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Total Time (hours)</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="1500" 
+                              {...field}
+                              onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : undefined)}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="engineType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Engine Type</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Lycoming IO-360" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="avionics"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Avionics</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Garmin G1000" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  
+                  <FormField
+                    control={form.control}
+                    name="notes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Notes</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Additional information about the aircraft" 
+                            className="min-h-[100px]"
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            </form>
+          </Form>
+        ) : (
+          <div className="flex flex-col md:flex-row gap-6">
           {/* Aircraft image */}
           <div className="w-full md:w-1/3">
             <AircraftImage 
@@ -90,6 +382,7 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
             </div>
           </div>
         </div>
+        )}
         
         {/* Tabs for more details */}
         <div className="mt-6">
