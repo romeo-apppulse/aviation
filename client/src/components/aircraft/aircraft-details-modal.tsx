@@ -94,10 +94,10 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit for better performance
       toast({
         title: "Error",
-        description: "Image file size must be less than 5MB",
+        description: "Image file size must be less than 2MB",
         variant: "destructive",
       });
       return;
@@ -296,9 +296,10 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
                     )}
                   />
                   <AircraftImage 
-                    className="w-full h-48 object-cover rounded-lg mt-3" 
+                    className="w-full h-48 rounded-lg mt-3" 
                     src={imagePreview || form.watch("image") || aircraft.image} 
-                    alt={`${aircraft.make} ${aircraft.model}`} 
+                    alt={`${aircraft.make} ${aircraft.model}`}
+                    fallbackClassName="rounded-lg"
                   />
                 </div>
                 
@@ -470,9 +471,10 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
           {/* Aircraft image */}
           <div className="w-full md:w-1/3">
             <AircraftImage 
-              className="w-full h-48 object-cover rounded-lg" 
+              className="w-full h-48 rounded-lg" 
               src={aircraft.image} 
-              alt={`${aircraft.make} ${aircraft.model}`} 
+              alt={`${aircraft.make} ${aircraft.model}`}
+              fallbackClassName="rounded-lg"
             />
           </div>
           

@@ -12,27 +12,35 @@ export function AircraftImage({ src, alt, className = "", fallbackClassName = ""
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
-  if (!src || imageError) {
+  // Handle empty, null, or invalid image sources
+  if (!src || src.trim() === '' || imageError) {
     return (
-      <div className={`${className} ${fallbackClassName} bg-gray-50 flex items-center justify-center`}>
-        <AeroLeaseIcon className="h-12 w-12" />
+      <div className={`${className} ${fallbackClassName} bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center border border-blue-200 rounded`}>
+        <AeroLeaseIcon className="h-8 w-8 text-blue-600" />
       </div>
     );
   }
 
   return (
-    <div className={`${className} relative`}>
+    <div className={`${className} relative overflow-hidden rounded`}>
       {!imageLoaded && (
-        <div className="absolute inset-0 bg-gray-50 flex items-center justify-center">
-          <AeroLeaseIcon className="h-12 w-12" />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-blue-100 flex items-center justify-center border border-blue-200">
+          <AeroLeaseIcon className="h-8 w-8 text-blue-600 animate-pulse" />
         </div>
       )}
       <img
         src={src}
         alt={alt}
-        className={`${className} ${imageLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
-        onLoad={() => setImageLoaded(true)}
-        onError={() => setImageError(true)}
+        className={`w-full h-full object-cover ${imageLoaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-300`}
+        onLoad={() => {
+          setImageLoaded(true);
+          setImageError(false);
+        }}
+        onError={(e) => {
+          console.warn(`Failed to load aircraft image: ${src}`, e);
+          setImageError(true);
+          setImageLoaded(false);
+        }}
       />
     </div>
   );

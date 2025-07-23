@@ -10,6 +10,16 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Aircraft Image Upload & Error Handling Fixes (January 2025)
+- Fixed 413 "request entity too large" error by increasing Express body limits to 10MB
+- Reduced client-side image upload limit to 2MB for better performance
+- Enhanced AircraftImage component with proper fallback handling and loading states
+- Added comprehensive error handling for FileReader operations in image upload
+- Implemented base64 image storage with proper database persistence
+- Fixed API request format issues in aircraft and user management operations
+- Updated aircraft image display across all pages to use consistent AircraftImage component
+- Added branded fallback icons with blue gradient styling for broken/missing images
+
 ### Super Admin User Management System (January 2025)
 - Fixed aircraft edit modal to include image upload/remove functionality with file upload support
 - Enhanced user management system with proper protection for permanent admin (Zach)

@@ -234,7 +234,7 @@ export default function Aircraft() {
                 <AircraftImage
                   src={aircraft.image}
                   alt={`${aircraft.make} ${aircraft.model}`}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full"
                 />
                 <div className="absolute top-2 right-2">
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(aircraft.status)}`}>
