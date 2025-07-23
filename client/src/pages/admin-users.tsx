@@ -264,22 +264,22 @@ export default function AdminUsers() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="overflow-x-auto">
+            <div className="overflow-hidden">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left p-3">User</th>
-                    <th className="text-left p-3">Email</th>
-                    <th className="text-left p-3">Status</th>
-                    <th className="text-left p-3">Role</th>
-                    <th className="text-left p-3">Joined</th>
-                    <th className="text-left p-3">Actions</th>
+                    <th className="text-left p-2 min-w-[200px]">User</th>
+                    <th className="text-left p-2 min-w-[180px]">Email</th>
+                    <th className="text-left p-2 min-w-[100px]">Status</th>
+                    <th className="text-left p-2 min-w-[80px]">Role</th>
+                    <th className="text-left p-2 min-w-[100px]">Joined</th>
+                    <th className="text-left p-2 min-w-[120px]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredUsers.map((user) => (
                     <tr key={user.id} className="border-b hover:bg-gray-50">
-                      <td className="p-3">
+                      <td className="p-2">
                         <div className="flex items-center space-x-3">
                           <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
                             <span className="text-white text-sm font-semibold">
@@ -297,86 +297,99 @@ export default function AdminUsers() {
                           </div>
                         </div>
                       </td>
-                      <td className="p-3">
-                        <span className="text-sm">{user.email}</span>
+                      <td className="p-2">
+                        <span className="text-sm break-all">{user.email}</span>
                       </td>
-                      <td className="p-3">
-                        <Badge className={`${getStatusColor(user.status || 'pending')} flex items-center space-x-1 w-fit`}>
+                      <td className="p-2">
+                        <Badge className={`${getStatusColor(user.status || 'pending')} flex items-center space-x-1 w-fit text-xs`}>
                           {getStatusIcon(user.status || 'pending')}
                           <span className="capitalize">{user.status || 'pending'}</span>
                         </Badge>
                       </td>
-                      <td className="p-3">
-                        <Badge variant="outline" className="capitalize">
+                      <td className="p-2">
+                        <Badge variant="outline" className="capitalize text-xs">
                           {user.role || 'user'}
                         </Badge>
                       </td>
-                      <td className="p-3">
-                        <span className="text-sm">{formatDate(user.createdAt || new Date())}</span>
+                      <td className="p-2">
+                        <span className="text-xs">{formatDate(user.createdAt || new Date())}</span>
                       </td>
-                      <td className="p-3">
-                        <div className="flex space-x-2">
-                          {user.status === 'pending' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-green-600 hover:text-green-700"
-                              onClick={() => approveUserMutation.mutate(user.id)}
-                              disabled={approveUserMutation.isPending}
-                            >
-                              <UserCheck className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {user.status === 'approved' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-yellow-600 hover:text-yellow-700"
-                              onClick={() => blockUserMutation.mutate(user.id)}
-                              disabled={blockUserMutation.isPending}
-                            >
-                              <UserX className="h-4 w-4" />
-                            </Button>
-                          )}
-                          {user.status === 'blocked' && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="text-green-600 hover:text-green-700"
-                              onClick={() => approveUserMutation.mutate(user.id)}
-                              disabled={approveUserMutation.isPending}
-                            >
-                              <UserCheck className="h-4 w-4" />
-                            </Button>
-                          )}
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete User</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete this user? This action cannot be undone.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => deleteUserMutation.mutate(user.id)}
-                                  className="bg-red-600 hover:bg-red-700"
+                      <td className="p-2">
+                        <div className="flex flex-wrap gap-1">
+                          {/* Prevent actions on permanent admin (Zach) */}
+                          {user.email === 'zacharypurvis2@gmail.com' ? (
+                            <Badge variant="secondary" className="text-xs">
+                              Permanent Admin
+                            </Badge>
+                          ) : (
+                            <>
+                              {user.status === 'pending' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-green-600 hover:text-green-700"
+                                  onClick={() => approveUserMutation.mutate(user.id)}
+                                  disabled={approveUserMutation.isPending}
+                                  title="Approve User"
                                 >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                                  <UserCheck className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {user.status === 'approved' && user.role !== 'super_admin' && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="text-yellow-600 hover:text-yellow-700"
+                                  onClick={() => blockUserMutation.mutate(user.id)}
+                                  disabled={blockUserMutation.isPending}
+                                  title="Block User"
+                                >
+                                  <UserX className="h-4 w-4" />
+                                </Button>
+                              )}
+                              {user.status === 'blocked' && (
+                                <Button
+                                  size="sm"  
+                                  variant="outline"
+                                  className="text-green-600 hover:text-green-700"
+                                  onClick={() => approveUserMutation.mutate(user.id)}
+                                  disabled={approveUserMutation.isPending}
+                                  title="Approve User"
+                                >
+                                  <UserCheck className="h-4 w-4" />
+                                </Button>
+                              )}
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="text-red-600 hover:text-red-700"
+                                    title="Delete User"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete this user? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => deleteUserMutation.mutate(user.id)}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      Delete
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

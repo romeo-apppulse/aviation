@@ -10,6 +10,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### Super Admin User Management System (January 2025)
+- Fixed aircraft edit modal to include image upload/remove functionality with file upload support
+- Enhanced user management system with proper protection for permanent admin (Zach)
+- Removed horizontal scroll from admin users page for consistent layout
+- Added server-side protection to prevent modification/deletion of Zach's account
+- Improved user interface with tooltips and better responsive design in user management table
+- Added image upload validation (5MB limit) with preview functionality in aircraft editor
+
 ### Scroll Layout Optimization (January 2025)
 - Fixed multiple scroll bar issues across the application
 - Implemented single page scroll with sticky sidebar navigation

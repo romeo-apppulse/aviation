@@ -6,7 +6,7 @@ import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Maintenance } from "@shared/schema";
-import { Check, FileText, Plane, Calendar, Clock, Wrench, Edit, Save, X } from "lucide-react";
+import { Check, FileText, Plane, Calendar, Clock, Wrench, Edit, Save, X, Upload, Trash2 } from "lucide-react";
 import { AircraftImage } from "@/components/ui/aircraft-image";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -26,6 +26,8 @@ interface AircraftDetailsModalProps {
 export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: AircraftDetailsModalProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -78,8 +80,39 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
 
   const handleClose = () => {
     setIsEditing(false);
+    setImageFile(null);
+    setImagePreview("");
     form.reset();
     onClose();
+  };
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "Error",
+          description: "Image file size must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const preview = e.target?.result as string;
+        setImagePreview(preview);
+        form.setValue("image", preview);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+    form.setValue("image", "");
   };
 
   const onSubmit = (data: UpdateAircraft) => {
@@ -145,17 +178,52 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
                     name="image"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Aircraft Image URL</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Image URL" {...field} />
-                        </FormControl>
+                        <FormLabel>Aircraft Image</FormLabel>
+                        <div className="space-y-3">
+                          <FormControl>
+                            <Input placeholder="Image URL (optional)" {...field} />
+                          </FormControl>
+                          
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => document.getElementById('image-upload')?.click()}
+                              className="flex-1"
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Upload Image
+                            </Button>
+                            
+                            {(field.value || imagePreview) && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleRemoveImage}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                          
+                          <input
+                            id="image-upload"
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={handleImageUpload}
+                          />
+                        </div>
                         <FormMessage /> 
                       </FormItem>
                     )}
                   />
                   <AircraftImage 
                     className="w-full h-48 object-cover rounded-lg mt-3" 
-                    src={form.watch("image") || aircraft.image} 
+                    src={imagePreview || form.watch("image") || aircraft.image} 
                     alt={`${aircraft.make} ${aircraft.model}`} 
                   />
                 </div>

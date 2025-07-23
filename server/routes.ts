@@ -155,6 +155,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const approvedBy = req.user.claims.sub;
       
+      // Prevent actions on Zach's account
+      const targetUser = await storage.getUser(id);
+      if (targetUser?.email === 'zacharypurvis2@gmail.com') {
+        return res.status(403).json({ message: "Cannot modify permanent admin account" });
+      }
+      
       const updatedUser = await storage.approveUser(id, approvedBy);
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
@@ -171,6 +177,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { id } = req.params;
       
+      // Prevent actions on Zach's account
+      const targetUser = await storage.getUser(id);
+      if (targetUser?.email === 'zacharypurvis2@gmail.com') {
+        return res.status(403).json({ message: "Cannot modify permanent admin account" });
+      }
+      
       const updatedUser = await storage.blockUser(id);
       if (!updatedUser) {
         return res.status(404).json({ message: "User not found" });
@@ -186,6 +198,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.delete('/admin/users/:id', isSuperAdmin, async (req: Request, res: Response) => {
     try {
       const { id } = req.params;
+      
+      // Prevent actions on Zach's account
+      const targetUser = await storage.getUser(id);
+      if (targetUser?.email === 'zacharypurvis2@gmail.com') {
+        return res.status(403).json({ message: "Cannot delete permanent admin account" });
+      }
       
       const success = await storage.deleteUser(id);
       if (!success) {
