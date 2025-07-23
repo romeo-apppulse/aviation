@@ -217,6 +217,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user (edit user details)
+  apiRouter.put('/admin/users/:id', isSuperAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      const { firstName, lastName, email, role, status } = req.body;
+      
+      // Prevent actions on Zach's account
+      const targetUser = await storage.getUser(id);
+      if (targetUser?.email === 'zacharypurvis2@gmail.com') {
+        return res.status(403).json({ message: "Cannot modify permanent admin account" });
+      }
+      
+      const updatedUser = await storage.updateUser(id, {
+        firstName,
+        lastName,
+        email,
+        role,
+        status
+      });
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  // Create new user
+  apiRouter.post('/admin/users', isSuperAdmin, async (req: Request, res: Response) => {
+    try {
+      const { firstName, lastName, email, password, role } = req.body;
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+      
+      const newUser = await storage.createUser({
+        firstName,
+        lastName,
+        email,
+        password,
+        role,
+        status: 'approved' // New users created by admin are automatically approved
+      });
+      
+      res.status(201).json(newUser);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
   // Dashboard routes
   apiRouter.get("/dashboard", isAuthenticated, async (req: Request, res: Response) => {
     try {

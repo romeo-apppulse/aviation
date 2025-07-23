@@ -98,12 +98,29 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
         return;
       }
       
+      // Check if it's a valid image type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Error",
+          description: "Please upload a valid image file",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setImageFile(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         const preview = e.target?.result as string;
         setImagePreview(preview);
         form.setValue("image", preview);
+      };
+      reader.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Failed to read image file",
+          variant: "destructive",
+        });
       };
       reader.readAsDataURL(file);
     }

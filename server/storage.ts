@@ -88,6 +88,9 @@ export interface IStorage {
   approveUser(id: string, approvedBy: string): Promise<User | undefined>;
   blockUser(id: string): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
+  updateUser(id: string, data: Partial<UpsertUser>): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(data: { firstName: string; lastName: string; email: string; password: string; role: string; status: string; }): Promise<User>;
   getPendingUsers(): Promise<User[]>;
 }
 
@@ -1526,6 +1529,50 @@ export class DatabaseStorage implements IStorage {
       .delete(users)
       .where(eq(users.id, id));
     return result.rowCount > 0;
+  }
+
+  async updateUser(id: string, data: Partial<UpsertUser>): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...data,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async createUser(data: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    role: string;
+    status: string;
+  }): Promise<User> {
+    // Generate a unique ID for the new user
+    const userId = Date.now().toString();
+    
+    const [user] = await db
+      .insert(users)
+      .values({
+        id: userId,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        role: data.role,
+        status: data.status,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .returning();
+    return user;
   }
 
   async getPendingUsers(): Promise<User[]> {
