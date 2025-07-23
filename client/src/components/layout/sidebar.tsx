@@ -14,11 +14,13 @@ import {
   LogOut,
   Home,
   Menu,
-  PanelLeftClose
+  PanelLeftClose,
 } from "lucide-react";
 import { useState } from "react";
 
 import aircraft_removebg_preview from "@assets/aircraft-removebg-preview.png";
+
+import aircraft_final_logo from "@assets/aircraft-final-logo.png";
 
 type SidebarProps = {
   open: boolean;
@@ -28,7 +30,7 @@ type SidebarProps = {
 export default function Sidebar({ open, setOpen }: SidebarProps) {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
-  
+
   const closeSidebarIfMobile = () => {
     if (window.innerWidth < 768) {
       setOpen(false);
@@ -38,21 +40,21 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
   const toggleCollapse = () => {
     setCollapsed(!collapsed);
   };
-  
+
   return (
-    <aside 
+    <aside
       className={cn(
         "sidebar fixed md:sticky md:top-0 z-20 bg-[#2c3e50] text-white h-screen flex-shrink-0 shadow-lg overflow-y-auto transition-all duration-300",
         collapsed ? "w-16" : "w-64",
-        open ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        open ? "translate-x-0" : "-translate-x-full md:translate-x-0",
       )}
     >
       <div className="p-4 border-b border-[#34495e]">
         {collapsed ? (
           <div className="flex flex-col items-center space-y-2">
-            <img 
-              src="@assets/aircraft-removebg-preview_1753289219831.png" 
-              alt="Aviation Ape" 
+            <img
+              src="@assets/aircraft-removebg-preview_1753289219831.png"
+              alt="Aviation Ape"
               className="h-12 w-12"
             />
             <button
@@ -66,10 +68,10 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         ) : (
           <div className="space-y-3">
             <div className="flex justify-center">
-              <img 
-                src={aircraft_removebg_preview} 
-                alt="Aviation Ape" 
-                className="h-16 w-16"
+              <img
+                src={aircraft_final_logo}
+                alt="Aviation Ape"
+                className="h-18 w-18 pl-[0px] pr-[0px]"
               />
             </div>
             <div className="flex items-center justify-between">
@@ -88,127 +90,140 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         )}
       </div>
       <div className="p-4">
-        {!collapsed && <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">Main Navigation</div>}
+        {!collapsed && (
+          <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">
+            Main Navigation
+          </div>
+        )}
         <nav>
-          <Link 
+          <Link
             href="/"
             onClick={closeSidebarIfMobile}
             className={cn(
               "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
               collapsed ? "justify-center" : "space-x-3",
-              location === "/" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+              location === "/" &&
+                "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]",
             )}
             title={collapsed ? "Home" : ""}
           >
             <Home className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Home</span>}
           </Link>
-          
-          <Link 
+
+          <Link
             href="/dashboard"
             onClick={closeSidebarIfMobile}
             className={cn(
               "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
               collapsed ? "justify-center" : "space-x-3",
-              location === "/dashboard" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+              location === "/dashboard" &&
+                "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]",
             )}
             title={collapsed ? "Dashboard" : ""}
           >
             <LayoutDashboard className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Dashboard</span>}
           </Link>
-          
-          <Link 
+
+          <Link
             href="/aircraft"
             onClick={closeSidebarIfMobile}
             className={cn(
               "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
               collapsed ? "justify-center" : "space-x-3",
-              location === "/aircraft" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+              location === "/aircraft" &&
+                "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]",
             )}
             title={collapsed ? "Aircraft" : ""}
           >
             <Plane className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Aircraft</span>}
           </Link>
-          
-          <Link 
+
+          <Link
             href="/owners"
             onClick={closeSidebarIfMobile}
             className={cn(
               "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
               collapsed ? "justify-center" : "space-x-3",
-              location === "/owners" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+              location === "/owners" &&
+                "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]",
             )}
             title={collapsed ? "Owners" : ""}
           >
             <UserCircle className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Owners</span>}
           </Link>
-          
-          <Link 
+
+          <Link
             href="/lessees"
             onClick={closeSidebarIfMobile}
             className={cn(
               "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
               collapsed ? "justify-center" : "space-x-3",
-              location === "/lessees" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+              location === "/lessees" &&
+                "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]",
             )}
             title={collapsed ? "Flight Schools" : ""}
           >
             <Building2 className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Flight Schools</span>}
           </Link>
-          
-          <Link 
+
+          <Link
             href="/leases"
             onClick={closeSidebarIfMobile}
             className={cn(
               "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
               collapsed ? "justify-center" : "space-x-3",
-              location === "/leases" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+              location === "/leases" &&
+                "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]",
             )}
             title={collapsed ? "Lease Agreements" : ""}
           >
             <FileText className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Lease Agreements</span>}
           </Link>
-          
-          <Link 
+
+          <Link
             href="/payments"
             onClick={closeSidebarIfMobile}
             className={cn(
               "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
               collapsed ? "justify-center" : "space-x-3",
-              location === "/payments" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+              location === "/payments" &&
+                "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]",
             )}
             title={collapsed ? "Payments" : ""}
           >
             <DollarSign className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Payments</span>}
           </Link>
-          
-          <Link 
+
+          <Link
             href="/maintenance"
             onClick={closeSidebarIfMobile}
             className={cn(
               "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
               collapsed ? "justify-center" : "space-x-3",
-              location === "/maintenance" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+              location === "/maintenance" &&
+                "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]",
             )}
             title={collapsed ? "Maintenance" : ""}
           >
             <Wrench className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Maintenance</span>}
           </Link>
-          
-          <Link 
+
+          <Link
             href="/documents"
             onClick={closeSidebarIfMobile}
             className={cn(
               "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
               collapsed ? "justify-center" : "space-x-3",
-              location === "/documents" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+              location === "/documents" &&
+                "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]",
             )}
             title={collapsed ? "Documents" : ""}
           >
@@ -218,7 +233,11 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         </nav>
       </div>
       <div className="p-4 mt-4">
-        {!collapsed && <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">Settings</div>}
+        {!collapsed && (
+          <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">
+            Settings
+          </div>
+        )}
         <nav>
           <Link
             href="/settings"
@@ -226,32 +245,38 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
             className={cn(
               "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
               collapsed ? "justify-center" : "space-x-3",
-              location === "/settings" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+              location === "/settings" &&
+                "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]",
             )}
             title={collapsed ? "Settings" : ""}
           >
             <Settings className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Settings</span>}
           </Link>
-          
+
           <Link
             href="/help-support"
             onClick={closeSidebarIfMobile}
             className={cn(
               "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
               collapsed ? "justify-center" : "space-x-3",
-              location === "/help-support" && "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]"
+              location === "/help-support" &&
+                "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]",
             )}
             title={collapsed ? "Help & Support" : ""}
           >
             <HelpCircle className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Help & Support</span>}
           </Link>
-          
-          <a href="#" className={cn(
-            "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
-            collapsed ? "justify-center" : "space-x-3"
-          )} title={collapsed ? "Logout" : ""}>
+
+          <a
+            href="#"
+            className={cn(
+              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              collapsed ? "justify-center" : "space-x-3",
+            )}
+            title={collapsed ? "Logout" : ""}
+          >
             <LogOut className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Logout</span>}
           </a>
