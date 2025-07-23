@@ -85,6 +85,10 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateEmailPreferences(id: string, preferences: Partial<Pick<User, 'emailNotificationsEnabled' | 'emailPaymentReminders' | 'emailMaintenanceAlerts' | 'emailLeaseExpiry' | 'emailSystemUpdates'>>): Promise<User | undefined>;
+  approveUser(id: string, approvedBy: string): Promise<User | undefined>;
+  blockUser(id: string): Promise<User | undefined>;
+  deleteUser(id: string): Promise<boolean>;
+  getPendingUsers(): Promise<User[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -1488,6 +1492,48 @@ export class DatabaseStorage implements IStorage {
       total: total.length,
       unread: unread.length
     };
+  }
+
+  // User management methods
+  async approveUser(id: string, approvedBy: string): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        status: 'approved', 
+        approvedBy,
+        approvedAt: new Date(),
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  async blockUser(id: string): Promise<User | undefined> {
+    const [updatedUser] = await db
+      .update(users)
+      .set({ 
+        status: 'blocked',
+        updatedAt: new Date()
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  async deleteUser(id: string): Promise<boolean> {
+    const result = await db
+      .delete(users)
+      .where(eq(users.id, id));
+    return result.rowCount > 0;
+  }
+
+  async getPendingUsers(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(eq(users.status, 'pending'))
+      .orderBy(desc(users.createdAt));
   }
 }
 

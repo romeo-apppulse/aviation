@@ -15,6 +15,8 @@ import Maintenance from "@/pages/maintenance";
 import Documents from "@/pages/documents";
 import Settings from "@/pages/settings";
 import HelpSupport from "@/pages/help-support";
+import AdminUsers from "@/pages/admin-users";
+import PendingApproval from "@/pages/pending-approval";
 import Landing from "@/pages/landing";
 import Home from "@/pages/home";
 import Sidebar from "@/components/layout/sidebar";
@@ -22,7 +24,7 @@ import Header from "@/components/layout/header";
 import { useState } from "react";
 
 function Router() {
-  const { isAuthenticated, isLoading, error } = useAuth();
+  const { isAuthenticated, isLoading, error, isPendingApproval } = useAuth();
 
   // Show loading only briefly, then show landing page for unauthenticated users
   if (isLoading) {
@@ -34,6 +36,11 @@ function Router() {
         </div>
       </div>
     );
+  }
+
+  // If account is pending approval, show pending approval page
+  if (isPendingApproval) {
+    return <PendingApproval />;
   }
 
   // If there's an auth error (401) or user is not authenticated, show landing page
@@ -59,6 +66,7 @@ function Router() {
       <Route path="/documents" component={Documents} />
       <Route path="/settings" component={Settings} />
       <Route path="/help-support" component={HelpSupport} />
+      <Route path="/admin/users" component={AdminUsers} />
       <Route component={NotFound} />
     </Switch>
   );

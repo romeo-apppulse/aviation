@@ -15,8 +15,11 @@ import {
   Home,
   Menu,
   PanelLeftClose,
+  Users,
+  Shield,
 } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 import aircraft_removebg_preview from "@assets/aircraft-removebg-preview.png";
 
@@ -30,6 +33,7 @@ type SidebarProps = {
 export default function Sidebar({ open, setOpen }: SidebarProps) {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const { isSuperAdmin } = useAuth();
 
   const closeSidebarIfMobile = () => {
     if (window.innerWidth < 768) {
@@ -232,6 +236,34 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
           </Link>
         </nav>
       </div>
+      
+      {/* Admin Section - Only show for super admins */}
+      {isSuperAdmin && (
+        <div className="p-4 mt-4">
+          {!collapsed && (
+            <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">
+              Administration
+            </div>
+          )}
+          <nav>
+            <Link
+              href="/admin/users"
+              onClick={closeSidebarIfMobile}
+              className={cn(
+                "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+                collapsed ? "justify-center" : "space-x-3",
+                location === "/admin/users" &&
+                  "bg-[rgba(52,152,219,0.2)] border-l-4 border-[#3498db]",
+              )}
+              title={collapsed ? "User Management" : ""}
+            >
+              <Users className="h-5 w-5 flex-shrink-0" />
+              {!collapsed && <span>User Management</span>}
+            </Link>
+          </nav>
+        </div>
+      )}
+      
       <div className="p-4 mt-4">
         {!collapsed && (
           <div className="text-xs uppercase text-gray-400 tracking-wider mb-2">

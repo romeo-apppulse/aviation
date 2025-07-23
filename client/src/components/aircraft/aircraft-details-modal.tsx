@@ -36,7 +36,7 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
       make: aircraft.make,
       model: aircraft.model,
       year: aircraft.year,
-      status: aircraft.status,
+      status: aircraft.status || "available",
       engineType: aircraft.engineType || "",
       totalTime: aircraft.totalTime || undefined,
       avionics: aircraft.avionics || "",
@@ -47,10 +47,7 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
 
   const updateAircraftMutation = useMutation({
     mutationFn: async (data: UpdateAircraft) => {
-      return await apiRequest(`/api/aircraft/${aircraft.id}`, {
-        method: "PUT",
-        body: JSON.stringify(data),
-      });
+      return await apiRequest(`/api/aircraft/${aircraft.id}`, "PUT", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/aircraft"] });
@@ -596,8 +593,16 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
         </div>
         
         <DialogFooter className="mt-6">
-          <Button variant="outline" onClick={onClose}>Close</Button>
-          <Button className="bg-[#3498db]">Edit Details</Button>
+          <Button variant="outline" onClick={handleClose}>Close</Button>
+          {!isEditing && (
+            <Button 
+              className="bg-[#3498db] hover:bg-[#2980b9]" 
+              onClick={() => setIsEditing(true)}
+            >
+              <Edit className="h-4 w-4 mr-1" />
+              Edit Details
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

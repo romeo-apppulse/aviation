@@ -15,7 +15,7 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupAuth, isAuthenticated, isAdmin, isSuperAdmin } from "./replitAuth";
 import { emailService, type NotificationEmailData } from "./emailService";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -126,6 +126,76 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating password:", error);
       res.status(500).json({ message: "Failed to update password" });
+    }
+  });
+
+  // Admin user management routes
+  apiRouter.get('/admin/users', isSuperAdmin, async (req: Request, res: Response) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  apiRouter.get('/admin/users/pending', isSuperAdmin, async (req: Request, res: Response) => {
+    try {
+      const pendingUsers = await storage.getPendingUsers();
+      res.json(pendingUsers);
+    } catch (error) {
+      console.error("Error fetching pending users:", error);
+      res.status(500).json({ message: "Failed to fetch pending users" });
+    }
+  });
+
+  apiRouter.put('/admin/users/:id/approve', isSuperAdmin, async (req: any, res: Response) => {
+    try {
+      const { id } = req.params;
+      const approvedBy = req.user.claims.sub;
+      
+      const updatedUser = await storage.approveUser(id, approvedBy);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error approving user:", error);
+      res.status(500).json({ message: "Failed to approve user" });
+    }
+  });
+
+  apiRouter.put('/admin/users/:id/block', isSuperAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      const updatedUser = await storage.blockUser(id);
+      if (!updatedUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error blocking user:", error);
+      res.status(500).json({ message: "Failed to block user" });
+    }
+  });
+
+  apiRouter.delete('/admin/users/:id', isSuperAdmin, async (req: Request, res: Response) => {
+    try {
+      const { id } = req.params;
+      
+      const success = await storage.deleteUser(id);
+      if (!success) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
     }
   });
 

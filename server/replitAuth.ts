@@ -200,6 +200,11 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
 
   const now = Math.floor(Date.now() / 1000);
   if (now <= user.expires_at) {
+    // Check if user is approved
+    const dbUser = await storage.getUser(user.claims.sub);
+    if (!dbUser || dbUser.status !== 'approved') {
+      return res.status(403).json({ message: "Account pending approval", status: dbUser?.status || 'pending' });
+    }
     return next();
   }
 
@@ -213,9 +218,44 @@ export const isAuthenticated: RequestHandler = async (req, res, next) => {
     const config = await getOidcConfig();
     const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
     updateUserSession(user, tokenResponse);
+    
+    // Check if user is approved after token refresh
+    const dbUser = await storage.getUser(user.claims.sub);
+    if (!dbUser || dbUser.status !== 'approved') {
+      return res.status(403).json({ message: "Account pending approval", status: dbUser?.status || 'pending' });
+    }
+    
     return next();
   } catch (error) {
     res.status(401).json({ message: "Unauthorized" });
     return;
   }
+};
+
+export const isAdmin: RequestHandler = async (req, res, next) => {
+  const user = req.user as any;
+  if (!user || !user.claims) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const dbUser = await storage.getUser(user.claims.sub);
+  if (!dbUser || (dbUser.role !== 'admin' && dbUser.role !== 'super_admin')) {
+    return res.status(403).json({ message: "Admin access required" });
+  }
+
+  return next();
+};
+
+export const isSuperAdmin: RequestHandler = async (req, res, next) => {
+  const user = req.user as any;
+  if (!user || !user.claims) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const dbUser = await storage.getUser(user.claims.sub);
+  if (!dbUser || dbUser.role !== 'super_admin') {
+    return res.status(403).json({ message: "Super admin access required" });
+  }
+
+  return next();
 };

@@ -25,6 +25,10 @@ export const users = pgTable("users", {
   emailMaintenanceAlerts: boolean("email_maintenance_alerts").default(true),
   emailLeaseExpiry: boolean("email_lease_expiry").default(true),
   emailSystemUpdates: boolean("email_system_updates").default(true),
+  status: text("status").default("pending"), // pending, approved, blocked
+  role: text("role").default("user"), // user, admin, super_admin
+  approvedBy: varchar("approved_by"),
+  approvedAt: timestamp("approved_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
