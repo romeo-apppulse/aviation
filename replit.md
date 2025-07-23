@@ -20,7 +20,7 @@ Preferred communication style: Simple, everyday language.
 - Updated aircraft image display across all pages to use consistent AircraftImage component
 - Added branded fallback icons with blue gradient styling for broken/missing images
 - Fixed dynamic image updates with proper query cache invalidation and component re-rendering
-- Corrected AeroLeaseIcon component to properly import and display aircraft asset image
+- Updated AeroLeaseIcon component to use clean airplane icon from Lucide React instead of image asset
 
 ### Super Admin User Management System (January 2025)
 - Fixed aircraft edit modal to include image upload/remove functionality with file upload support
