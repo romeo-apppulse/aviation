@@ -53,7 +53,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
         {collapsed ? (
           <div className="flex flex-col items-center space-y-2">
             <img
-              src="@assets/aircraft-removebg-preview_1753289219831.png"
+              src={aircraft_final_logo}
               alt="Aviation Ape"
               className="h-12 w-12"
             />
