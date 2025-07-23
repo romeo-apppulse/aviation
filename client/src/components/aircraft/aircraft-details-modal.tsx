@@ -52,11 +52,33 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
       const response = await apiRequest("PUT", `/api/aircraft/${aircraft.id}`, data);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedAircraft) => {
+      // Invalidate all aircraft-related queries
       queryClient.invalidateQueries({ queryKey: ["/api/aircraft"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/aircraft/${aircraft.id}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/aircraft/${aircraft.id}/maintenance`] });
+      
+      // Reset form state
       setIsEditing(false);
       setImageFile(null);
       setImagePreview("");
+      
+      // Update the form with the new data
+      if (updatedAircraft) {
+        form.reset({
+          registration: updatedAircraft.registration,
+          make: updatedAircraft.make,
+          model: updatedAircraft.model,
+          year: updatedAircraft.year,
+          status: updatedAircraft.status || "available",
+          engineType: updatedAircraft.engineType || "",
+          totalTime: updatedAircraft.totalTime || undefined,
+          avionics: updatedAircraft.avionics || "",
+          notes: updatedAircraft.notes || "",
+          image: updatedAircraft.image || "",
+        });
+      }
+      
       toast({
         title: "Success",
         description: "Aircraft updated successfully",
@@ -86,7 +108,18 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
     setIsEditing(false);
     setImageFile(null);
     setImagePreview("");
-    form.reset();
+    form.reset({
+      registration: aircraft.registration,
+      make: aircraft.make,
+      model: aircraft.model,
+      year: aircraft.year,
+      status: aircraft.status || "available",
+      engineType: aircraft.engineType || "",
+      totalTime: aircraft.totalTime || undefined,
+      avionics: aircraft.avionics || "",
+      notes: aircraft.notes || "",
+      image: aircraft.image || "",
+    });
     onClose();
   };
 
@@ -297,9 +330,10 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
                   />
                   <AircraftImage 
                     className="w-full h-48 rounded-lg mt-3" 
-                    src={imagePreview || form.watch("image") || aircraft.image} 
+                    src={imagePreview || form.watch("image")} 
                     alt={`${aircraft.make} ${aircraft.model}`}
                     fallbackClassName="rounded-lg"
+                    key={`edit-${aircraft.id}-${form.watch("image")}`}
                   />
                 </div>
                 
@@ -475,6 +509,7 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
               src={aircraft.image} 
               alt={`${aircraft.make} ${aircraft.model}`}
               fallbackClassName="rounded-lg"
+              key={`view-${aircraft.id}-${aircraft.image}`}
             />
           </div>
           
