@@ -55,7 +55,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
             <img
               src={aircraft_final_logo}
               alt="Aviation Ape"
-              className="h-12 w-12 pt-[20px] pb-[20px]"
+              className="h-12 w-12 pt-[10px] pb-[10px]"
             />
             <button
               onClick={toggleCollapse}
