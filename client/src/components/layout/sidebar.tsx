@@ -53,7 +53,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
             <img 
               src="@assets/aircraft-removebg-preview_1753289219831.png" 
               alt="Aviation Ape" 
-              className="h-8 w-8"
+              className="h-12 w-12"
             />
             <button
               onClick={toggleCollapse}
@@ -64,24 +64,26 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3 overflow-hidden">
+          <div className="space-y-3">
+            <div className="flex justify-center">
               <img 
                 src={aircraft_removebg_preview} 
                 alt="Aviation Ape" 
-                className="h-8 w-8 flex-shrink-0"
+                className="h-16 w-16"
               />
-              <h1 className="font-sans font-bold text-xl">
+            </div>
+            <div className="flex items-center justify-between">
+              <h1 className="font-sans font-bold text-xl text-center flex-1">
                 Aviation Ape
               </h1>
+              <button
+                onClick={toggleCollapse}
+                className="p-1.5 rounded hover:bg-[#34495e] transition-colors flex-shrink-0"
+                title="Collapse menu"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </button>
             </div>
-            <button
-              onClick={toggleCollapse}
-              className="p-1.5 rounded hover:bg-[#34495e] transition-colors flex-shrink-0 ml-2"
-              title="Collapse menu"
-            >
-              <PanelLeftClose className="h-4 w-4" />
-            </button>
           </div>
         )}
       </div>
