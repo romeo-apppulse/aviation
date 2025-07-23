@@ -250,18 +250,18 @@ export default function Aircraft() {
                   </div>
                 </div>
                 
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Owner:</span>
-                    <span className="font-medium">{aircraft.owner?.name || "Unassigned"}</span>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500 flex-shrink-0">Owner:</span>
+                    <span className="font-medium text-right truncate ml-2">{aircraft.owner?.name || "Unassigned"}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Current Lessee:</span>
-                    <span className="font-medium">{aircraft.currentLease?.lessee?.name || "None"}</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500 flex-shrink-0">Current Lessee:</span>
+                    <span className="font-medium text-right truncate ml-2">{aircraft.currentLease?.lessee?.name || "None"}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Monthly Revenue:</span>
-                    <span className="font-mono font-medium">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500 flex-shrink-0">Monthly Revenue:</span>
+                    <span className="font-mono font-medium text-right">
                       {aircraft.currentLease ? formatCurrency(aircraft.currentLease.monthlyRate) : "$0"}
                     </span>
                   </div>

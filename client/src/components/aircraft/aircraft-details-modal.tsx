@@ -23,6 +23,15 @@ interface AircraftDetailsModalProps {
   aircraft: AircraftWithDetails;
 }
 
+// Helper to get fresh aircraft data
+const useFreshAircraft = (aircraft: AircraftWithDetails) => {
+  const { data: freshAircraft } = useQuery<AircraftWithDetails[]>({
+    queryKey: ["/api/aircraft"],
+  });
+  
+  return freshAircraft?.find(a => a.id === aircraft.id) || aircraft;
+};
+
 export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: AircraftDetailsModalProps) {
   const [activeTab, setActiveTab] = useState("overview");
   const [isEditing, setIsEditing] = useState(false);
@@ -31,19 +40,22 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
+  // Get fresh aircraft data that updates automatically
+  const currentAircraft = useFreshAircraft(aircraft);
+  
   const form = useForm<UpdateAircraft>({
     resolver: zodResolver(updateAircraftSchema),
     defaultValues: {
-      registration: aircraft.registration,
-      make: aircraft.make,
-      model: aircraft.model,
-      year: aircraft.year,
-      status: aircraft.status || "available",
-      engineType: aircraft.engineType || "",
-      totalTime: aircraft.totalTime || undefined,
-      avionics: aircraft.avionics || "",
-      notes: aircraft.notes || "",
-      image: aircraft.image || "",
+      registration: currentAircraft.registration,
+      make: currentAircraft.make,
+      model: currentAircraft.model,
+      year: currentAircraft.year,
+      status: currentAircraft.status || "available",
+      engineType: currentAircraft.engineType || "",
+      totalTime: currentAircraft.totalTime || undefined,
+      avionics: currentAircraft.avionics || "",
+      notes: currentAircraft.notes || "",
+      image: currentAircraft.image || "",
     },
   });
 
@@ -52,32 +64,18 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
       const response = await apiRequest("PUT", `/api/aircraft/${aircraft.id}`, data);
       return response.json();
     },
-    onSuccess: (updatedAircraft) => {
-      // Invalidate all aircraft-related queries
-      queryClient.invalidateQueries({ queryKey: ["/api/aircraft"] });
-      queryClient.invalidateQueries({ queryKey: [`/api/aircraft/${aircraft.id}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/aircraft/${aircraft.id}/maintenance`] });
+    onSuccess: async (updatedAircraft) => {
+      // Invalidate all aircraft-related queries and wait for refetch
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["/api/aircraft"] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/aircraft/${aircraft.id}`] }),
+        queryClient.invalidateQueries({ queryKey: [`/api/aircraft/${aircraft.id}/maintenance`] })
+      ]);
       
       // Reset form state
       setIsEditing(false);
       setImageFile(null);
       setImagePreview("");
-      
-      // Update the form with the new data
-      if (updatedAircraft) {
-        form.reset({
-          registration: updatedAircraft.registration,
-          make: updatedAircraft.make,
-          model: updatedAircraft.model,
-          year: updatedAircraft.year,
-          status: updatedAircraft.status || "available",
-          engineType: updatedAircraft.engineType || "",
-          totalTime: updatedAircraft.totalTime || undefined,
-          avionics: updatedAircraft.avionics || "",
-          notes: updatedAircraft.notes || "",
-          image: updatedAircraft.image || "",
-        });
-      }
       
       toast({
         title: "Success",
@@ -506,10 +504,10 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
           <div className="w-full md:w-1/3">
             <AircraftImage 
               className="w-full h-48 rounded-lg" 
-              src={aircraft.image} 
-              alt={`${aircraft.make} ${aircraft.model}`}
+              src={currentAircraft.image} 
+              alt={`${currentAircraft.make} ${currentAircraft.model}`}
               fallbackClassName="rounded-lg"
-              key={`view-${aircraft.id}-${aircraft.image}`}
+              key={`view-${currentAircraft.id}-${currentAircraft.image}`}
             />
           </div>
           
