@@ -19,6 +19,8 @@ Preferred communication style: Simple, everyday language.
 - Fixed API request format issues in aircraft and user management operations
 - Updated aircraft image display across all pages to use consistent AircraftImage component
 - Added branded fallback icons with blue gradient styling for broken/missing images
+- Fixed dynamic image updates with proper query cache invalidation and component re-rendering
+- Corrected AeroLeaseIcon component to properly import and display aircraft asset image
 
 ### Super Admin User Management System (January 2025)
 - Fixed aircraft edit modal to include image upload/remove functionality with file upload support
