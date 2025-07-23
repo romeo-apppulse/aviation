@@ -773,7 +773,7 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
           <Button variant="outline" onClick={handleClose}>Close</Button>
           {!isEditing && (
             <Button 
-              className="bg-[#3498db] hover:bg-[#2980b9]" 
+              className="bg-[#3498db] hover:bg-[#2980b9] pl-[12px] pr-[12px] ml-[20px] mr-[20px]" 
               onClick={() => setIsEditing(true)}
             >
               <Edit className="h-4 w-4 mr-1" />
