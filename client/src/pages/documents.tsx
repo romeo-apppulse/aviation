@@ -177,7 +177,7 @@ export default function Documents() {
       name: "",
       type: "",
       url: "",
-      relatedType: "",
+      relatedType: "none",
       relatedId: undefined,
     },
   });
@@ -569,7 +569,7 @@ export default function Documents() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">None</SelectItem>
+                          <SelectItem value="none">None</SelectItem>
                           <SelectItem value="aircraft">Aircraft</SelectItem>
                           <SelectItem value="lease">Lease</SelectItem>
                           <SelectItem value="owner">Owner</SelectItem>
@@ -581,7 +581,7 @@ export default function Documents() {
                   )}
                 />
                 
-                {form.watch("relatedType") && (
+                {form.watch("relatedType") && form.watch("relatedType") !== "none" && (
                   <FormField
                     control={form.control}
                     name="relatedId"

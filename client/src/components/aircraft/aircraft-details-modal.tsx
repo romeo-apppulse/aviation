@@ -257,6 +257,7 @@ export default function AircraftDetailsModal({ isOpen, onClose, aircraft }: Airc
                   variant="outline"
                   size="sm"
                   onClick={() => setIsEditing(true)}
+                  className="ml-[12px] mr-[12px]"
                 >
                   <Edit className="h-4 w-4 mr-1" />
                   Edit
