@@ -255,9 +255,9 @@ export default function Leases() {
                         </div>
                         <Badge 
                           variant={lease.status === 'Active' ? 'default' : 'secondary'}
-                          className={getStatusColor(lease.status)}
+                          className={getStatusColor(lease.status || '')}
                         >
-                          {lease.status}
+                          {lease.status || 'Unknown'}
                         </Badge>
                       </div>
                       
@@ -403,10 +403,10 @@ export default function Leases() {
                         </TableCell>
                         <TableCell>
                           <Badge
-                            className={getStatusColor(lease.status)}
+                            className={getStatusColor(lease.status || '')}
                             variant="outline"
                           >
-                            {lease.status}
+                            {lease.status || 'Unknown'}
                           </Badge>
                         </TableCell>
                         <TableCell>

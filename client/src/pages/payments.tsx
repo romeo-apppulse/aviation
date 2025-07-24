@@ -160,8 +160,8 @@ export default function Payments() {
               bValue = b.paidDate ? new Date(b.paidDate) : new Date('1900-01-01');
               break;
             case 'status':
-              aValue = a.status.toLowerCase();
-              bValue = b.status.toLowerCase();
+              aValue = (a.status || '').toLowerCase();
+              bValue = (b.status || '').toLowerCase();
               break;
             default:
               return 0;
@@ -298,13 +298,13 @@ export default function Payments() {
     }
   };
 
-  const form = useForm<PaymentFormValues>({
+  const form = useForm({
     resolver: zodResolver(paymentFormSchema),
     defaultValues: {
-      leaseId: undefined,
+      leaseId: 0,
       amount: "",
       period: "",
-      dueDate: undefined,
+      dueDate: new Date(),
       paidDate: undefined,
       status: "Pending",
       notes: "",
@@ -313,7 +313,7 @@ export default function Payments() {
     },
   });
 
-  async function onSubmit(values: PaymentFormValues) {
+  async function onSubmit(values: any) {
     if (createPaymentMutation.isPending) return;
     
     try {
@@ -356,7 +356,7 @@ export default function Payments() {
       id: paymentId,
       data: {
         status: "Paid",
-        paidDate: new Date()
+        paidDate: new Date().toISOString()
       }
     });
   };
@@ -490,10 +490,10 @@ export default function Payments() {
                       </TableCell>
                       <TableCell>
                         <Badge
-                          className={getStatusColor(payment.status)}
+                          className={getStatusColor(payment.status || '')}
                           variant="outline"
                         >
-                          {payment.status}
+                          {payment.status || 'Unknown'}
                         </Badge>
                       </TableCell>
                       <TableCell>

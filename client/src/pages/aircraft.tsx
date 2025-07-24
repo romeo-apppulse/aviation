@@ -137,8 +137,8 @@ export default function Aircraft() {
               bValue = b.year;
               break;
             case 'status':
-              aValue = a.status.toLowerCase();
-              bValue = b.status.toLowerCase();
+              aValue = (a.status || '').toLowerCase();
+              bValue = (b.status || '').toLowerCase();
               break;
             case 'owner':
               aValue = (a.owner?.name || "").toLowerCase();
@@ -267,13 +267,13 @@ export default function Aircraft() {
             >
               <div className="h-40 relative">
                 <AircraftImage
-                  src={aircraft.image}
+                  src={aircraft.image || ''}
                   alt={`${aircraft.make} ${aircraft.model}`}
                   className="w-full h-full"
                 />
                 <div className="absolute top-2 right-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(aircraft.status)}`}>
-                    {aircraft.status}
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(aircraft.status || '')}`}>
+                    {aircraft.status || 'Unknown'}
                   </span>
                 </div>
               </div>
@@ -435,7 +435,7 @@ export default function Aircraft() {
                     >
                       <div className="h-12 w-16 rounded overflow-hidden">
                         <AircraftImage
-                          src={aircraft.image}
+                          src={aircraft.image || ''}
                           alt={`${aircraft.make} ${aircraft.model}`}
                           className="w-full h-full object-cover"
                         />
@@ -461,8 +461,8 @@ export default function Aircraft() {
                       className="cursor-pointer"
                       onClick={() => detailsModal.openModal(aircraft)}
                     >
-                      <Badge className={getStatusColor(aircraft.status)}>
-                        {aircraft.status}
+                      <Badge className={getStatusColor(aircraft.status || '')}>
+                        {aircraft.status || 'Unknown'}
                       </Badge>
                     </TableCell>
                     <TableCell 
