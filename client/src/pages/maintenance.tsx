@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarIcon, CheckCircle, Plus, Search, Filter, Wrench, Plane, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { CalendarIcon, CheckCircle, Plus, Search, Filter, Wrench, Plane, ArrowUpDown, ArrowUp, ArrowDown, Edit, Trash2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -41,6 +41,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Form,
   FormControl,
@@ -86,6 +96,8 @@ export default function Maintenance() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [addMaintenanceOpen, setAddMaintenanceOpen] = useState(false);
+  const [editingMaintenance, setEditingMaintenance] = useState<MaintenanceWithDetails | null>(null);
+  const [deleteMaintenance, setDeleteMaintenance] = useState<MaintenanceWithDetails | null>(null);
   const [markAsCompleteId, setMarkAsCompleteId] = useState<number | null>(null);
   const [sortField, setSortField] = useState<SortField>('scheduledDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -97,7 +109,7 @@ export default function Maintenance() {
 
   const { data: aircraft } = useQuery<Aircraft[]>({
     queryKey: ["/api/aircraft"],
-    enabled: addMaintenanceOpen,
+    enabled: addMaintenanceOpen || !!editingMaintenance,
   });
 
   const handleSort = (field: SortField) => {
@@ -192,9 +204,10 @@ export default function Maintenance() {
       queryClient.invalidateQueries({ queryKey: ["/api/maintenance"] });
       queryClient.invalidateQueries({ queryKey: ["/api/aircraft"] });
       setMarkAsCompleteId(null);
+      setEditingMaintenance(null);
       toast({
-        title: "Maintenance completed",
-        description: "The maintenance has been marked as completed",
+        title: "Maintenance updated",
+        description: "The maintenance record has been updated successfully",
         variant: "default",
       });
     },
@@ -202,6 +215,28 @@ export default function Maintenance() {
       toast({
         title: "Error",
         description: `Failed to update maintenance: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteMaintenanceMutation = useMutation({
+    mutationFn: (id: number) => 
+      apiRequest("DELETE", `/api/maintenance/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/maintenance"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/aircraft"] });
+      setDeleteMaintenance(null);
+      toast({
+        title: "Maintenance deleted",
+        description: "The maintenance record has been deleted successfully",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete maintenance: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -222,7 +257,14 @@ export default function Maintenance() {
   });
 
   function onSubmit(values: MaintenanceFormValues) {
-    createMaintenanceMutation.mutate(values);
+    if (editingMaintenance) {
+      updateMaintenanceMutation.mutate({
+        id: editingMaintenance.id,
+        data: values
+      });
+    } else {
+      createMaintenanceMutation.mutate(values);
+    }
   }
 
   const markAsComplete = (maintenanceId: number) => {
@@ -380,17 +422,46 @@ export default function Maintenance() {
                       </TableCell>
                       <TableCell>{item.performedBy || "Not assigned"}</TableCell>
                       <TableCell>
-                        {item.status !== "Completed" && (
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            className="text-green-600 border-green-200 hover:bg-green-50"
-                            onClick={() => setMarkAsCompleteId(item.id)}
+                        <div className="flex gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingMaintenance(item);
+                              // Reset form with current data
+                              form.reset({
+                                aircraftId: item.aircraftId,
+                                type: item.type,
+                                scheduledDate: new Date(item.scheduledDate),
+                                completedDate: item.completedDate ? new Date(item.completedDate) : null,
+                                cost: item.cost?.toString() || "",
+                                performedBy: item.performedBy || "",
+                                notes: item.notes || "",
+                                status: item.status,
+                              });
+                            }}
                           >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Mark Complete
+                            <Edit className="h-4 w-4" />
                           </Button>
-                        )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeleteMaintenance(item)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          {item.status !== "Completed" && (
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="text-green-600 border-green-200 hover:bg-green-50"
+                              onClick={() => setMarkAsCompleteId(item.id)}
+                            >
+                              <CheckCircle className="h-4 w-4 mr-1" />
+                              Mark Complete
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -431,13 +502,19 @@ export default function Maintenance() {
         </CardContent>
       </Card>
 
-      {/* Add Maintenance Dialog */}
-      <Dialog open={addMaintenanceOpen} onOpenChange={setAddMaintenanceOpen}>
+      {/* Add/Edit Maintenance Dialog */}
+      <Dialog open={addMaintenanceOpen || !!editingMaintenance} onOpenChange={(open) => {
+        if (!open) {
+          setAddMaintenanceOpen(false);
+          setEditingMaintenance(null);
+          form.reset();
+        }
+      }}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle>Schedule Maintenance</DialogTitle>
+            <DialogTitle>{editingMaintenance ? "Edit Maintenance" : "Schedule Maintenance"}</DialogTitle>
             <DialogDescription>
-              Set up maintenance for an aircraft
+              {editingMaintenance ? "Update maintenance record details" : "Set up maintenance for an aircraft"}
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
@@ -645,16 +722,23 @@ export default function Maintenance() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setAddMaintenanceOpen(false)}
+                  onClick={() => {
+                    setAddMaintenanceOpen(false);
+                    setEditingMaintenance(null);
+                    form.reset();
+                  }}
                 >
                   Cancel
                 </Button>
                 <Button 
                   type="submit"
                   className="bg-[#3498db] hover:bg-[#2980b9] text-white"
-                  disabled={createMaintenanceMutation.isPending}
+                  disabled={createMaintenanceMutation.isPending || updateMaintenanceMutation.isPending}
                 >
-                  {createMaintenanceMutation.isPending ? "Saving..." : "Schedule Maintenance"}
+                  {editingMaintenance ? 
+                    (updateMaintenanceMutation.isPending ? "Updating..." : "Update Maintenance") :
+                    (createMaintenanceMutation.isPending ? "Scheduling..." : "Schedule Maintenance")
+                  }
                 </Button>
               </DialogFooter>
             </form>
@@ -704,6 +788,33 @@ export default function Maintenance() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Maintenance Confirmation */}
+      <AlertDialog open={!!deleteMaintenance} onOpenChange={(open) => {
+        if (!open) setDeleteMaintenance(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Maintenance Record</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this maintenance record? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => {
+                if (deleteMaintenance) {
+                  deleteMaintenanceMutation.mutate(deleteMaintenance.id);
+                }
+              }}
+            >
+              {deleteMaintenanceMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

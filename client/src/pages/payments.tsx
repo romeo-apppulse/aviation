@@ -8,7 +8,17 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { CalendarIcon, Check, Clock, DollarSign, Plus, Search, Filter, FileText, Plane, ArrowUpDown, ArrowUp, ArrowDown, Upload, Link2, X, Download } from "lucide-react";
+import { CalendarIcon, Check, Clock, DollarSign, Plus, Search, Filter, FileText, Plane, ArrowUpDown, ArrowUp, ArrowDown, Upload, Link2, X, Download, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Card,
   CardContent,
@@ -84,6 +94,7 @@ export default function Payments() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [addPaymentOpen, setAddPaymentOpen] = useState(false);
   const [markAsPaidId, setMarkAsPaidId] = useState<number | null>(null);
+  const [deletePayment, setDeletePayment] = useState<Payment | null>(null);
   const [sortField, setSortField] = useState<SortField>('dueDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [invoiceMode, setInvoiceMode] = useState<"url" | "file">("url");
@@ -201,6 +212,28 @@ export default function Payments() {
       toast({
         title: "Error",
         description: `Failed to update payment: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deletePaymentMutation = useMutation({
+    mutationFn: (id: number) => 
+      apiRequest("DELETE", `/api/payments/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      setDeletePayment(null);
+      toast({
+        title: "Payment deleted",
+        description: "The payment has been deleted successfully",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete payment: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -487,6 +520,13 @@ export default function Payments() {
                               Invoice
                             </Button>
                           )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setDeletePayment(payment)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -904,6 +944,33 @@ export default function Payments() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Payment Confirmation */}
+      <AlertDialog open={!!deletePayment} onOpenChange={(open) => {
+        if (!open) setDeletePayment(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Payment Record</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this payment record for "{deletePayment?.period}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => {
+                if (deletePayment) {
+                  deletePaymentMutation.mutate(deletePayment.id);
+                }
+              }}
+            >
+              {deletePaymentMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

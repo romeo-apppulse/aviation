@@ -1,10 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { LeaseWithDetails } from "@shared/schema";
 import { useState } from "react";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { useModal } from "@/hooks/use-modal";
 import { Helmet } from "react-helmet";
-import { Plus, FileText, Search, Filter, Calendar, DollarSign, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown, Building2 } from "lucide-react";
+import { Plus, FileText, Search, Filter, Calendar, DollarSign, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown, Building2, Trash2 } from "lucide-react";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import LeaseAgreementModal from "@/components/leases/lease-agreement-modal";
 import LeaseForm from "@/components/leases/lease-form";
 import {
@@ -42,11 +54,35 @@ export default function Leases() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortField, setSortField] = useState<SortField>('aircraft');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [deleteLease, setDeleteLease] = useState<LeaseWithDetails | null>(null);
   const addLeaseModal = useModal(false);
   const viewLeaseModal = useModal<LeaseWithDetails>(false);
+  const { toast } = useToast();
 
   const { data: leases, isLoading } = useQuery<LeaseWithDetails[]>({
     queryKey: ["/api/leases"],
+  });
+
+  const deleteLeaseMutation = useMutation({
+    mutationFn: (id: number) => 
+      apiRequest("DELETE", `/api/leases/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/leases"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/aircraft"] });
+      setDeleteLease(null);
+      toast({
+        title: "Lease deleted",
+        description: "The lease agreement has been deleted successfully",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete lease: ${error.message}`,
+        variant: "destructive",
+      });
+    }
   });
 
   const filteredLeases = leases
@@ -374,16 +410,28 @@ export default function Leases() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              viewLeaseModal.openModal(lease);
-                            }}
-                          >
-                            View
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                viewLeaseModal.openModal(lease);
+                              }}
+                            >
+                              View
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteLease(lease);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                   ))}
@@ -436,6 +484,33 @@ export default function Leases() {
           lease={viewLeaseModal.data}
         />
       )}
+
+      {/* Delete Lease Confirmation */}
+      <AlertDialog open={!!deleteLease} onOpenChange={(open) => {
+        if (!open) setDeleteLease(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Lease Agreement</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this lease agreement for "{deleteLease?.aircraft?.registration}"? This action cannot be undone and will also delete any associated payments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => {
+                if (deleteLease) {
+                  deleteLeaseMutation.mutate(deleteLease.id);
+                }
+              }}
+            >
+              {deleteLeaseMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

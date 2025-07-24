@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { AircraftWithDetails } from "@shared/schema";
 import { useState } from "react";
 import { useModal } from "@/hooks/use-modal";
@@ -7,7 +7,19 @@ import { AircraftImage } from "@/components/ui/aircraft-image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Helmet } from "react-helmet";
-import { Search, Plus, Filter, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Search, Plus, Filter, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown, Trash2 } from "lucide-react";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import AircraftDetailsModal from "@/components/aircraft/aircraft-details-modal";
 import AddAircraftForm from "@/components/aircraft/add-aircraft-form";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -45,11 +57,34 @@ export default function Aircraft() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortField, setSortField] = useState<SortField>('registration');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [deleteAircraft, setDeleteAircraft] = useState<AircraftWithDetails | null>(null);
   const addAircraftModal = useModal(false);
   const detailsModal = useModal<AircraftWithDetails>(false);
+  const { toast } = useToast();
 
   const { data: aircraft, isLoading } = useQuery<AircraftWithDetails[]>({
     queryKey: ["/api/aircraft"],
+  });
+
+  const deleteAircraftMutation = useMutation({
+    mutationFn: (id: number) => 
+      apiRequest("DELETE", `/api/aircraft/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/aircraft"] });
+      setDeleteAircraft(null);
+      toast({
+        title: "Aircraft deleted",
+        description: "The aircraft has been deleted successfully",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to delete aircraft: ${error.message}`,
+        variant: "destructive",
+      });
+    }
   });
 
   const handleSort = (field: SortField) => {
@@ -368,6 +403,7 @@ export default function Aircraft() {
                     {getSortIcon('monthlyRate')}
                   </Button>
                 </TableHead>
+                <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -384,16 +420,19 @@ export default function Aircraft() {
                       <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
                       <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
                       <TableCell><div className="h-4 bg-gray-200 rounded animate-pulse" /></TableCell>
+                      <TableCell><div className="h-8 w-8 bg-gray-200 rounded animate-pulse" /></TableCell>
                     </TableRow>
                   ))
               ) : filteredAndSortedAircraft.length > 0 ? (
                 filteredAndSortedAircraft.map((aircraft) => (
                   <TableRow 
                     key={aircraft.id} 
-                    className="cursor-pointer hover:bg-gray-50"
-                    onClick={() => detailsModal.openModal(aircraft)}
+                    className="hover:bg-gray-50"
                   >
-                    <TableCell>
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => detailsModal.openModal(aircraft)}
+                    >
                       <div className="h-12 w-16 rounded overflow-hidden">
                         <AircraftImage
                           src={aircraft.image}
@@ -402,24 +441,57 @@ export default function Aircraft() {
                         />
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{aircraft.registration}</TableCell>
-                    <TableCell>{aircraft.make}</TableCell>
-                    <TableCell>{aircraft.model}</TableCell>
-                    <TableCell>{aircraft.year}</TableCell>
-                    <TableCell>
+                    <TableCell 
+                      className="font-medium cursor-pointer"
+                      onClick={() => detailsModal.openModal(aircraft)}
+                    >{aircraft.registration}</TableCell>
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => detailsModal.openModal(aircraft)}
+                    >{aircraft.make}</TableCell>
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => detailsModal.openModal(aircraft)}
+                    >{aircraft.model}</TableCell>
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => detailsModal.openModal(aircraft)}
+                    >{aircraft.year}</TableCell>
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => detailsModal.openModal(aircraft)}
+                    >
                       <Badge className={getStatusColor(aircraft.status)}>
                         {aircraft.status}
                       </Badge>
                     </TableCell>
-                    <TableCell>{aircraft.owner?.name || "Unassigned"}</TableCell>
-                    <TableCell className="font-mono">
+                    <TableCell 
+                      className="cursor-pointer"
+                      onClick={() => detailsModal.openModal(aircraft)}
+                    >{aircraft.owner?.name || "Unassigned"}</TableCell>
+                    <TableCell 
+                      className="font-mono cursor-pointer"
+                      onClick={() => detailsModal.openModal(aircraft)}
+                    >
                       {aircraft.currentLease ? formatCurrency(aircraft.currentLease.monthlyRate) : "$0"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteAircraft(aircraft);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-12">
+                  <TableCell colSpan={9} className="text-center py-12">
                     <div className="mx-auto h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                       <Search className="h-8 w-8 text-gray-400" />
                     </div>
@@ -450,6 +522,33 @@ export default function Aircraft() {
           aircraft={detailsModal.data} 
         />
       )}
+
+      {/* Delete Aircraft Confirmation */}
+      <AlertDialog open={!!deleteAircraft} onOpenChange={(open) => {
+        if (!open) setDeleteAircraft(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Aircraft</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteAircraft?.registration}"? This action cannot be undone and will also delete any associated leases and payments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => {
+                if (deleteAircraft) {
+                  deleteAircraftMutation.mutate(deleteAircraft.id);
+                }
+              }}
+            >
+              {deleteAircraftMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
