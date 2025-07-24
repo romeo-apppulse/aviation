@@ -282,7 +282,7 @@ export default function Leases() {
                         </div>
                       </div>
                       
-                      <div className="mt-4 pt-4 border-t border-gray-100">
+                      <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
                         <Button 
                           variant="ghost" 
                           size="sm"
@@ -290,10 +290,21 @@ export default function Leases() {
                             e.stopPropagation();
                             viewLeaseModal.openModal(lease);
                           }}
-                          className="w-full"
+                          className="flex-1"
                         >
                           <FileText className="h-4 w-4 mr-2" />
                           View Details
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="px-3 text-red-600 hover:bg-red-50"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteLease(lease);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </CardContent>

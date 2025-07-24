@@ -271,10 +271,23 @@ export default function Aircraft() {
                   alt={`${aircraft.make} ${aircraft.model}`}
                   className="w-full h-full"
                 />
-                <div className="absolute top-2 right-2">
+                <div className="absolute top-2 right-2 flex gap-2">
                   <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(aircraft.status || '')}`}>
                     {aircraft.status || 'Unknown'}
                   </span>
+                </div>
+                <div className="absolute top-2 left-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 bg-white/80 hover:bg-red-50 text-red-600 rounded-full shadow-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteAircraft(aircraft);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
               <CardContent className="p-4">
