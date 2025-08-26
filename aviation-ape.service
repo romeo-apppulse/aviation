@@ -1,0 +1,30 @@
+[Unit]
+Description=Aviation Ape Manager
+Documentation=https://github.com/yourusername/aviation-ape-manager
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/var/www/aviation-ape-manager
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=10
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=aviation-ape
+Environment=NODE_ENV=production
+EnvironmentFile=/var/www/aviation-ape-manager/.env
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/www/aviation-ape-manager
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target

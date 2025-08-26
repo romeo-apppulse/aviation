@@ -56,11 +56,11 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
       <div className="p-4 border-b border-[#34495e]">
         {collapsed ? (
           <div className="flex flex-col items-center space-y-2">
-            {/* <img
+            <img
               src={aircraft_final_logo}
               alt="Aviation Ape"
               className="h-12 w-12 pt-[10px] pb-[10px]"
-            /> */}
+            />
             <button
               onClick={toggleCollapse}
               className="p-1.5 rounded hover:bg-[#34495e] transition-colors"

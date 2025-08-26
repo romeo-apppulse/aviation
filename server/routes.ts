@@ -24,6 +24,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const apiRouter = express.Router();
 
+  // Health check endpoint (no auth required)
+  apiRouter.get('/health', (req, res) => {
+    res.status(200).json({ 
+      status: 'healthy', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+
   // Error handling middleware
   const handleZodError = (err: unknown, res: Response) => {
     if (err instanceof ZodError) {

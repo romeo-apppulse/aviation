@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plane, Users, FileText, Wrench, DollarSign, BarChart3 } from "lucide-react";
+import aircraft_final_logo from "@assets/aircraft-final-logo.png";
 
 export default function Landing() {
   return (
@@ -9,7 +10,7 @@ export default function Landing() {
         <div className="text-center mb-16">
           <div className="flex items-center justify-center mb-6">
             <img 
-              src="@assets/aircraft-removebg-preview_1753289219831.png" 
+              src={aircraft_final_logo} 
               alt="Aviation Ape" 
               className="h-12 w-12 mr-3"
             />

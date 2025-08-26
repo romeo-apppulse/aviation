@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://aviation_ape_user:aviation_ape_password@db:5432/aviation_ape_db
+      - SESSION_SECRET=${SESSION_SECRET}
+      - REPL_ID=${REPL_ID}
+      - ISSUER_URL=${ISSUER_URL}
+      - REPLIT_DOMAINS=${REPLIT_DOMAINS}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./attached_assets:/app/attached_assets
+    networks:
+      - aviation-ape-network
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=aviation_ape_db
+      - POSTGRES_USER=aviation_ape_user
+      - POSTGRES_PASSWORD=aviation_ape_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-database.sql:/docker-entrypoint-initdb.d/init-database.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aviation_ape_user -d aviation_ape_db"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - aviation-ape-network
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/ssl/certs
+    depends_on:
+      - app
+    restart: unless-stopped
+    networks:
+      - aviation-ape-network
+
+volumes:
+  postgres_data:
+
+networks:
+  aviation-ape-network:
+    driver: bridge
