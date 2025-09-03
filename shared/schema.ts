@@ -1,25 +1,26 @@
-import { mysqlTable, text, int, boolean, timestamp, json, double, date, varchar, index } from "drizzle-orm/mysql-core";
+import { sql } from 'drizzle-orm';
+import { pgTable, text, integer, boolean, timestamp, jsonb, doublePrecision, date, varchar, index, serial } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 // Session storage table for authentication
-export const sessions = mysqlTable(
+export const sessions = pgTable(
   "sessions",
   {
-    session_id: varchar("session_id", { length: 128 }).primaryKey(),
-    expires: int("expires").notNull(),
-    data: text("data"),
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
   },
-  (table) => [index("IDX_session_expire").on(table.expires)],
+  (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
 // Users table for authentication
-export const users = mysqlTable("users", {
-  id: varchar("id", { length: 255 }).primaryKey().notNull(),
-  email: varchar("email", { length: 255 }).unique(),
-  firstName: varchar("first_name", { length: 255 }),
-  lastName: varchar("last_name", { length: 255 }),
-  profileImageUrl: varchar("profile_image_url", { length: 500 }),
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
   emailNotificationsEnabled: boolean("email_notifications_enabled").default(true),
   emailPaymentReminders: boolean("email_payment_reminders").default(true),
   emailMaintenanceAlerts: boolean("email_maintenance_alerts").default(true),
@@ -27,31 +28,31 @@ export const users = mysqlTable("users", {
   emailSystemUpdates: boolean("email_system_updates").default(true),
   status: text("status").default("pending"), // pending, approved, blocked
   role: text("role").default("user"), // user, admin, super_admin
-  approvedBy: varchar("approved_by", { length: 255 }),
+  approvedBy: varchar("approved_by"),
   approvedAt: timestamp("approved_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 // Aircraft table
-export const aircraft = mysqlTable("aircraft", {
-  id: int("id").primaryKey().autoincrement(),
+export const aircraft = pgTable("aircraft", {
+  id: serial("id").primaryKey(),
   registration: text("registration").notNull().unique(),
   make: text("make").notNull(),
   model: text("model").notNull(),
-  year: int("year").notNull(),
+  year: integer("year").notNull(),
   engineType: text("engine_type"),
-  totalTime: int("total_time"),
+  totalTime: integer("total_time"),
   avionics: text("avionics"),
   image: text("image"),
   notes: text("notes"),
-  ownerId: int("owner_id"),
+  ownerId: integer("owner_id"),
   status: text("status").default("Available"), // Available, Leased, Maintenance, etc.
 });
 
 // Owner table
-export const owners = mysqlTable("owners", {
-  id: int("id").primaryKey().autoincrement(),
+export const owners = pgTable("owners", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
@@ -61,8 +62,8 @@ export const owners = mysqlTable("owners", {
 });
 
 // Lessee table (Flight Schools)
-export const lessees = mysqlTable("lessees", {
-  id: int("id").primaryKey().autoincrement(),
+export const lessees = pgTable("lessees", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
@@ -72,15 +73,15 @@ export const lessees = mysqlTable("lessees", {
 });
 
 // Lease Agreements
-export const leases = mysqlTable("leases", {
-  id: int("id").primaryKey().autoincrement(),
-  aircraftId: int("aircraft_id").notNull(),
-  lesseeId: int("lessee_id").notNull(),
+export const leases = pgTable("leases", {
+  id: serial("id").primaryKey(),
+  aircraftId: integer("aircraft_id").notNull(),
+  lesseeId: integer("lessee_id").notNull(),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
-  monthlyRate: double("monthly_rate").notNull(),
-  minimumHours: int("minimum_hours").notNull(),
-  hourlyRate: double("hourly_rate").notNull(),
+  monthlyRate: doublePrecision("monthly_rate").notNull(),
+  minimumHours: integer("minimum_hours").notNull(),
+  hourlyRate: doublePrecision("hourly_rate").notNull(),
   maintenanceTerms: text("maintenance_terms"),
   notes: text("notes"),
   status: text("status").default("Active"), // Active, Expired, Terminated
@@ -89,10 +90,10 @@ export const leases = mysqlTable("leases", {
 });
 
 // Payments
-export const payments = mysqlTable("payments", {
-  id: int("id").primaryKey().autoincrement(),
-  leaseId: int("lease_id").notNull(),
-  amount: double("amount").notNull(),
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  leaseId: integer("lease_id").notNull(),
+  amount: doublePrecision("amount").notNull(),
   period: text("period").notNull(), // e.g., "January 2023"
   dueDate: date("due_date").notNull(),
   paidDate: date("paid_date"),
@@ -103,33 +104,33 @@ export const payments = mysqlTable("payments", {
 });
 
 // Maintenance Records
-export const maintenance = mysqlTable("maintenance", {
-  id: int("id").primaryKey().autoincrement(),
-  aircraftId: int("aircraft_id").notNull(),
+export const maintenance = pgTable("maintenance", {
+  id: serial("id").primaryKey(),
+  aircraftId: integer("aircraft_id").notNull(),
   type: text("type").notNull(), // e.g., "100 Hour Inspection", "Annual Inspection"
   scheduledDate: date("scheduled_date").notNull(),
   completedDate: date("completed_date"),
-  cost: double("cost"),
+  cost: doublePrecision("cost"),
   status: text("status").default("Scheduled"), // Scheduled, Completed, Overdue
   notes: text("notes"),
   performedBy: text("performed_by"),
 });
 
 // Documents
-export const documents = mysqlTable("documents", {
-  id: int("id").primaryKey().autoincrement(),
+export const documents = pgTable("documents", {
+  id: serial("id").primaryKey(),
   name: text("name").notNull(),
   type: text("type").notNull(), // Lease, Registration, Insurance, etc.
   url: text("url").notNull(),
-  relatedId: int("related_id"), // Can be ID of aircraft, lease, etc.
+  relatedId: integer("related_id"), // Can be ID of aircraft, lease, etc.
   relatedType: text("related_type"), // "aircraft", "lease", "owner", etc.
   uploadDate: timestamp("upload_date").defaultNow(),
 });
 
 // Notifications
-export const notifications = mysqlTable("notifications", {
-  id: int("id").primaryKey().autoincrement(),
-  userId: varchar("user_id", { length: 255 }).notNull(),
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
   type: text("type").notNull(), // 'payment', 'maintenance', 'lease', 'document', 'system'
@@ -137,7 +138,7 @@ export const notifications = mysqlTable("notifications", {
   read: boolean("read").default(false),
   actionUrl: text("action_url"),
   relatedType: text("related_type"),
-  relatedId: int("related_id"),
+  relatedId: integer("related_id"),
   createdAt: timestamp("created_at").defaultNow(),
   readAt: timestamp("read_at"),
 });
