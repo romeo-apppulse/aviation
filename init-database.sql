@@ -1,23 +1,16 @@
--- Aviation Ape Manager Database Initialization Script
+-- Aviation Ape Manager Database Initialization Script (MySQL)
 -- Run this script to set up the database for the first time
 
--- Create database (run as postgres superuser)
--- CREATE DATABASE aviation_ape_db;
+-- Create database (run as root or database admin)
+-- CREATE DATABASE aviation_ape_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- Create user and grant permissions (run as postgres superuser)
--- CREATE USER aviation_ape_user WITH ENCRYPTED PASSWORD 'your-secure-password';
--- GRANT ALL PRIVILEGES ON DATABASE aviation_ape_db TO aviation_ape_user;
+-- Create user and grant permissions (run as root or database admin)
+-- CREATE USER 'aviation_ape_user'@'%' IDENTIFIED BY 'your-secure-password';
+-- GRANT ALL PRIVILEGES ON aviation_ape_db.* TO 'aviation_ape_user'@'%';
+-- FLUSH PRIVILEGES;
 
--- Connect to the aviation_ape_db database
-\c aviation_ape_db;
-
--- Grant schema permissions to the user
-GRANT ALL ON SCHEMA public TO aviation_ape_user;
-GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO aviation_ape_user;
-GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO aviation_ape_user;
-
--- Create extension for UUID generation (if needed)
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+-- Use the aviation_ape_db database
+USE aviation_ape_db;
 
 -- Note: The actual table schema will be created by Drizzle ORM
 -- when you run: npm run db:push

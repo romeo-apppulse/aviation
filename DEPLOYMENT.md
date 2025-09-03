@@ -5,7 +5,7 @@ This guide will help you deploy Aviation Ape Manager on your own hosting infrast
 ## Prerequisites
 
 - **Node.js**: Version 18.0.0 or higher
-- **PostgreSQL**: Version 12 or higher
+- **MySQL**: Version 8.0 or higher
 - **Linux/Unix server** with sudo access
 - **Domain name** (optional, can run on IP address)
 
@@ -32,22 +32,26 @@ This guide will help you deploy Aviation Ape Manager on your own hosting infrast
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt-get install -y nodejs
 
-# Install PostgreSQL (if not already installed)
+# Install MySQL (if not already installed)
 sudo apt-get update
-sudo apt-get install postgresql postgresql-contrib
+sudo apt-get install mysql-server
 ```
 
 ### 2. Database Setup
 
 ```bash
-# Switch to postgres user
-sudo -u postgres psql
+# Start MySQL secure installation
+sudo mysql_secure_installation
+
+# Login to MySQL as root
+sudo mysql
 
 # Create database and user
-CREATE DATABASE aviation_ape_db;
-CREATE USER aviation_ape_user WITH ENCRYPTED PASSWORD 'your-secure-password';
-GRANT ALL PRIVILEGES ON DATABASE aviation_ape_db TO aviation_ape_user;
-\q
+CREATE DATABASE aviation_ape_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'aviation_ape_user'@'%' IDENTIFIED BY 'your-secure-password';
+GRANT ALL PRIVILEGES ON aviation_ape_db.* TO 'aviation_ape_user'@'%';
+FLUSH PRIVILEGES;
+EXIT;
 ```
 
 ### 3. Application Setup
@@ -77,7 +81,7 @@ npm run db:push
 
 ```bash
 # Database Configuration
-DATABASE_URL=postgresql://aviation_ape_user:your-secure-password@localhost:5432/aviation_ape_db
+DATABASE_URL=mysql://aviation_ape_user:your-secure-password@localhost:3306/aviation_ape_db
 
 # Session Configuration (Generate a secure random string)
 SESSION_SECRET=your-super-secure-session-secret-here
