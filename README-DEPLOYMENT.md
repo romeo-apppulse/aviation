@@ -74,20 +74,29 @@ PORT=5000
 
 ## 🗄️ Database Setup
 
-### PostgreSQL Installation & Setup
+### MySQL Installation & Setup
 ```bash
-# Install PostgreSQL
-sudo apt-get install postgresql postgresql-contrib
+# Install MySQL
+sudo apt-get install mysql-server
 
-# Create database and user
-sudo -u postgres psql
-CREATE DATABASE aviation_ape_db;
-CREATE USER aviation_ape_user WITH ENCRYPTED PASSWORD 'secure-password';
-GRANT ALL PRIVILEGES ON DATABASE aviation_ape_db TO aviation_ape_user;
-\q
+# Secure MySQL installation
+sudo mysql_secure_installation
+
+# Create database and user (run mysql-setup.sql script)
+sudo mysql < mysql-setup.sql
+
+# OR manually:
+sudo mysql
+CREATE DATABASE aviation_ape_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER 'aviation_ape_user'@'%' IDENTIFIED BY 'secure-password';
+GRANT ALL PRIVILEGES ON aviation_ape_db.* TO 'aviation_ape_user'@'%';
+FLUSH PRIVILEGES;
+EXIT;
 
 # Initialize database schema
 npm run db:push
+# If that fails, use:
+npm run db:push:force
 ```
 
 ## 🌐 Deployment Options

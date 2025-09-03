@@ -72,8 +72,29 @@ print_status "Running database migrations..."
 if [ -f ".env" ]; then
     source .env
     if [ -n "$DATABASE_URL" ]; then
-        npm run db:push
-        print_status "Database schema updated successfully"
+        # Check if MySQL/MariaDB client is available
+        if command -v mysql &> /dev/null; then
+            print_status "Testing MySQL connection..."
+            # Extract connection details from DATABASE_URL
+            mysql_host=$(echo $DATABASE_URL | sed -n 's/.*@\([^:]*\):.*/\1/p')
+            mysql_port=$(echo $DATABASE_URL | sed -n 's/.*:\([0-9]*\)\/.*/\1/p')
+            mysql_user=$(echo $DATABASE_URL | sed -n 's/mysql:\/\/\([^:]*\):.*/\1/p')
+            mysql_db=$(echo $DATABASE_URL | sed -n 's/.*\/\([^?]*\).*/\1/p')
+            
+            print_status "MySQL connection details: $mysql_user@$mysql_host:$mysql_port/$mysql_db"
+        fi
+        
+        # Try to push schema
+        if npm run db:push; then
+            print_status "Database schema updated successfully"
+        else
+            print_warning "Schema push failed. Trying force push..."
+            if npm run db:push:force; then
+                print_status "Database schema force updated successfully"
+            else
+                print_error "Database schema update failed. Please check your MySQL connection and configuration."
+            fi
+        fi
     else
         print_warning "DATABASE_URL not set in .env file. Please configure database connection."
     fi

@@ -7,13 +7,13 @@ Use this checklist to ensure a successful deployment of your Aviation Ape Manage
 ### 📋 System Requirements
 - [ ] **Server OS**: Linux/Unix with sudo access
 - [ ] **Node.js**: Version 18.0.0 or higher installed
-- [ ] **PostgreSQL**: Version 12 or higher installed
+- [ ] **MySQL**: Version 8.0 or higher installed
 - [ ] **Memory**: Minimum 2GB RAM (4GB+ recommended)
 - [ ] **Storage**: Minimum 10GB free space
 - [ ] **Network**: Firewall configured (ports 80, 443, 22)
 
 ### 🔑 Environment Configuration
-- [ ] **Database URL**: PostgreSQL connection string configured
+- [ ] **Database URL**: MySQL connection string configured (mysql://user:pass@host:3306/db)
 - [ ] **Session Secret**: 64-character random string generated
 - [ ] **Authentication**: Replit domains or alternative auth configured
 - [ ] **Email Service**: SendGrid API key or SMTP credentials (optional)
@@ -28,11 +28,11 @@ Use this checklist to ensure a successful deployment of your Aviation Ape Manage
 ## 🚀 Deployment Steps
 
 ### 1. Database Setup
-- [ ] PostgreSQL service running
-- [ ] Database and user created
+- [ ] MySQL service running
+- [ ] Database and user created with proper charset (utf8mb4)
 - [ ] Permissions granted to application user
 - [ ] Connection tested from application server
-- [ ] Schema migration completed (`npm run db:push`)
+- [ ] Schema migration completed (`npm run db:push` or `npm run db:push:force`)
 
 ### 2. Application Installation
 - [ ] Dependencies installed (`npm install`)
@@ -167,7 +167,7 @@ Once all items in this checklist are completed:
 curl -f http://localhost:5000/api/health
 
 # Check database connection
-psql -U aviation_ape_user -d aviation_ape_db -c "SELECT 1;"
+mysql -u aviation_ape_user -p aviation_ape_db -e "SELECT 1;"
 
 # Check logs
 tail -f /var/log/aviation-ape.log
@@ -177,6 +177,9 @@ pm2 logs aviation-ape
 # Check system resources
 htop
 df -h
+
+# Check MySQL status
+sudo systemctl status mysql
 ```
 
 **Congratulations!** Your Aviation Ape Manager is now deployed and ready for production use.

@@ -193,8 +193,11 @@ This application uses Replit's OpenID Connect for authentication. For production
 ## Database Migrations
 
 ```bash
-# Apply schema changes
+# Apply schema changes (using MySQL config)
 npm run db:push
+
+# If the above fails, force the schema push
+npm run db:push:force
 
 # View database in browser
 npm run db:studio
