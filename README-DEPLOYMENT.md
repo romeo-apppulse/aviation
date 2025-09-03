@@ -76,24 +76,38 @@ PORT=5000
 
 ### MySQL Installation & Setup
 ```bash
-# Install MySQL
+# Install MySQL 8.0
+sudo apt-get update
 sudo apt-get install mysql-server
 
 # Secure MySQL installation
 sudo mysql_secure_installation
 
-# Create database and user (run mysql-setup.sql script)
+# Create database and user using setup script
 sudo mysql < mysql-setup.sql
 
-# OR manually:
+# OR create manually:
 sudo mysql
 CREATE DATABASE aviation_ape_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'aviation_ape_user'@'%' IDENTIFIED BY 'secure-password';
+CREATE USER 'aviation_ape_user'@'localhost' IDENTIFIED BY 'secure-password';
 GRANT ALL PRIVILEGES ON aviation_ape_db.* TO 'aviation_ape_user'@'%';
+GRANT ALL PRIVILEGES ON aviation_ape_db.* TO 'aviation_ape_user'@'localhost';
+
+# Create session table for authentication
+USE aviation_ape_db;
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id VARCHAR(128) COLLATE utf8mb4_bin NOT NULL,
+    expires INT(11) UNSIGNED NOT NULL,
+    data TEXT COLLATE utf8mb4_bin,
+    PRIMARY KEY (session_id),
+    KEY expires (expires)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 FLUSH PRIVILEGES;
 EXIT;
 
-# Initialize database schema
+# Initialize database schema (using MySQL config)
 npm run db:push
 # If that fails, use:
 npm run db:push:force

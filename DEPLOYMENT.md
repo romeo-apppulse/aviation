@@ -1,6 +1,8 @@
-# Aviation Ape Manager - Deployment Guide
+# Aviation Ape Manager - MySQL Production Deployment Guide
 
-This guide will help you deploy Aviation Ape Manager on your own hosting infrastructure.
+This comprehensive guide will help you deploy Aviation Ape Manager on your own hosting infrastructure using MySQL 8.0.
+
+> **Important**: This application uses PostgreSQL for development in Replit, but MySQL for production deployment on your own servers.
 
 ## Prerequisites
 
@@ -46,10 +48,23 @@ sudo mysql_secure_installation
 # Login to MySQL as root
 sudo mysql
 
-# Create database and user
+# Create database and user with UTF8MB4 support
 CREATE DATABASE aviation_ape_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER 'aviation_ape_user'@'%' IDENTIFIED BY 'your-secure-password';
+CREATE USER 'aviation_ape_user'@'localhost' IDENTIFIED BY 'your-secure-password';
 GRANT ALL PRIVILEGES ON aviation_ape_db.* TO 'aviation_ape_user'@'%';
+GRANT ALL PRIVILEGES ON aviation_ape_db.* TO 'aviation_ape_user'@'localhost';
+
+# Create session table for authentication
+USE aviation_ape_db;
+CREATE TABLE IF NOT EXISTS sessions (
+    session_id VARCHAR(128) COLLATE utf8mb4_bin NOT NULL,
+    expires INT(11) UNSIGNED NOT NULL,
+    data TEXT COLLATE utf8mb4_bin,
+    PRIMARY KEY (session_id),
+    KEY expires (expires)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 FLUSH PRIVILEGES;
 EXIT;
 ```
@@ -57,22 +72,26 @@ EXIT;
 ### 3. Application Setup
 
 ```bash
-# Copy production configuration
+# Copy MySQL production configuration files
 cp package.production.json package.json
 cp vite.production.config.ts vite.config.ts
+cp drizzle.mysql.config.ts drizzle.config.ts
 
-# Install dependencies
+# Install MySQL dependencies
 npm install
 
-# Configure environment
+# Configure environment variables
 cp .env.example .env
-# Edit .env file with your configuration (see Configuration section)
+# Edit .env file with your MySQL configuration (see Configuration section)
 
 # Build the application
 npm run build
 
-# Set up database schema
+# Set up database schema using MySQL config
 npm run db:push
+
+# If schema push fails, try force push
+npm run db:push:force
 ```
 
 ## Configuration
@@ -242,10 +261,10 @@ pm2 restart aviation-ape
 ### Database Backup
 ```bash
 # Create backup
-pg_dump -U aviation_ape_user -h localhost aviation_ape_db > backup.sql
+mysqldump -u aviation_ape_user -p aviation_ape_db > backup_$(date +%Y%m%d).sql
 
-# Restore backup
-psql -U aviation_ape_user -h localhost aviation_ape_db < backup.sql
+# Restore from backup
+mysql -u aviation_ape_user -p aviation_ape_db < backup_20240101.sql
 ```
 
 ### Application Files Backup
@@ -266,33 +285,128 @@ tar -czf aviation-ape-backup.tar.gz .env attached_assets/
 - [ ] Use PM2 or similar process manager
 - [ ] Configure proper file permissions
 
-## Troubleshooting
+## MySQL Troubleshooting Guide
 
-### Common Issues
+### Database Connection Issues
 
-**Application won't start:**
-- Check Node.js version: `node --version`
-- Verify environment variables in `.env`
-- Check PostgreSQL connection
-- Review application logs
+**Error: "connect ECONNREFUSED 127.0.0.1:3306"**
+```bash
+# Check if MySQL is running
+sudo systemctl status mysql
 
-**Database connection failed:**
-- Verify PostgreSQL is running: `sudo systemctl status postgresql`
-- Check database credentials in `.env`
-- Ensure database exists: `psql -U aviation_ape_user -d aviation_ape_db -c "SELECT 1;"`
+# Start MySQL if stopped
+sudo systemctl start mysql
 
-**Build errors:**
-- Clear node_modules: `rm -rf node_modules && npm install`
-- Check TypeScript errors: `npm run check`
-- Verify all dependencies are installed
+# Enable auto-start on boot
+sudo systemctl enable mysql
+
+# Check if MySQL is listening on port 3306
+sudo netstat -tlnp | grep :3306
+```
+
+**Error: "Access denied for user"**
+```bash
+# Reset MySQL root password if needed
+sudo mysql_secure_installation
+
+# Verify user permissions
+sudo mysql -u root -p
+SHOW GRANTS FOR 'aviation_ape_user'@'%';
+SHOW GRANTS FOR 'aviation_ape_user'@'localhost';
+
+# Recreate user if needed
+DROP USER IF EXISTS 'aviation_ape_user'@'%';
+CREATE USER 'aviation_ape_user'@'%' IDENTIFIED BY 'your-password';
+GRANT ALL PRIVILEGES ON aviation_ape_db.* TO 'aviation_ape_user'@'%';
+FLUSH PRIVILEGES;
+```
+
+**Error: "Unknown database 'aviation_ape_db'"**
+```bash
+# Check if database exists
+sudo mysql -u root -p -e "SHOW DATABASES;"
+
+# Recreate database
+sudo mysql -u root -p -e "CREATE DATABASE aviation_ape_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+
+# Or run the setup script
+sudo mysql < mysql-setup.sql
+```
+
+### Schema Migration Issues
+
+**Error: "drizzle-kit command not found"**
+```bash
+# Install drizzle-kit globally
+npm install -g drizzle-kit
+
+# Or use npx
+npx drizzle-kit push --config=drizzle.mysql.config.ts
+```
+
+**Error: "Table already exists" during migration**
+```bash
+# Force push schema changes
+npm run db:push:force
+
+# Or manually drop tables and recreate
+sudo mysql -u aviation_ape_user -p aviation_ape_db -e "DROP DATABASE aviation_ape_db;"
+sudo mysql -u aviation_ape_user -p -e "CREATE DATABASE aviation_ape_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+npm run db:push
+```
+
+### Application Startup Issues
+
+**Port already in use:**
+```bash
+# Find process using port 5000
+sudo lsof -i :5000
+# Kill process
+sudo kill -9 <PID>
+
+# Or use a different port
+export PORT=8080
+npm start
+```
+
+**Node.js version issues:**
+```bash
+# Check Node.js version
+node --version
+
+# Install Node.js 18+ if needed
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
 
 ### Performance Optimization
 
-1. **Enable Gzip compression** in Nginx
-2. **Use Redis** for session storage (replace memorystore)
-3. **Implement CDN** for static assets
-4. **Database indexing** for frequently queried fields
-5. **Connection pooling** for PostgreSQL
+**MySQL Performance Tuning:**
+```bash
+# Add to /etc/mysql/mysql.conf.d/mysqld.cnf
+[mysqld]
+innodb_buffer_pool_size = 1G
+innodb_log_file_size = 256M
+max_connections = 200
+query_cache_size = 32M
+query_cache_type = 1
+
+# Restart MySQL after changes
+sudo systemctl restart mysql
+```
+
+**Memory Issues:**
+```bash
+# Check memory usage
+free -h
+htop
+
+# Increase swap if needed
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+```
 
 ## Support
 
