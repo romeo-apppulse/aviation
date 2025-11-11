@@ -48,12 +48,14 @@ export default function LoginPage() {
         return;
       }
       
+      // Invalidate auth cache and force full page load to dashboard
       await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Login Successful",
         description: "Welcome back!",
       });
-      setLocation("/dashboard");
+      // Use full page reload to ensure auth state is properly loaded
+      window.location.href = "/dashboard";
     },
     onError: (error: any) => {
       toast({
