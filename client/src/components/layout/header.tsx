@@ -76,7 +76,6 @@ export default function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
           
           <div className="flex items-center space-x-2">
             <Avatar className="h-8 w-8">
-              <AvatarImage src={user?.profileImageUrl || undefined} />
               <AvatarFallback className="bg-[#3498db] text-white">
                 {user?.firstName?.[0] || user?.email?.[0] || 'U'}
               </AvatarFallback>

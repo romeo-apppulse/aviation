@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { isPendingApprovalError } from "@/lib/authUtils";
+import type { User } from "@shared/schema";
 
 export function useAuth() {
   const [authChecked, setAuthChecked] = useState(false);
   
-  const { data: user, isLoading, error } = useQuery({
+  const { data: user, isLoading, error } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     retry: false,
     refetchOnWindowFocus: false,
@@ -28,8 +29,8 @@ export function useAuth() {
     isLoading: isLoading && !authChecked,
     isAuthenticated: !!user,
     isPendingApproval,
-    isAdmin: (user as any)?.role === 'admin' || (user as any)?.role === 'super_admin',
-    isSuperAdmin: (user as any)?.role === 'super_admin',
+    isAdmin: user?.role === 'admin' || user?.role === 'super_admin',
+    isSuperAdmin: user?.role === 'super_admin',
     error,
   };
 }
