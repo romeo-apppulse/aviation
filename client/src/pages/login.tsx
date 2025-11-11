@@ -35,8 +35,28 @@ export default function LoginPage() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
-      const response = await apiRequest("POST", "/api/auth/login", data);
-      return response.json();
+      try {
+        const response = await apiRequest("POST", "/api/auth/login", data);
+        return response.json();
+      } catch (error: any) {
+        // Extract the actual error message from the error
+        const errorMessage = error.message || "";
+        
+        // Parse JSON error messages if they exist
+        if (errorMessage.includes("{")) {
+          try {
+            const jsonMatch = errorMessage.match(/\{.*\}/);
+            if (jsonMatch) {
+              const parsedError = JSON.parse(jsonMatch[0]);
+              throw new Error(parsedError.message || errorMessage);
+            }
+          } catch (parseError) {
+            // If parsing fails, use the original message
+          }
+        }
+        
+        throw error;
+      }
     },
     onSuccess: async (data) => {
       if (data.status === "pending") {
@@ -58,24 +78,32 @@ export default function LoginPage() {
       window.location.href = "/dashboard";
     },
     onError: (error: any) => {
-      // Check if it's a pending approval error
+      // Extract clean error message
       const errorMessage = error.message || "";
-      if (errorMessage.includes("pending approval")) {
+      
+      // Check for specific error types
+      if (errorMessage.toLowerCase().includes("pending approval")) {
         toast({
           title: "Account Pending Approval",
           description: "Your account is awaiting administrator approval. Please check back later or contact support.",
           variant: "default",
         });
-      } else if (errorMessage.includes("blocked")) {
+      } else if (errorMessage.toLowerCase().includes("blocked")) {
         toast({
           title: "Account Blocked",
           description: "Your account has been blocked. Please contact support for assistance.",
           variant: "destructive",
         });
+      } else if (errorMessage.toLowerCase().includes("invalid")) {
+        toast({
+          title: "Login Failed",
+          description: "Invalid email or password. Please try again.",
+          variant: "destructive",
+        });
       } else {
         toast({
           title: "Login Failed",
-          description: errorMessage.includes("Invalid") ? "Invalid email or password" : errorMessage,
+          description: "Unable to sign in. Please check your credentials and try again.",
           variant: "destructive",
         });
       }
