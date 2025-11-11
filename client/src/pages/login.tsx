@@ -58,11 +58,27 @@ export default function LoginPage() {
       window.location.href = "/dashboard";
     },
     onError: (error: any) => {
-      toast({
-        title: "Login Failed",
-        description: error.message || "Invalid email or password",
-        variant: "destructive",
-      });
+      // Check if it's a pending approval error
+      const errorMessage = error.message || "";
+      if (errorMessage.includes("pending approval")) {
+        toast({
+          title: "Account Pending Approval",
+          description: "Your account is awaiting administrator approval. Please check back later or contact support.",
+          variant: "default",
+        });
+      } else if (errorMessage.includes("blocked")) {
+        toast({
+          title: "Account Blocked",
+          description: "Your account has been blocked. Please contact support for assistance.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Login Failed",
+          description: errorMessage.includes("Invalid") ? "Invalid email or password" : errorMessage,
+          variant: "destructive",
+        });
+      }
     },
   });
 
