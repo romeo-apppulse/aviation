@@ -41,9 +41,12 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
     mutationFn: async () => {
       await apiRequest("POST", "/api/auth/logout");
     },
-    onSuccess: () => {
+    onSuccess: async () => {
+      // Clear all cache and invalidate auth
+      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       queryClient.clear();
-      setLocation("/");
+      // Redirect to landing page
+      window.location.href = "/";
     },
   });
 
