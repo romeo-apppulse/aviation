@@ -11,8 +11,14 @@ const SALT_ROUNDS = 12;
 
 export function getSession() {
   const sessionSecret = process.env.SESSION_SECRET;
-  if (!sessionSecret || sessionSecret.length < 32) {
-    console.warn("WARNING: SESSION_SECRET is missing or too short. Using default (INSECURE FOR PRODUCTION!)");
+  
+  // In production, require a strong SESSION_SECRET
+  if (process.env.NODE_ENV === "production") {
+    if (!sessionSecret || sessionSecret.length < 32) {
+      throw new Error("SESSION_SECRET must be at least 32 characters in production");
+    }
+  } else if (!sessionSecret || sessionSecret.length < 32) {
+    console.warn("⚠️  WARNING: Using default SESSION_SECRET (INSECURE - set SESSION_SECRET in production!)");
   }
 
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week

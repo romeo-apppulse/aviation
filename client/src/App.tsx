@@ -18,6 +18,8 @@ import HelpSupport from "@/pages/help-support";
 import AdminUsers from "@/pages/admin-users";
 import PendingApproval from "@/pages/pending-approval";
 import Landing from "@/pages/landing";
+import LoginPage from "@/pages/login";
+import RegisterPage from "@/pages/register";
 import Home from "@/pages/home";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
@@ -43,11 +45,13 @@ function Router() {
     return <PendingApproval />;
   }
 
-  // If there's an auth error (401) or user is not authenticated, show landing page
+  // If there's an auth error (401) or user is not authenticated, show public pages
   if (error || !isAuthenticated) {
     return (
       <Switch>
         <Route path="/" component={Landing} />
+        <Route path="/login" component={LoginPage} />
+        <Route path="/register" component={RegisterPage} />
         <Route component={Landing} />
       </Switch>
     );
