@@ -43,7 +43,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
     },
     onSuccess: () => {
       queryClient.clear();
-      setLocation("/login");
+      setLocation("/");
     },
   });
 

@@ -24,7 +24,7 @@ export default function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
     },
     onSuccess: () => {
       queryClient.clear();
-      setLocation("/login");
+      setLocation("/");
     },
     onError: (error: any) => {
       toast({
