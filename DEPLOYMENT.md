@@ -1,172 +1,273 @@
-# Aviation Ape Manager - MySQL Production Deployment Guide
+# Aviation Ape Manager - VPS Deployment Guide (PostgreSQL + Node.js)
 
-This comprehensive guide will help you deploy Aviation Ape Manager on your own hosting infrastructure using MySQL 8.0.
-
-> **Important**: This application uses PostgreSQL for development in Replit, but MySQL for production deployment on your own servers.
+This guide will help you deploy Aviation Ape Manager on your VPS using Node.js and PostgreSQL.
 
 ## Prerequisites
 
-- **Node.js**: Version 18.0.0 or higher
-- **MySQL**: Version 8.0 or higher
-- **Linux/Unix server** with sudo access
-- **Domain name** (optional, can run on IP address)
+- **VPS** with Ubuntu 20.04+ or similar Linux distribution
+- **Root or sudo access**
+- **Domain name** (optional but recommended)
+- **PostgreSQL 14+** installed
+- **Node.js 18+** installed
+- **Nginx** (for reverse proxy)
 
-## Quick Start
+## 1. Server Setup
 
-1. **Download the application files** to your server
-2. **Run the deployment script**:
-   ```bash
-   chmod +x deploy.sh
-   ./deploy.sh
-   ```
-3. **Configure your environment** (see Configuration section below)
-4. **Start the application**:
-   ```bash
-   npm start
-   ```
-
-## Manual Installation
-
-### 1. System Requirements
+### Install Required Software
 
 ```bash
-# Install Node.js (if not already installed)
+# Update system packages
+sudo apt update && sudo apt upgrade -y
+
+# Install Node.js 18.x
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
+sudo apt install -y nodejs
 
-# Install MySQL (if not already installed)
-sudo apt-get update
-sudo apt-get install mysql-server
+# Install PostgreSQL
+sudo apt install -y postgresql postgresql-contrib
+
+# Install Nginx
+sudo apt install -y nginx
+
+# Install PM2 (process manager for Node.js)
+sudo npm install -g pm2
 ```
 
-### 2. Database Setup
+## 2. PostgreSQL Database Setup
+
+### Create Database and User
 
 ```bash
-# Start MySQL secure installation
-sudo mysql_secure_installation
+# Switch to postgres user
+sudo -u postgres psql
 
-# Login to MySQL as root
-sudo mysql
+# In PostgreSQL prompt, run:
+CREATE DATABASE aviation_ape;
+CREATE USER aviation_ape_user WITH PASSWORD 'REPLACE_WITH_SECURE_PASSWORD';
+GRANT ALL PRIVILEGES ON DATABASE aviation_ape TO aviation_ape_user;
 
-# Create database and user with UTF8MB4 support
-CREATE DATABASE aviation_ape_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'aviation_ape_user'@'%' IDENTIFIED BY 'your-secure-password';
-CREATE USER 'aviation_ape_user'@'localhost' IDENTIFIED BY 'your-secure-password';
-GRANT ALL PRIVILEGES ON aviation_ape_db.* TO 'aviation_ape_user'@'%';
-GRANT ALL PRIVILEGES ON aviation_ape_db.* TO 'aviation_ape_user'@'localhost';
+# For PostgreSQL 15+, also grant schema privileges
+\c aviation_ape
+GRANT ALL ON SCHEMA public TO aviation_ape_user;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO aviation_ape_user;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO aviation_ape_user;
 
-# Create session table for authentication
-USE aviation_ape_db;
-CREATE TABLE IF NOT EXISTS sessions (
-    session_id VARCHAR(128) COLLATE utf8mb4_bin NOT NULL,
-    expires INT(11) UNSIGNED NOT NULL,
-    data TEXT COLLATE utf8mb4_bin,
-    PRIMARY KEY (session_id),
-    KEY expires (expires)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-FLUSH PRIVILEGES;
-EXIT;
+# Exit PostgreSQL
+\q
 ```
 
-### 3. Application Setup
+### Configure PostgreSQL (Optional - for remote access)
+
+> **Note:** PostgreSQL config paths may vary by version. Replace `14` with your version (e.g., `15`, `16`).  
+> Check your version: `psql --version`
 
 ```bash
-# Copy MySQL production configuration files
-cp package.production.json package.json
-cp vite.production.config.ts vite.config.ts
-cp drizzle.mysql.config.ts drizzle.config.ts
+# Edit PostgreSQL config
+sudo nano /etc/postgresql/14/main/postgresql.conf
+# Set: listen_addresses = 'localhost'
 
-# Install MySQL dependencies
+# Edit pg_hba.conf for authentication
+sudo nano /etc/postgresql/14/main/pg_hba.conf
+# Add: host aviation_ape aviation_ape_user 127.0.0.1/32 md5
+
+# Restart PostgreSQL
+sudo systemctl restart postgresql
+```
+
+## 3. Application Deployment
+
+### Upload Your Application Files
+
+```bash
+# Create application directory
+sudo mkdir -p /var/www/aviation-ape
+sudo chown $USER:$USER /var/www/aviation-ape
+cd /var/www/aviation-ape
+
+# Option 1: Upload files using rsync from your local machine
+# rsync -avz --exclude 'node_modules' --exclude '.git' \
+#   /path/to/local/project/ user@your-vps:/var/www/aviation-ape/
+
+# Option 2: Use git clone (if using version control)
+# git clone https://github.com/your-repo/aviation-ape.git .
+
+# Option 3: Use scp to copy files
+# scp -r /path/to/project/* user@your-vps:/var/www/aviation-ape/
+```
+
+### Install Dependencies
+
+```bash
+cd /var/www/aviation-ape
 npm install
-
-# Configure environment variables
-cp .env.example .env
-# Edit .env file with your MySQL configuration (see Configuration section)
-
-# Build the application
-npm run build
-
-# Set up database schema using MySQL config
-npm run db:push
-
-# If schema push fails, try force push
-npm run db:push:force
 ```
 
-## Configuration
-
-### Environment Variables (.env file)
+### Configure Environment Variables
 
 ```bash
+# Create .env file
+nano .env
+```
+
+Add the following (update with your actual values):
+
+```env
+# Node Environment
+NODE_ENV=production
+
 # Database Configuration
-DATABASE_URL=mysql://aviation_ape_user:your-secure-password@localhost:3306/aviation_ape_db
+DATABASE_URL=postgresql://aviation_ape_user:REPLACE_WITH_SECURE_PASSWORD@localhost:5432/aviation_ape
 
-# Session Configuration (Generate a secure random string)
-SESSION_SECRET=your-super-secure-session-secret-here
+# Session Secret (REQUIRED - generate a secure random string)
+# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+SESSION_SECRET=REPLACE_WITH_LONG_RANDOM_STRING_AT_LEAST_32_CHARS
 
-# OpenID Connect Configuration (For authentication)
-REPL_ID=your-application-id
-ISSUER_URL=https://replit.com/oidc
-REPLIT_DOMAINS=yourdomain.com,localhost:5000
-
-# Email Configuration (Optional)
-SENDGRID_API_KEY=your-sendgrid-api-key-here
-
-# Alternative SMTP Configuration
+# Email Configuration (Optional - for notifications)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
+SMTP_SECURE=false
 SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-app-password
+SMTP_PASS=your-gmail-app-password
+SMTP_FROM=noreply@yourdomain.com
 
-# Application Configuration
-NODE_ENV=production
-PORT=5000
+# Or use SendGrid instead of SMTP
+# SENDGRID_API_KEY=your_sendgrid_api_key
+# SENDGRID_FROM_EMAIL=noreply@yourdomain.com
+# SENDGRID_FROM_NAME=Aviation Ape Manager
 ```
 
-### Generating Secure Session Secret
-
+**Generate Secure SESSION_SECRET:**
 ```bash
-# Generate a secure session secret
-node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-## Running the Application
+### Setup Database Schema
 
-### Development Mode
 ```bash
-npm run dev
+# Push database schema to PostgreSQL
+npm run db:push
+
+# If you get errors, try force push
+npm run db:push -- --force
 ```
 
-### Production Mode
+### Build the Application
+
 ```bash
-npm start
+# Build frontend and backend for production
+npm run build
 ```
 
-### Using Process Manager (PM2 - Recommended)
+## 4. Create Initial Super Admin User
+
+Create the first admin user manually in the database:
 
 ```bash
-# Install PM2 globally
-npm install -g pm2
+# Generate password hash
+node -e "const bcrypt = require('bcrypt'); bcrypt.hash('YOUR_ADMIN_PASSWORD', 12, (err, hash) => { console.log(hash); });"
+# Copy the hash output
+
+# Connect to PostgreSQL
+sudo -u postgres psql aviation_ape
+
+# Insert super admin user (replace values with your details)
+INSERT INTO users (email, password_hash, first_name, last_name, role, status, created_at, updated_at)
+VALUES (
+  'admin@yourdomain.com',
+  'PASTE_PASSWORD_HASH_HERE',
+  'Admin',
+  'User',
+  'super_admin',
+  'approved',
+  NOW(),
+  NOW()
+);
+
+# Verify user was created
+SELECT email, first_name, last_name, role, status FROM users;
+
+# Exit PostgreSQL
+\q
+```
+
+## 5. PM2 Process Management
+
+### Create PM2 Ecosystem File
+
+```bash
+cd /var/www/aviation-ape
+nano ecosystem.config.js
+```
+
+```javascript
+module.exports = {
+  apps: [{
+    name: 'aviation-ape',
+    script: 'dist/index.js',
+    instances: 'max',
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 5000
+    },
+    error_file: './logs/err.log',
+    out_file: './logs/out.log',
+    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    merge_logs: true,
+    autorestart: true,
+    max_memory_restart: '1G',
+    watch: false
+  }]
+};
+```
+
+### Start Application with PM2
+
+```bash
+# Create logs directory
+mkdir -p logs
 
 # Start the application
-pm2 start dist/index.js --name "aviation-ape"
+pm2 start ecosystem.config.js
 
-# Save PM2 configuration
+# Verify application is running
+pm2 status
+# Ensure status shows "online" before proceeding
+
+# View logs to check for errors
+pm2 logs aviation-ape --lines 50
+
+# If everything looks good, save PM2 configuration
 pm2 save
 
-# Setup PM2 to start on boot
+# Setup PM2 to start on system boot
 pm2 startup
+# Follow the instructions from the output
+
+# View application status
+pm2 status
 ```
 
-## Reverse Proxy Setup (Nginx)
+## 6. Nginx Reverse Proxy Setup
 
-Create an nginx configuration file:
+### Create Nginx Configuration
+
+```bash
+sudo nano /etc/nginx/sites-available/aviation-ape
+```
 
 ```nginx
 server {
     listen 80;
-    server_name yourdomain.com;
+    server_name yourdomain.com www.yourdomain.com;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+
+    # Increase max upload size for aircraft images
+    client_max_body_size 10M;
 
     location / {
         proxy_pass http://localhost:5000;
@@ -178,236 +279,412 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_cache_bypass $http_upgrade;
+        
+        # Timeout settings
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
     }
 }
 ```
 
-## SSL Certificate (Let's Encrypt)
+### Enable Site and Restart Nginx
 
 ```bash
-# Install certbot
-sudo apt-get install certbot python3-certbot-nginx
+# Create symbolic link
+sudo ln -s /etc/nginx/sites-available/aviation-ape /etc/nginx/sites-enabled/
+
+# Remove default site (optional)
+sudo rm /etc/nginx/sites-enabled/default
+
+# Test Nginx configuration
+sudo nginx -t
+
+# Restart Nginx
+sudo systemctl restart nginx
+```
+
+## 7. SSL Certificate with Let's Encrypt
+
+```bash
+# Install Certbot
+sudo apt install -y certbot python3-certbot-nginx
 
 # Obtain SSL certificate
-sudo certbot --nginx -d yourdomain.com
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
 
-# Auto-renewal setup (usually done automatically)
-sudo crontab -e
-# Add: 0 12 * * * /usr/bin/certbot renew --quiet
+# Follow the prompts and select redirect HTTP to HTTPS
+
+# Test auto-renewal
+sudo certbot renew --dry-run
 ```
 
-## Authentication Setup
-
-This application uses Replit's OpenID Connect for authentication. For production deployment:
-
-### Option 1: Continue using Replit Auth
-- Update `REPLIT_DOMAINS` in your .env file to include your domain
-- Register your domain with Replit (contact Replit support)
-
-### Option 2: Implement Alternative Authentication
-- Replace the authentication system in `server/replitAuth.ts`
-- Consider using Auth0, Firebase Auth, or custom implementation
-- Update the frontend authentication hooks in `client/src/hooks/useAuth.ts`
-
-## Database Migrations
+## 8. Firewall Configuration
 
 ```bash
-# Apply schema changes (using MySQL config)
-npm run db:push
+# Enable UFW firewall
+sudo ufw enable
 
-# If the above fails, force the schema push
-npm run db:push:force
+# Allow SSH (IMPORTANT - do this first!)
+sudo ufw allow ssh
+sudo ufw allow 22/tcp
 
-# View database in browser
-npm run db:studio
+# Allow HTTP and HTTPS
+sudo ufw allow 'Nginx Full'
+
+# Or manually:
+# sudo ufw allow 80/tcp
+# sudo ufw allow 443/tcp
+
+# Check firewall status
+sudo ufw status
 ```
 
-## File Structure
+## 9. Application Maintenance
 
-```
-aviation-ape-manager/
-├── client/                 # React frontend
-├── server/                 # Express backend
-├── shared/                 # Shared types and schemas
-├── attached_assets/        # Static assets (logos, images)
-├── dist/                   # Built application (created after build)
-├── .env                    # Environment configuration
-├── package.json           # Dependencies and scripts
-├── vite.config.ts         # Vite build configuration
-└── DEPLOYMENT.md          # This file
-```
+### Update Application
 
-## Monitoring and Logs
-
-### Using PM2
 ```bash
-# View logs
+cd /var/www/aviation-ape
+
+# Pull latest changes (if using git)
+git pull origin main
+
+# Or upload new files via rsync/scp
+
+# Install any new dependencies
+npm install
+
+# Rebuild application
+npm run build
+
+# Restart with PM2
+pm2 restart aviation-ape
+
+# Or reload for zero-downtime
+pm2 reload aviation-ape
+```
+
+### Database Backups
+
+Create a backup script:
+
+```bash
+nano ~/backup-aviation-ape.sh
+```
+
+```bash
+#!/bin/bash
+BACKUP_DIR="/var/backups/aviation-ape"
+DATE=$(date +%Y%m%d_%H%M%S)
+mkdir -p $BACKUP_DIR
+
+# Backup database
+pg_dump -U aviation_ape_user -h localhost aviation_ape > $BACKUP_DIR/aviation_ape_$DATE.sql
+
+# Keep only last 7 days of backups
+find $BACKUP_DIR -name "aviation_ape_*.sql" -mtime +7 -delete
+
+echo "Backup completed: aviation_ape_$DATE.sql"
+```
+
+```bash
+# Make executable
+chmod +x ~/backup-aviation-ape.sh
+
+# Test backup
+~/backup-aviation-ape.sh
+
+# Setup daily cron job at 2 AM
+crontab -e
+# Add: 0 2 * * * /home/yourusername/backup-aviation-ape.sh
+```
+
+### Restore from Backup
+
+```bash
+# Stop the application
+pm2 stop aviation-ape
+
+# Restore database
+psql -U aviation_ape_user -h localhost aviation_ape < /var/backups/aviation-ape/aviation_ape_20240101_020000.sql
+
+# Start the application
+pm2 start aviation-ape
+```
+
+### Monitoring and Logs
+
+```bash
+# View application logs
 pm2 logs aviation-ape
+
+# View last 100 lines
+pm2 logs aviation-ape --lines 100
 
 # Monitor resources
 pm2 monit
 
+# View application metrics
+pm2 status
+
+# View Nginx logs
+sudo tail -f /var/log/nginx/error.log
+sudo tail -f /var/log/nginx/access.log
+
+# View PostgreSQL logs
+sudo tail -f /var/log/postgresql/postgresql-14-main.log
+```
+
+## 10. Troubleshooting
+
+### Application Won't Start
+
+```bash
+# Check PM2 logs
+pm2 logs aviation-ape --lines 100
+
+# Check if port 5000 is available
+sudo netstat -tulpn | grep 5000
+
 # Restart application
 pm2 restart aviation-ape
+
+# Check environment variables
+pm2 env 0
 ```
-
-### Log Files
-- Application logs: Check PM2 logs or console output
-- Nginx logs: `/var/log/nginx/access.log` and `/var/log/nginx/error.log`
-- PostgreSQL logs: `/var/log/postgresql/`
-
-## Backup Strategy
-
-### Database Backup
-```bash
-# Create backup
-mysqldump -u aviation_ape_user -p aviation_ape_db > backup_$(date +%Y%m%d).sql
-
-# Restore from backup
-mysql -u aviation_ape_user -p aviation_ape_db < backup_20240101.sql
-```
-
-### Application Files Backup
-```bash
-# Backup uploaded files and configuration
-tar -czf aviation-ape-backup.tar.gz .env attached_assets/
-```
-
-## Security Checklist
-
-- [ ] Use strong, unique passwords for database
-- [ ] Generate secure session secret
-- [ ] Configure firewall (only allow necessary ports)
-- [ ] Use HTTPS with valid SSL certificate
-- [ ] Keep dependencies updated (`npm audit fix`)
-- [ ] Regular database backups
-- [ ] Monitor system logs for suspicious activity
-- [ ] Use PM2 or similar process manager
-- [ ] Configure proper file permissions
-
-## MySQL Troubleshooting Guide
 
 ### Database Connection Issues
 
-**Error: "connect ECONNREFUSED 127.0.0.1:3306"**
 ```bash
-# Check if MySQL is running
-sudo systemctl status mysql
+# Test database connection
+psql -U aviation_ape_user -h localhost aviation_ape
 
-# Start MySQL if stopped
-sudo systemctl start mysql
+# Check PostgreSQL status
+sudo systemctl status postgresql
 
-# Enable auto-start on boot
-sudo systemctl enable mysql
+# Restart PostgreSQL
+sudo systemctl restart postgresql
 
-# Check if MySQL is listening on port 3306
-sudo netstat -tlnp | grep :3306
+# View PostgreSQL logs
+sudo tail -f /var/log/postgresql/postgresql-14-main.log
 ```
 
-**Error: "Access denied for user"**
+### Nginx Issues
+
 ```bash
-# Reset MySQL root password if needed
-sudo mysql_secure_installation
+# Test configuration
+sudo nginx -t
 
-# Verify user permissions
-sudo mysql -u root -p
-SHOW GRANTS FOR 'aviation_ape_user'@'%';
-SHOW GRANTS FOR 'aviation_ape_user'@'localhost';
+# Check Nginx status
+sudo systemctl status nginx
 
-# Recreate user if needed
-DROP USER IF EXISTS 'aviation_ape_user'@'%';
-CREATE USER 'aviation_ape_user'@'%' IDENTIFIED BY 'your-password';
-GRANT ALL PRIVILEGES ON aviation_ape_db.* TO 'aviation_ape_user'@'%';
-FLUSH PRIVILEGES;
+# Restart Nginx
+sudo systemctl restart nginx
+
+# View error logs
+sudo tail -f /var/log/nginx/error.log
 ```
 
-**Error: "Unknown database 'aviation_ape_db'"**
+### Permission Issues
+
 ```bash
-# Check if database exists
-sudo mysql -u root -p -e "SHOW DATABASES;"
+# Fix application directory permissions
+sudo chown -R $USER:$USER /var/www/aviation-ape
 
-# Recreate database
-sudo mysql -u root -p -e "CREATE DATABASE aviation_ape_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-
-# Or run the setup script
-sudo mysql < mysql-setup.sql
+# Fix logs directory permissions
+chmod 755 /var/www/aviation-ape/logs
 ```
 
-### Schema Migration Issues
+## 11. Security Best Practices
 
-**Error: "drizzle-kit command not found"**
+1. **Keep system updated:**
+   ```bash
+   sudo apt update && sudo apt upgrade -y
+   ```
+
+2. **Use strong passwords:**
+   - Database password (min 16 characters)
+   - Admin account password (min 12 characters)
+   - SESSION_SECRET (32+ characters)
+
+3. **Enable fail2ban:**
+   ```bash
+   sudo apt install fail2ban
+   sudo systemctl enable fail2ban
+   sudo systemctl start fail2ban
+   ```
+
+4. **Regular backups:**
+   - Database backups (daily)
+   - Application files backups (weekly)
+
+5. **Monitor logs regularly:**
+   ```bash
+   pm2 logs aviation-ape
+   sudo tail -f /var/log/nginx/error.log
+   ```
+
+6. **Keep dependencies updated:**
+   ```bash
+   npm audit
+   npm audit fix
+   npm update
+   ```
+
+7. **Disable root SSH login:**
+   ```bash
+   sudo nano /etc/ssh/sshd_config
+   # Set: PermitRootLogin no
+   sudo systemctl restart sshd
+   ```
+
+## 12. Production Checklist
+
+- [ ] PostgreSQL installed and running
+- [ ] Database `aviation_ape` created
+- [ ] Database user created with secure password
+- [ ] Environment variables configured in `.env`
+- [ ] SESSION_SECRET generated (32+ characters)
+- [ ] Dependencies installed (`npm install`)
+- [ ] Database schema pushed (`npm run db:push`)
+- [ ] Application built (`npm run build`)
+- [ ] Super admin user created in database
+- [ ] PM2 configured and application running
+- [ ] PM2 startup script configured
+- [ ] Nginx reverse proxy configured
+- [ ] SSL certificate installed (Let's Encrypt)
+- [ ] Firewall configured (UFW)
+- [ ] Backup script created and tested
+- [ ] Cron job for daily backups configured
+- [ ] Application accessible via domain
+- [ ] Email notifications configured (optional)
+- [ ] Monitoring and logging verified
+- [ ] Security best practices implemented
+- [ ] Post-deployment smoke test completed (see below)
+
+## 13. Post-Deployment Verification
+
+After completing all deployment steps, verify everything is working correctly:
+
 ```bash
-# Install drizzle-kit globally
-npm install -g drizzle-kit
+# Test 1: Check PM2 process is running
+pm2 status
+# Should show "aviation-ape" with status "online"
 
-# Or use npx
-npx drizzle-kit push --config=drizzle.mysql.config.ts
+# Test 2: Check application is responding
+curl http://localhost:5000
+# Should return HTML from the application
+
+# Test 3: Test from public domain (if SSL configured)
+curl https://yourdomain.com
+# Should return HTML from the application
+
+# Test 4: Verify database connection
+pm2 logs aviation-ape --lines 20
+# Should NOT show database connection errors
+
+# Test 5: Access the application in browser
+# Navigate to: https://yourdomain.com
+# You should see the Aviation Ape Manager login page
+
+# Test 6: Login with super admin account
+# Email: admin@yourdomain.com
+# Password: (the password you set when creating the admin user)
+# Should successfully login and see the dashboard
 ```
 
-**Error: "Table already exists" during migration**
-```bash
-# Force push schema changes
-npm run db:push:force
+**If any test fails:**
+- Check PM2 logs: `pm2 logs aviation-ape`
+- Check Nginx logs: `sudo tail -f /var/log/nginx/error.log`
+- Check database connectivity: `psql -U aviation_ape_user -h localhost aviation_ape`
+- Verify environment variables in `.env` file
+- Ensure all firewall rules are correctly configured
 
-# Or manually drop tables and recreate
-sudo mysql -u aviation_ape_user -p aviation_ape_db -e "DROP DATABASE aviation_ape_db;"
-sudo mysql -u aviation_ape_user -p -e "CREATE DATABASE aviation_ape_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-npm run db:push
+## 14. Performance Optimization
+
+### PostgreSQL Tuning
+
+```bash
+# Edit PostgreSQL config
+sudo nano /etc/postgresql/14/main/postgresql.conf
 ```
 
-### Application Startup Issues
+Add/update these settings:
 
-**Port already in use:**
-```bash
-# Find process using port 5000
-sudo lsof -i :5000
-# Kill process
-sudo kill -9 <PID>
-
-# Or use a different port
-export PORT=8080
-npm start
+```
+shared_buffers = 256MB
+effective_cache_size = 1GB
+maintenance_work_mem = 64MB
+checkpoint_completion_target = 0.9
+wal_buffers = 16MB
+default_statistics_target = 100
+random_page_cost = 1.1
+effective_io_concurrency = 200
+work_mem = 2621kB
+min_wal_size = 1GB
+max_wal_size = 4GB
 ```
 
-**Node.js version issues:**
 ```bash
-# Check Node.js version
-node --version
-
-# Install Node.js 18+ if needed
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt-get install -y nodejs
+# Restart PostgreSQL
+sudo systemctl restart postgresql
 ```
 
-### Performance Optimization
+### Node.js Performance
 
-**MySQL Performance Tuning:**
-```bash
-# Add to /etc/mysql/mysql.conf.d/mysqld.cnf
-[mysqld]
-innodb_buffer_pool_size = 1G
-innodb_log_file_size = 256M
-max_connections = 200
-query_cache_size = 32M
-query_cache_type = 1
+In `ecosystem.config.js`, adjust based on your server:
 
-# Restart MySQL after changes
-sudo systemctl restart mysql
+```javascript
+instances: 2, // Or number of CPU cores
+max_memory_restart: '500M', // Adjust based on available RAM
 ```
 
-**Memory Issues:**
-```bash
-# Check memory usage
-free -h
-htop
+## 15. Quick Commands Reference
 
-# Increase swap if needed
-sudo fallocate -l 2G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
+```bash
+# Start application
+pm2 start aviation-ape
+
+# Stop application
+pm2 stop aviation-ape
+
+# Restart application
+pm2 restart aviation-ape
+
+# View logs
+pm2 logs aviation-ape
+
+# Monitor
+pm2 monit
+
+# Backup database
+~/backup-aviation-ape.sh
+
+# Test Nginx config
+sudo nginx -t
+
+# Restart Nginx
+sudo systemctl restart nginx
+
+# View firewall status
+sudo ufw status
+
+# Renew SSL certificate
+sudo certbot renew
 ```
 
 ## Support
 
-For technical support or deployment assistance, refer to the application documentation or contact the development team.
+For issues or questions:
+- Check application logs: `pm2 logs aviation-ape`
+- Check Nginx logs: `/var/log/nginx/error.log`
+- Check PostgreSQL logs: `/var/log/postgresql/`
+- Review this documentation
+
+---
+
+**Application:** Aviation Ape Manager  
+**Database:** PostgreSQL  
+**Platform:** Node.js  
+**Version:** 1.0.0
