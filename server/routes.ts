@@ -396,11 +396,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "User with this email already exists" });
       }
       
+      // Hash the password before creating user
+      const passwordHash = await hashPassword(password);
+      
       const newUser = await storage.createUser({
         firstName,
         lastName,
         email,
-        password,
+        passwordHash,
         role,
         status: 'approved' // New users created by admin are automatically approved
       });
@@ -985,16 +988,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           if (title.includes('payment') && title.includes('due')) {
             emailType = 'payment_due';
-            shouldSendEmail = user.emailPaymentReminders;
+            shouldSendEmail = user.emailPaymentReminders ?? true;
           } else if (title.includes('maintenance')) {
             emailType = 'maintenance_reminder';
-            shouldSendEmail = user.emailMaintenanceAlerts;
+            shouldSendEmail = user.emailMaintenanceAlerts ?? true;
           } else if (title.includes('lease') && title.includes('expir')) {
             emailType = 'lease_expiry';
-            shouldSendEmail = user.emailLeaseExpiry;
+            shouldSendEmail = user.emailLeaseExpiry ?? true;
           } else if (title.includes('system') || title.includes('update')) {
             emailType = 'system_update';
-            shouldSendEmail = user.emailSystemUpdates;
+            shouldSendEmail = user.emailSystemUpdates ?? true;
           }
           
           // Send email notification only if user has enabled this type
