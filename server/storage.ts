@@ -88,9 +88,9 @@ export interface IStorage {
   approveUser(id: string, approvedBy: string): Promise<User | undefined>;
   blockUser(id: string): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
-  updateUser(id: string, data: Partial<UpsertUser & { password?: string }>): Promise<User | undefined>;
+  updateUser(id: string, data: Partial<UpsertUser & { passwordHash?: string }>): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
-  createUser(data: { firstName: string; lastName: string; email: string; password: string; role: string; status: string; }): Promise<User>;
+  createUser(data: { firstName: string; lastName: string; email: string; passwordHash: string; role?: string; status?: string; }): Promise<User>;
   getPendingUsers(): Promise<User[]>;
 }
 
@@ -1531,12 +1531,15 @@ export class DatabaseStorage implements IStorage {
     return result.rowCount > 0;
   }
 
-  async updateUser(id: string, data: Partial<UpsertUser & { password?: string }>): Promise<User | undefined> {
-    // Remove password from data if it's empty or undefined
-    const updateData = { ...data };
-    if (!updateData.password) {
-      delete updateData.password;
-    }
+  async updateUser(id: string, data: Partial<UpsertUser & { passwordHash?: string }>): Promise<User | undefined> {
+    const updateData: any = { ...data };
+    
+    // Clean up empty values
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined || updateData[key] === '') {
+        delete updateData[key];
+      }
+    });
     
     const [user] = await db
       .update(users)
@@ -1550,7 +1553,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.email, email));
+    const normalizedEmail = email.toLowerCase().trim();
+    const [user] = await db.select().from(users).where(eq(users.email, normalizedEmail));
     return user;
   }
 
@@ -1558,24 +1562,19 @@ export class DatabaseStorage implements IStorage {
     firstName: string;
     lastName: string;
     email: string;
-    password: string;
-    role: string;
-    status: string;
+    passwordHash: string;  // Already hashed password
+    role?: string;
+    status?: string;
   }): Promise<User> {
-    // Generate a unique ID for the new user
-    const userId = Date.now().toString();
-    
     const [user] = await db
       .insert(users)
       .values({
-        id: userId,
         firstName: data.firstName,
         lastName: data.lastName,
-        email: data.email,
-        role: data.role,
-        status: data.status,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        email: data.email.toLowerCase().trim(),
+        passwordHash: data.passwordHash,
+        role: data.role || 'user',
+        status: data.status || 'pending',
       })
       .returning();
     return user;

@@ -15,8 +15,11 @@ import {
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { setupAuth, isAuthenticated, isAdmin, isSuperAdmin } from "./replitAuth";
+import { setupAuth, isAuthenticated, isAdmin, isSuperAdmin, hashPassword } from "./auth";
+import { registerUserSchema, loginSchema, type User } from "@shared/schema";
+import passport from "passport";
 import { emailService, type NotificationEmailData } from "./emailService";
+import rateLimit from "express-rate-limit";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup authentication first
@@ -43,21 +46,118 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.status(500).json({ error: "Internal server error" });
   };
 
+  // Rate limiting for auth endpoints
+  const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 10, // 10 requests per window
+    message: "Too many authentication attempts, please try again later",
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+
   // Authentication routes
-  apiRouter.get('/auth/user', isAuthenticated, async (req: any, res) => {
+  apiRouter.post('/auth/register', authLimiter, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      const validatedData = registerUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByEmail(validatedData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      // Hash password
+      const passwordHash = await hashPassword(validatedData.password);
+
+      // Create user
+      const user = await storage.createUser({
+        ...validatedData,
+        passwordHash,
+        role: 'user',
+        status: 'pending',
+      });
+
+      res.status(201).json({ 
+        message: "Registration successful. Your account is pending approval.",
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          status: user.status,
+        }
+      });
+    } catch (error) {
+      handleZodError(error, res);
+    }
+  });
+
+  apiRouter.post('/auth/login', authLimiter, (req, res, next) => {
+    try {
+      loginSchema.parse(req.body);
+      
+      passport.authenticate('local', (err: any, user: User | false, info: any) => {
+        if (err) {
+          return next(err);
+        }
+        if (!user) {
+          return res.status(401).json({ message: info?.message || 'Invalid credentials' });
+        }
+        
+        req.login(user, (err) => {
+          if (err) {
+            return next(err);
+          }
+          return res.json({
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            status: user.status,
+          });
+        });
+      })(req, res, next);
+    } catch (error) {
+      handleZodError(error, res);
+    }
+  });
+
+  apiRouter.post('/auth/logout', (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.json({ message: "Logged out successfully" });
+    });
+  });
+
+  apiRouter.get('/auth/user', isAuthenticated, async (req, res) => {
+    try {
+      const user = req.user as User;
+      res.json({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        status: user.status,
+        emailNotificationsEnabled: user.emailNotificationsEnabled,
+        emailPaymentReminders: user.emailPaymentReminders,
+        emailMaintenanceAlerts: user.emailMaintenanceAlerts,
+        emailLeaseExpiry: user.emailLeaseExpiry,
+        emailSystemUpdates: user.emailSystemUpdates,
+      });
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
-  apiRouter.put('/auth/email-preferences', isAuthenticated, async (req: any, res) => {
+  apiRouter.put('/auth/email-preferences', isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const user = req.user as User;
+      const userId = user.id;
       const preferences = req.body;
       
       // Validate the preferences object
@@ -89,7 +189,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.put('/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const user = req.user as User;
+      const userId = user.id;
       const { firstName, lastName, email } = req.body;
       
       // Validate input
@@ -115,9 +216,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  apiRouter.put('/auth/password', isAuthenticated, async (req: any, res) => {
+  apiRouter.put('/auth/password', isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const user = req.user as User;
+      const userId = user.id;
       const { currentPassword, newPassword } = req.body;
       
       // Validate input
@@ -129,8 +231,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "New password must be at least 8 characters long" });
       }
       
-      // Note: In a real application, you would verify the current password here
-      // For now, we'll just simulate success since we're using Replit Auth
+      // Get current user from database
+      const dbUser = await storage.getUser(userId);
+      if (!dbUser) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Verify current password
+      const { verifyPassword } = await import("./auth");
+      const isValid = await verifyPassword(currentPassword, dbUser.passwordHash);
+      if (!isValid) {
+        return res.status(401).json({ message: "Current password is incorrect" });
+      }
+      
+      // Hash new password
+      const newPasswordHash = await hashPassword(newPassword);
+      
+      // Update password
+      await storage.updateUser(userId, { passwordHash: newPasswordHash });
+      
       res.json({ message: "Password updated successfully" });
     } catch (error) {
       console.error("Error updating password:", error);
@@ -162,7 +281,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.put('/admin/users/:id/approve', isSuperAdmin, async (req: any, res: Response) => {
     try {
       const { id } = req.params;
-      const approvedBy = req.user.claims.sub;
+      const approver = req.user as User;
+      const approvedBy = approver.id;
       
       // Prevent actions on Zach's account
       const targetUser = await storage.getUser(id);
@@ -812,7 +932,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Notification routes
   apiRouter.get("/notifications", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const user = req.user as User;
+      const userId = user.id;
       const notifications = await storage.getAllNotifications(userId);
       res.json(notifications);
     } catch (err) {
@@ -823,7 +944,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.get("/notifications/unread", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const user = req.user as User;
+      const userId = user.id;
       const notifications = await storage.getUnreadNotifications(userId);
       res.json(notifications);
     } catch (err) {
@@ -834,7 +956,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.get("/notifications/count", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const user = req.user as User;
+      const userId = user.id;
       const count = await storage.getNotificationCount(userId);
       res.json(count);
     } catch (err) {
@@ -845,7 +968,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.post("/notifications", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const user = req.user as User;
+      const userId = user.id;
       const validatedData = insertNotificationSchema.parse({ ...req.body, userId });
       const notification = await storage.createNotification(validatedData);
       
@@ -909,7 +1033,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.put("/notifications/read-all", isAuthenticated, async (req: any, res: Response) => {
     try {
-      const userId = req.user.claims.sub;
+      const user = req.user as User;
+      const userId = user.id;
       const updated = await storage.markAllNotificationsAsRead(userId);
       res.json({ success: updated });
     } catch (err) {
@@ -946,12 +1071,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  apiRouter.post("/notifications/email/test", isAuthenticated, async (req: any, res: Response) => {
+  apiRouter.post("/notifications/email/test", isAuthenticated, async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const user = req.user as User;
+      const userId = user.id;
+      const dbUser = await storage.getUser(userId);
       
-      if (!user || !user.email) {
+      if (!dbUser || !dbUser.email) {
         return res.status(400).json({ error: "User email not available" });
       }
 
@@ -960,7 +1086,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const success = await emailService.sendNotificationEmail({
-        user,
+        user: dbUser,
         title: "Test Email Notification",
         message: "This is a test email to verify that the notification system is working correctly. If you receive this email, the system is configured properly.",
         type: 'system_update',

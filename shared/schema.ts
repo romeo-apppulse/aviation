@@ -17,10 +17,10 @@ export const sessions = pgTable(
 // Users table for authentication
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
+  email: varchar("email").unique().notNull(),
+  passwordHash: varchar("password_hash").notNull(),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
-  profileImageUrl: varchar("profile_image_url"),
   emailNotificationsEnabled: boolean("email_notifications_enabled").default(true),
   emailPaymentReminders: boolean("email_payment_reminders").default(true),
   emailMaintenanceAlerts: boolean("email_maintenance_alerts").default(true),
@@ -156,12 +156,39 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
 // Create update schemas (allow partial updates)
 export const updateAircraftSchema = insertAircraftSchema.partial();
 
-// User authentication schemas
-export const upsertUserSchema = createInsertSchema(users).omit({ createdAt: true, updatedAt: true });
+// User authentication schemas  
+export const upsertUserSchema = createInsertSchema(users).omit({ 
+  passwordHash: true,
+  createdAt: true, 
+  updatedAt: true 
+});
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  passwordHash: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+export const registerUserSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+});
+
+export const loginSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
 
 // Export types
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type RegisterUser = z.infer<typeof registerUserSchema>;
+export type LoginUser = z.infer<typeof loginSchema>;
 
 export type Aircraft = typeof aircraft.$inferSelect;
 export type InsertAircraft = z.infer<typeof insertAircraftSchema>;
