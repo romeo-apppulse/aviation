@@ -114,6 +114,9 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       await loginMutation.mutateAsync(data);
+    } catch (error) {
+      // Error is already handled by onError callback
+      // This catch prevents unhandled rejection warnings
     } finally {
       setIsLoading(false);
     }
