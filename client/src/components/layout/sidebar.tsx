@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
 
 import aircraft_removebg_preview from "@assets/aircraft-removebg-preview.png";
 
@@ -31,9 +33,19 @@ type SidebarProps = {
 };
 
 export default function Sidebar({ open, setOpen }: SidebarProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const { isSuperAdmin } = useAuth();
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/auth/logout");
+    },
+    onSuccess: () => {
+      queryClient.clear();
+      setLocation("/login");
+    },
+  });
 
   const closeSidebarIfMobile = () => {
     if (window.innerWidth < 768) {
@@ -301,17 +313,19 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
             {!collapsed && <span>Help & Support</span>}
           </Link>
 
-          <a
-            href="#"
+          <button
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
             className={cn(
-              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1",
+              "flex items-center text-white p-3 rounded transition hover:bg-[#34495e] mb-1 w-full text-left",
               collapsed ? "justify-center" : "space-x-3",
             )}
             title={collapsed ? "Logout" : ""}
+            data-testid="button-logout-sidebar"
           >
             <LogOut className="h-5 w-5 flex-shrink-0" />
             {!collapsed && <span>Logout</span>}
-          </a>
+          </button>
         </nav>
       </div>
     </aside>

@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { NotificationsDropdown } from "@/components/ui/notifications-dropdown";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 type HeaderProps = {
   sidebarOpen: boolean;
@@ -11,8 +14,26 @@ type HeaderProps = {
 };
 
 export default function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const { user } = useAuth();
+  const { toast } = useToast();
+
+  const logoutMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("POST", "/api/auth/logout");
+    },
+    onSuccess: () => {
+      queryClient.clear();
+      setLocation("/login");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Logout Failed",
+        description: error.message || "Failed to logout",
+        variant: "destructive",
+      });
+    },
+  });
   
   const getPageTitle = () => {
     const pathTitles: Record<string, string> = {
@@ -68,8 +89,10 @@ export default function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => window.location.href = '/api/logout'}
+              onClick={() => logoutMutation.mutate()}
+              disabled={logoutMutation.isPending}
               aria-label="Sign out"
+              data-testid="button-logout"
             >
               <LogOut className="h-4 w-4" />
             </Button>
