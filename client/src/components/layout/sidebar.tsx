@@ -31,7 +31,6 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { Notification } from "@shared/schema";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-import aircraft_final_logo from "@assets/aircraft-final-logo.png";
 
 type SidebarProps = {
   open: boolean;

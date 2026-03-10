@@ -12,8 +12,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Plane, ArrowRight, ShieldCheck, Mail, Lock, User, CheckCircle2, ChevronLeft, Sparkles, Building } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Importing the generated asset
-import private_jet_interior_luxury from "@assets/private_jet_interior_luxury_1772494160124.png";
 
 const registerSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -74,11 +72,7 @@ export default function RegisterPage() {
     return (
       <div className="min-h-screen flex bg-white font-sans selection:bg-indigo-100 italic-shadows">
         <div className="hidden lg:flex flex-[0.6] relative bg-[#0a0f1d] overflow-hidden">
-          <img
-            src={private_jet_interior_luxury}
-            alt="Luxury Interior"
-            className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-overlay"
-          />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1e3a5f] via-[#0a0f1d] to-[#1a1040]" />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1d] via-transparent to-transparent" />
         </div>
         <div className="flex-1 flex flex-col justify-center px-12 lg:px-24">
@@ -108,11 +102,7 @@ export default function RegisterPage() {
     <div className="min-h-screen flex bg-white font-sans selection:bg-indigo-100 italic-shadows">
       {/* Left Pane: Visual Context */}
       <div className="hidden lg:flex flex-[0.5] relative overflow-hidden bg-[#061021]">
-        <img
-          src={private_jet_interior_luxury}
-          alt="Luxury Cabin"
-          className="absolute inset-0 w-full h-full object-cover opacity-70 scale-105 animate-slow-zoom"
-        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#061021] via-[#0d1f3c] to-[#1a1040]" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#061021]/80 to-transparent" />
 
         <div className="relative h-full w-full flex flex-col justify-between p-16 z-10">

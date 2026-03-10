@@ -12,8 +12,6 @@ import { Plane, ArrowRight, ShieldCheck, Mail, Lock, Sparkles, ChevronLeft } fro
 import { cn } from "@/lib/utils";
 import { loginSchema, type LoginUser } from "@shared/schema";
 
-// Importing the generated asset
-import modern_private_jet_at_sunset from "@assets/modern_private_jet_at_sunset_1772494053006.png";
 
 type LoginFormData = LoginUser;
 
@@ -82,11 +80,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex bg-white font-sans selection:bg-indigo-100 italic-shadows">
       {/* Left Pane: Visual Branding */}
       <div className="hidden lg:flex flex-[0.6] relative overflow-hidden bg-[#0a0f1d]">
-        <img
-          src={modern_private_jet_at_sunset}
-          alt="Premium Fleet"
-          className="absolute inset-0 w-full h-full object-cover opacity-80 mix-blend-luminosity scale-105 animate-slow-zoom"
-        />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1e3a5f] via-[#0a0f1d] to-[#1a1040]" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0f1d] via-[#0a0f1d]/20 to-transparent" />
 
         <div className="relative h-full w-full flex flex-col justify-between p-16 z-10">

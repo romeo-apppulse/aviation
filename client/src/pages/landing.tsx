@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plane, Users, FileText, Wrench, DollarSign, BarChart3, TrendingUp, ShieldCheck, Zap, ArrowRight, Play } from "lucide-react";
-import aircraft_final_logo from "@assets/aircraft-final-logo.png";
 import { useLocation } from "wouter";
 
 export default function Landing() {
@@ -13,11 +12,7 @@ export default function Landing() {
       <nav className="container mx-auto px-6 py-8 flex items-center justify-between relative z-10">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-brand/10 border border-brand/20 shadow-sm">
-            <img
-              src={aircraft_final_logo}
-              alt="AeroLease"
-              className="h-8 w-8 object-contain"
-            />
+            <Plane className="h-8 w-8 text-brand" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-[#1e293b] tracking-tight">AeroLease <span className="text-brand">Manager</span></h1>
