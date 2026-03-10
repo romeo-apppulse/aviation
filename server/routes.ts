@@ -601,6 +601,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create admin account (super_admin only)
+  protectedRouter.post('/admin/create-admin', isSuperAdmin, async (req: Request, res: Response) => {
+    try {
+      const schema = z.object({
+        firstName: z.string().min(1),
+        lastName: z.string().min(1),
+        email: z.string().email(),
+        password: z.string().min(8),
+        role: z.enum(["admin", "super_admin"]),
+      });
+      const { firstName, lastName, email, password, role } = schema.parse(req.body);
+
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+
+      const passwordHash = await hashPassword(password);
+
+      const newUser = await storage.createUser({
+        firstName,
+        lastName,
+        email,
+        passwordHash,
+        role,
+        status: 'approved',
+      });
+
+      const { passwordHash: _ph, ...userWithoutPassword } = newUser as any;
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error creating admin:", error);
+      if (error instanceof ZodError) {
+        return res.status(400).json({ message: fromZodError(error).message });
+      }
+      res.status(500).json({ message: "Failed to create admin account" });
+    }
+  });
+
   // Create new user
   protectedRouter.post('/admin/users', isSuperAdmin, async (req: Request, res: Response) => {
     try {

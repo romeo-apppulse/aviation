@@ -32,10 +32,8 @@ import OwnerRevenue from "@/pages/owner/revenue";
 import OwnerDocuments from "@/pages/owner/documents";
 import NotificationsPage from "@/pages/notifications";
 import AdminHourSubmissions from "@/pages/admin-hour-submissions";
-import PendingApproval from "@/pages/pending-approval";
 import Landing from "@/pages/landing";
 import LoginPage from "@/pages/login";
-import RegisterPage from "@/pages/register";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import { useState } from "react";
@@ -53,7 +51,7 @@ function AccessDeniedPage() {
 }
 
 function Router() {
-  const { isAuthenticated, isLoading, error, isPendingApproval, isSuperAdmin, isAdmin, isFlightSchool, isAssetOwner, user } = useAuth();
+  const { isAuthenticated, isLoading, error, isSuperAdmin, isAdmin, isFlightSchool, isAssetOwner, user } = useAuth();
   const isPlainUser = !!user && !isAdmin && !isFlightSchool && !isAssetOwner;
 
   // Show loading only briefly, then show landing page for unauthenticated users
@@ -75,18 +73,12 @@ function Router() {
     );
   }
 
-  // If account is pending approval, show pending approval page
-  if (isPendingApproval) {
-    return <PendingApproval />;
-  }
-
   // If there's an auth error (401) or user is not authenticated, show public pages
   if (error || !isAuthenticated) {
     return (
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/login" component={LoginPage} />
-        <Route path="/register" component={RegisterPage} />
         <Route path="/accept-invite" component={AcceptInvite} />
         <Route component={Landing} />
       </Switch>

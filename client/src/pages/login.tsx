@@ -211,21 +211,6 @@ export default function LoginPage() {
           </form>
 
           <footer className="pt-8 border-t border-[#f1f5f9] flex flex-col items-center gap-6">
-            <div className="space-y-3 text-center">
-              <div className="flex items-center justify-center gap-2 text-[13px] font-medium text-[#64748b]">
-                <span>Aviation Administrator?</span>
-                <button
-                  onClick={() => setLocation("/register")}
-                  className="text-[#6366f1] font-bold hover:underline"
-                >
-                  Join the Network
-                </button>
-              </div>
-              <div className="flex items-center justify-center gap-2 text-[13px] font-medium text-[#64748b]">
-                <span>Flight School or Asset Owner? Contact your fleet manager for access.</span>
-              </div>
-            </div>
-
             <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-100 text-[11px] font-bold text-[#94a3b8] uppercase tracking-widest">
               <ShieldCheck className="h-4 w-4 text-emerald-500" />
               Enterprise Protected Access

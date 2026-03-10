@@ -31,6 +31,16 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
+const createAdminSchema = z.object({
+  firstName: z.string().min(1, "Required"),
+  lastName: z.string().min(1, "Required"),
+  email: z.string().email("Invalid email"),
+  password: z.string().min(8, "Min 8 characters"),
+  role: z.enum(["admin", "super_admin"]),
+});
+
+type CreateAdminForm = z.infer<typeof createAdminSchema>;
+
 const userEditSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -54,7 +64,8 @@ type NewUserForm = z.infer<typeof newUserSchema>;
 
 export default function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "blocked" | "invited">("all");
+  const [filter, setFilter] = useState<"all" | "approved" | "blocked" | "invited">("all");
+  const [showCreateAdminDialog, setShowCreateAdminDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showNewUserDialog, setShowNewUserDialog] = useState(false);
   const [selectedLesseeId, setSelectedLesseeId] = useState<number>(0);
@@ -65,10 +76,6 @@ export default function AdminUsers() {
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
-  });
-
-  const { data: pendingUsers } = useQuery<User[]>({
-    queryKey: ["/api/admin/users/pending"],
   });
 
   const approveUserMutation = useMutation({
@@ -155,6 +162,17 @@ export default function AdminUsers() {
     }
   });
 
+  const createAdminForm = useForm<CreateAdminForm>({
+    resolver: zodResolver(createAdminSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      role: "admin",
+    },
+  });
+
   const editUserMutation = useMutation({
     mutationFn: async ({ userId, data }: { userId: string; data: UserEditForm }) => {
       const response = await apiRequest("PUT", `/api/admin/users/${userId}`, data);
@@ -162,7 +180,6 @@ export default function AdminUsers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users/pending"] });
       setEditingUser(null);
       editForm.reset();
       toast({
@@ -186,7 +203,6 @@ export default function AdminUsers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/admin/users/pending"] });
       setShowNewUserDialog(false);
       newUserForm.reset();
       toast({
@@ -198,6 +214,29 @@ export default function AdminUsers() {
       toast({
         title: "Error",
         description: "Failed to create user",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createAdminMutation = useMutation({
+    mutationFn: async (data: CreateAdminForm) => {
+      const response = await apiRequest("POST", "/api/admin/create-admin", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      setShowCreateAdminDialog(false);
+      createAdminForm.reset();
+      toast({
+        title: "Success",
+        description: "Admin account created successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create admin account",
         variant: "destructive",
       });
     },
@@ -232,7 +271,7 @@ export default function AdminUsers() {
       user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.lastName?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesFilter = filter === "all" || user.status === filter;
+    const matchesFilter = filter === "all" || user.status === (filter as string);
 
     return matchesSearch && matchesFilter;
   }) || [];
@@ -275,17 +314,27 @@ export default function AdminUsers() {
             <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
             <p className="text-gray-500">Manage user accounts and access permissions</p>
           </div>
-          <Button
-            onClick={() => setShowNewUserDialog(true)}
-            className="bg-brand hover:bg-brand-hover text-white"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add New User
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setShowCreateAdminDialog(true)}
+              variant="outline"
+              className="border-indigo-200 text-indigo-700 hover:bg-indigo-50"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Admin
+            </Button>
+            <Button
+              onClick={() => setShowNewUserDialog(true)}
+              className="bg-brand hover:bg-brand-hover text-white"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add New User
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center space-x-2">
@@ -293,18 +342,6 @@ export default function AdminUsers() {
                 <div>
                   <p className="text-sm font-medium text-gray-500">Total Users</p>
                   <p className="text-2xl font-bold">{users?.length || 0}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center space-x-2">
-                <Clock className="h-8 w-8 text-yellow-600" />
-                <div>
-                  <p className="text-sm font-medium text-gray-500">Pending Approval</p>
-                  <p className="text-2xl font-bold">{pendingUsers?.length || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -362,13 +399,6 @@ export default function AdminUsers() {
                     onClick={() => setFilter("all")}
                   >
                     All
-                  </Button>
-                  <Button
-                    variant={filter === "pending" ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFilter("pending")}
-                  >
-                    Pending
                   </Button>
                   <Button
                     variant={filter === "approved" ? "default" : "outline"}
@@ -807,6 +837,105 @@ export default function AdminUsers() {
                 </Button>
                 <Button type="submit" disabled={createUserMutation.isPending}>
                   {createUserMutation.isPending ? "Creating..." : "Create User"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Admin Dialog */}
+      <Dialog open={showCreateAdminDialog} onOpenChange={setShowCreateAdminDialog}>
+        <DialogContent className="sm:max-w-[425px]" aria-describedby="create-admin-description">
+          <DialogHeader>
+            <DialogTitle>Create Admin Account</DialogTitle>
+            <p id="create-admin-description" className="text-sm text-gray-600">
+              Create a new admin or super admin account with direct access.
+            </p>
+          </DialogHeader>
+          <Form {...createAdminForm}>
+            <form onSubmit={createAdminForm.handleSubmit((data) => createAdminMutation.mutate(data))} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={createAdminForm.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="First name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={createAdminForm.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Last name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={createAdminForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="Email address" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={createAdminForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="Min 8 characters" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={createAdminForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="super_admin">Super Admin</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setShowCreateAdminDialog(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={createAdminMutation.isPending}>
+                  {createAdminMutation.isPending ? "Creating..." : "Create Admin"}
                 </Button>
               </DialogFooter>
             </form>
