@@ -143,7 +143,7 @@ function Router() {
         {isFlightSchool || isAdmin ? <PortalDocuments /> : <Redirect to="/dashboard" />}
       </Route>
       <Route path="/portal/maintenance">
-        {isFlightSchool || isAdmin ? <PortalMaintenance /> : <Redirect to="/dashboard" />}
+        {isFlightSchool ? <PortalMaintenance /> : <Redirect to="/maintenance" />}
       </Route>
       {/* Owner Routes — accessible to asset_owner and admin */}
       <Route path="/owner">

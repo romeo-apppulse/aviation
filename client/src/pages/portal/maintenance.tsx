@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useState, useMemo } from "react";
 import { formatDate, formatCurrency } from "@/lib/utils";
-import { MaintenanceWithDetails } from "@shared/schema";
+import { MaintenanceWithDetails, AircraftWithDetails } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 const MAINTENANCE_TYPES = [
@@ -74,24 +74,18 @@ export default function PortalMaintenance() {
         queryKey: ["/api/portal/maintenance"],
     });
 
-    // Derive unique aircraft from maintenance records
+    const { data: myAircraft = [] } = useQuery<AircraftWithDetails[]>({
+        queryKey: ["/api/portal/my-aircraft"],
+    });
+
     const aircraftOptions = useMemo(() => {
-        if (!records) return [];
-        const seen = new Set<number>();
-        const result: { id: number; registration: string; make: string; model: string }[] = [];
-        for (const rec of records) {
-            if (rec.aircraft && !seen.has(rec.aircraftId)) {
-                seen.add(rec.aircraftId);
-                result.push({
-                    id: rec.aircraftId,
-                    registration: rec.aircraft.registration,
-                    make: rec.aircraft.make,
-                    model: rec.aircraft.model,
-                });
-            }
-        }
-        return result;
-    }, [records]);
+        return myAircraft.map((ac) => ({
+            id: ac.id,
+            registration: ac.registration,
+            make: ac.make,
+            model: ac.model,
+        }));
+    }, [myAircraft]);
 
     const createMutation = useMutation({
         mutationFn: async (data: any) => {

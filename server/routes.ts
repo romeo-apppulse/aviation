@@ -1691,6 +1691,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (existing.reportedByLesseeId !== user.lesseeId) {
           return res.status(403).json({ error: "You can only update maintenance records you reported" });
         }
+        // Prevent flight schools from tampering with attribution
+        delete (validatedData as any).reportedByLesseeId;
       } else if (user.role !== 'admin' && user.role !== 'super_admin') {
         return res.status(403).json({ error: "Forbidden" });
       }

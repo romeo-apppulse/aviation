@@ -590,8 +590,10 @@ export default function Maintenance() {
                       <SelectContent>
                         <SelectItem value="100 Hour Inspection">100 Hour Inspection</SelectItem>
                         <SelectItem value="Annual Inspection">Annual Inspection</SelectItem>
-                        <SelectItem value="Avionics Update">Avionics Update</SelectItem>
-                        <SelectItem value="Engine Maintenance">Engine Maintenance</SelectItem>
+                        <SelectItem value="Engine Overhaul">Engine Overhaul</SelectItem>
+                        <SelectItem value="Avionics Check">Avionics Check</SelectItem>
+                        <SelectItem value="Routine Service">Routine Service</SelectItem>
+                        <SelectItem value="Unscheduled Repair">Unscheduled Repair</SelectItem>
                         <SelectItem value="Other">Other</SelectItem>
                       </SelectContent>
                     </Select>
