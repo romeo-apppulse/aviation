@@ -1,8 +1,13 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Lessee, InsertLessee } from "@shared/schema";
+import { Lessee, InsertLessee, Aircraft, Lease, AircraftWithDetails } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Plus, Mail, Phone, MapPin, Building2, User, Search, Edit, Trash2, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useModal } from "@/hooks/use-modal";
+import { Plus, Mail, Phone, MapPin, Building2, User, Search, Edit, Trash2, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import LesseeDetailDrawer from "@/components/lessees/lessee-detail-drawer";
+import AircraftDetailsModal from "@/components/aircraft/aircraft-details-modal";
+import LeaseAgreementModal from "@/components/leases/lease-agreement-modal";
 import { Helmet } from "react-helmet";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -59,7 +64,9 @@ const lesseeFormSchema = z.object({
   email: z.string().email("Invalid email address"),
   phone: z.string().optional(),
   address: z.string().optional(),
+  state: z.string().optional(),
   contactPerson: z.string().optional(),
+  certificationNumber: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -77,6 +84,9 @@ export default function Lessees() {
   const [addLesseeOpen, setAddLesseeOpen] = useState(false);
   const [editingLessee, setEditingLessee] = useState<Lessee | null>(null);
   const [deleteLessee, setDeleteLessee] = useState<Lessee | null>(null);
+  const [selectedLesseeId, setSelectedLesseeId] = useState<number | null>(null);
+  const aircraftModal = useModal<AircraftWithDetails>(false);
+  const leaseModal = useModal<Lease & { aircraft?: Aircraft }>(false);
   const { toast } = useToast();
 
   const { data: lessees, isLoading } = useQuery<Lessee[]>({
@@ -85,10 +95,10 @@ export default function Lessees() {
 
   const filteredLessees = lessees
     ? lessees.filter((lessee) =>
-        lessee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        lessee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (lessee.contactPerson && lessee.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()))
-      )
+      lessee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      lessee.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (lessee.contactPerson && lessee.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
     : [];
 
   const handleSort = (field: SortField) => {
@@ -104,49 +114,49 @@ export default function Lessees() {
     if (sortField !== field) {
       return <ArrowUpDown className="ml-1 h-3 w-3" />;
     }
-    return sortDirection === 'asc' ? 
-      <ArrowUp className="ml-1 h-3 w-3" /> : 
+    return sortDirection === 'asc' ?
+      <ArrowUp className="ml-1 h-3 w-3" /> :
       <ArrowDown className="ml-1 h-3 w-3" />;
   };
 
   const filteredAndSortedLessees = filteredLessees.length > 0
     ? filteredLessees.sort((a, b) => {
-        let aValue = '';
-        let bValue = '';
-        
-        switch (sortField) {
-          case 'name':
-            aValue = a.name || '';
-            bValue = b.name || '';
-            break;
-          case 'email':
-            aValue = a.email || '';
-            bValue = b.email || '';
-            break;
-          case 'phone':
-            aValue = a.phone || '';
-            bValue = b.phone || '';
-            break;
-          case 'address':
-            aValue = a.address || '';
-            bValue = b.address || '';
-            break;
-          case 'contactPerson':
-            aValue = a.contactPerson || '';
-            bValue = b.contactPerson || '';
-            break;
-          default:
-            return 0;
-        }
-        
-        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-      })
+      let aValue = '';
+      let bValue = '';
+
+      switch (sortField) {
+        case 'name':
+          aValue = a.name || '';
+          bValue = b.name || '';
+          break;
+        case 'email':
+          aValue = a.email || '';
+          bValue = b.email || '';
+          break;
+        case 'phone':
+          aValue = a.phone || '';
+          bValue = b.phone || '';
+          break;
+        case 'address':
+          aValue = a.address || '';
+          bValue = b.address || '';
+          break;
+        case 'contactPerson':
+          aValue = a.contactPerson || '';
+          bValue = b.contactPerson || '';
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    })
     : [];
 
   const createLesseeMutation = useMutation({
-    mutationFn: (data: InsertLessee) => 
+    mutationFn: (data: InsertLessee) =>
       apiRequest("POST", "/api/lessees", data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lessees"] });
@@ -167,7 +177,7 @@ export default function Lessees() {
   });
 
   const updateLesseeMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<InsertLessee> }) => 
+    mutationFn: ({ id, data }: { id: number; data: Partial<InsertLessee> }) =>
       apiRequest("PUT", `/api/lessees/${id}`, data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lessees"] });
@@ -188,7 +198,7 @@ export default function Lessees() {
   });
 
   const deleteLesseeMutation = useMutation({
-    mutationFn: (id: number) => 
+    mutationFn: (id: number) =>
       apiRequest("DELETE", `/api/lessees/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lessees"] });
@@ -215,7 +225,9 @@ export default function Lessees() {
       email: editingLessee?.email || "",
       phone: editingLessee?.phone || "",
       address: editingLessee?.address || "",
+      state: editingLessee?.state || "",
       contactPerson: editingLessee?.contactPerson || "",
+      certificationNumber: editingLessee?.certificationNumber || "",
       notes: editingLessee?.notes || "",
     },
   });
@@ -236,7 +248,9 @@ export default function Lessees() {
         email: editingLessee.email,
         phone: editingLessee.phone || "",
         address: editingLessee.address || "",
+        state: editingLessee.state || "",
         contactPerson: editingLessee.contactPerson || "",
+        certificationNumber: editingLessee.certificationNumber || "",
         notes: editingLessee.notes || "",
       });
     } else {
@@ -245,7 +259,9 @@ export default function Lessees() {
         email: "",
         phone: "",
         address: "",
+        state: "",
         contactPerson: "",
+        certificationNumber: "",
         notes: "",
       });
     }
@@ -265,12 +281,12 @@ export default function Lessees() {
             Manage all flight schools and organizations leasing your aircraft
           </p>
         </div>
-        <Button 
+        <Button
           onClick={() => {
             setEditingLessee(null);
             setAddLesseeOpen(true);
           }}
-          className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+          className="bg-brand hover:bg-brand-hover text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Flight School
@@ -334,81 +350,112 @@ export default function Lessees() {
         viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredAndSortedLessees.map((lessee) => (
-            <Card key={lessee.id}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-900">{lessee.name}</h3>
-                    <p className="text-sm text-gray-500 flex items-center mt-1">
-                      <Building2 className="h-3.5 w-3.5 mr-1" />
-                      Flight School
-                    </p>
-                  </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingLessee(lessee);
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteLessee(lessee);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="mt-4 space-y-2">
-                  {lessee.contactPerson && (
-                    <div className="flex items-center text-sm">
-                      <User className="h-4 w-4 mr-2 text-gray-500" />
-                      <span className="text-gray-700">{lessee.contactPerson}</span>
+              <Card key={lessee.id}>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-900">{lessee.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm text-gray-500 flex items-center">
+                          <Building2 className="h-3.5 w-3.5 mr-1" />
+                          Flight School
+                        </p>
+                        {lessee.portalStatus && lessee.portalStatus !== "none" && (
+                          <Badge
+                            variant="outline"
+                            className={
+                              lessee.portalStatus === "active"
+                                ? "text-green-700 border-green-300 bg-green-50 text-xs"
+                                : lessee.portalStatus === "invited"
+                                ? "text-blue-700 border-blue-300 bg-blue-50 text-xs"
+                                : "text-gray-600 border-gray-300 bg-gray-50 text-xs"
+                            }
+                          >
+                            {lessee.portalStatus}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
-                  )}
-                  
-                  <div className="flex items-center text-sm">
-                    <Mail className="h-4 w-4 mr-2 text-gray-500" />
-                    <a href={`mailto:${lessee.email}`} className="text-[#3498db]">
-                      {lessee.email}
-                    </a>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingLessee(lessee);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteLessee(lessee);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  
-                  {lessee.phone && (
+
+                  <div className="mt-4 space-y-2">
+                    {lessee.contactPerson && (
+                      <div className="flex items-center text-sm">
+                        <User className="h-4 w-4 mr-2 text-gray-500" />
+                        <span className="text-gray-700">{lessee.contactPerson}</span>
+                      </div>
+                    )}
+
                     <div className="flex items-center text-sm">
-                      <Phone className="h-4 w-4 mr-2 text-gray-500" />
-                      <a href={`tel:${lessee.phone}`} className="text-gray-700">
-                        {lessee.phone}
+                      <Mail className="h-4 w-4 mr-2 text-gray-500" />
+                      <a href={`mailto:${lessee.email}`} className="text-brand">
+                        {lessee.email}
                       </a>
                     </div>
-                  )}
-                  
-                  {lessee.address && (
-                    <div className="flex items-start text-sm">
-                      <MapPin className="h-4 w-4 mr-2 text-gray-500 mt-0.5" />
-                      <span className="text-gray-700">{lessee.address}</span>
+
+                    {lessee.phone && (
+                      <div className="flex items-center text-sm">
+                        <Phone className="h-4 w-4 mr-2 text-gray-500" />
+                        <a href={`tel:${lessee.phone}`} className="text-gray-700">
+                          {lessee.phone}
+                        </a>
+                      </div>
+                    )}
+
+                    {lessee.address && (
+                      <div className="flex items-start text-sm">
+                        <MapPin className="h-4 w-4 mr-2 text-gray-500 mt-0.5" />
+                        <span className="text-gray-700">{lessee.address}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {lessee.notes && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm">
+                      <p className="font-medium text-gray-700 mb-1">Notes</p>
+                      <p className="text-gray-600">{lessee.notes}</p>
                     </div>
                   )}
-                </div>
 
-                {lessee.notes && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm">
-                    <p className="font-medium text-gray-700 mb-1">Notes</p>
-                    <p className="text-gray-600">{lessee.notes}</p>
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedLesseeId(lessee.id);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Profile
+                    </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : (
           <Card>
@@ -470,6 +517,7 @@ export default function Lessees() {
                       {getSortIcon('address')}
                     </Button>
                   </TableHead>
+                  <TableHead>Portal Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -478,7 +526,7 @@ export default function Lessees() {
                   <TableRow key={lessee.id} className="hover:bg-gray-50">
                     <TableCell className="font-medium">{lessee.name}</TableCell>
                     <TableCell>
-                      <a href={`mailto:${lessee.email}`} className="text-[#3498db] hover:underline">
+                      <a href={`mailto:${lessee.email}`} className="text-brand hover:underline">
                         {lessee.email}
                       </a>
                     </TableCell>
@@ -506,7 +554,33 @@ export default function Lessees() {
                       )}
                     </TableCell>
                     <TableCell>
+                      {lessee.portalStatus && lessee.portalStatus !== "none" ? (
+                        <Badge
+                          variant="outline"
+                          className={
+                            lessee.portalStatus === "active"
+                              ? "text-green-700 border-green-300 bg-green-50 text-xs"
+                              : lessee.portalStatus === "invited"
+                              ? "text-blue-700 border-blue-300 bg-blue-50 text-xs"
+                              : "text-gray-600 border-gray-300 bg-gray-50 text-xs"
+                          }
+                        >
+                          {lessee.portalStatus}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelectedLesseeId(lessee.id)}
+                          title="View Profile"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -550,7 +624,7 @@ export default function Lessees() {
                 setEditingLessee(null);
                 setAddLesseeOpen(true);
               }}
-              className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+              className="bg-brand hover:bg-brand-hover text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Flight School
@@ -644,6 +718,32 @@ export default function Lessees() {
               />
               <FormField
                 control={form.control}
+                name="state"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>State</FormLabel>
+                    <FormControl>
+                      <Input placeholder="State / Province" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="certificationNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Certification Number</FormLabel>
+                    <FormControl>
+                      <Input placeholder="FAA or regulatory cert number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
@@ -666,9 +766,9 @@ export default function Lessees() {
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   type="submit"
-                  className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+                  className="bg-brand hover:bg-brand-hover text-white"
                   disabled={createLesseeMutation.isPending || updateLesseeMutation.isPending}
                 >
                   {(createLesseeMutation.isPending || updateLesseeMutation.isPending) ? "Saving..." : editingLessee ? "Update Flight School" : "Add Flight School"}
@@ -705,6 +805,41 @@ export default function Lessees() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Lessee Detail Drawer */}
+      {selectedLesseeId && (
+        <LesseeDetailDrawer
+          isOpen={!!selectedLesseeId}
+          onClose={() => setSelectedLesseeId(null)}
+          lesseeId={selectedLesseeId}
+          onViewAircraft={(aircraft) => {
+            setSelectedLesseeId(null);
+            aircraftModal.openModal(aircraft as AircraftWithDetails);
+          }}
+          onViewLease={(lease) => {
+            setSelectedLesseeId(null);
+            leaseModal.openModal(lease);
+          }}
+        />
+      )}
+
+      {/* Aircraft Details Modal (from lessee drawer) */}
+      {aircraftModal.isOpen && aircraftModal.data && (
+        <AircraftDetailsModal
+          isOpen={aircraftModal.isOpen}
+          onClose={aircraftModal.closeModal}
+          aircraft={aircraftModal.data}
+        />
+      )}
+
+      {/* Lease Modal (from lessee drawer) */}
+      {leaseModal.isOpen && leaseModal.data && (
+        <LeaseAgreementModal
+          isOpen={leaseModal.isOpen}
+          onClose={leaseModal.closeModal}
+          lease={leaseModal.data as any}
+        />
+      )}
     </>
   );
 }

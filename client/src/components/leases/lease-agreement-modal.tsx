@@ -9,9 +9,12 @@ interface LeaseAgreementModalProps {
   isOpen: boolean;
   onClose: () => void;
   lease: LeaseWithDetails;
+  onViewAircraft?: (aircraft: any) => void;
+  onViewLessee?: (lesseeId: number) => void;
+  onViewOwner?: (ownerId: number) => void;
 }
 
-export default function LeaseAgreementModal({ isOpen, onClose, lease }: LeaseAgreementModalProps) {
+export default function LeaseAgreementModal({ isOpen, onClose, lease, onViewAircraft, onViewLessee, onViewOwner }: LeaseAgreementModalProps) {
   const { data: payments } = useQuery<Payment[]>({
     queryKey: [`/api/leases/${lease.id}/payments`],
     enabled: isOpen,
@@ -23,21 +26,40 @@ export default function LeaseAgreementModal({ isOpen, onClose, lease }: LeaseAgr
         <DialogHeader>
           <DialogTitle className="text-xl font-sans font-semibold">Lease Agreement</DialogTitle>
         </DialogHeader>
-        
+
         <div className="flex justify-between items-start mb-6">
           <div>
             <h4 className="text-xl font-sans font-semibold">
-              {lease.aircraft?.registration || 'N/A'} - {lease.aircraft?.make} {lease.aircraft?.model}
+              <span
+                className={lease.aircraft && onViewAircraft ? "text-brand hover:underline cursor-pointer" : ""}
+                onClick={() => { if (lease.aircraft && onViewAircraft) onViewAircraft(lease.aircraft); }}
+              >
+                {lease.aircraft?.registration || 'N/A'}
+              </span>
+              {" - "}{lease.aircraft?.make} {lease.aircraft?.model}
             </h4>
             <p className="text-gray-500">
-              Lease between {lease.aircraft?.owner?.name || 'Unknown Owner'} and {lease.lessee?.name || 'Unknown Lessee'}
+              Lease between{" "}
+              <span
+                className={(lease.aircraft as any)?.owner && onViewOwner ? "text-brand hover:underline cursor-pointer font-medium" : ""}
+                onClick={() => { const owner = (lease.aircraft as any)?.owner; if (owner && onViewOwner) onViewOwner(owner.id); }}
+              >
+                {(lease.aircraft as any)?.owner?.name || 'Unknown Owner'}
+              </span>
+              {" and "}
+              <span
+                className={lease.lessee && onViewLessee ? "text-brand hover:underline cursor-pointer font-medium" : ""}
+                onClick={() => { if (lease.lessee && onViewLessee) onViewLessee(lease.lessee.id); }}
+              >
+                {lease.lessee?.name || 'Unknown Lessee'}
+              </span>
             </p>
           </div>
-          <span className={`px-3 py-1 ${getStatusColor(lease.status)} rounded-full text-sm font-medium`}>
+          <span className={`px-3 py-1 ${getStatusColor(lease.status ?? "")} rounded-full text-sm font-medium`}>
             {lease.status}
           </span>
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div className="border rounded-lg p-3">
             <p className="text-sm font-medium text-gray-500">Start Date</p>
@@ -52,7 +74,7 @@ export default function LeaseAgreementModal({ isOpen, onClose, lease }: LeaseAgr
             <p className="text-lg font-mono">{formatCurrency(lease.monthlyRate)}</p>
           </div>
         </div>
-        
+
         <div className="mb-6">
           <h5 className="font-medium mb-2">Lease Terms</h5>
           <div className="border rounded-lg p-4 bg-gray-50">
@@ -66,7 +88,7 @@ export default function LeaseAgreementModal({ isOpen, onClose, lease }: LeaseAgr
             )}
           </div>
         </div>
-        
+
         {lease.documentUrl && (
           <div className="mb-6">
             <h5 className="font-medium mb-2">Lease Document</h5>
@@ -77,13 +99,13 @@ export default function LeaseAgreementModal({ isOpen, onClose, lease }: LeaseAgr
                   {lease.aircraft?.registration || 'N/A'}-Lease-Agreement.pdf
                 </p>
               </div>
-              <Button variant="ghost" size="sm" className="text-[#3498db]">
+              <Button variant="ghost" size="sm" className="text-brand">
                 <Download className="h-4 w-4 mr-1" /> Download
               </Button>
             </div>
           </div>
         )}
-        
+
         <div>
           <h5 className="font-medium mb-2">Payment History</h5>
           {payments && payments.length > 0 ? (
@@ -105,7 +127,7 @@ export default function LeaseAgreementModal({ isOpen, onClose, lease }: LeaseAgr
                       <td className="px-3 py-2 whitespace-nowrap text-sm">{formatDate(payment.dueDate)}</td>
                       <td className="px-3 py-2 whitespace-nowrap text-sm font-mono">{formatCurrency(payment.amount)}</td>
                       <td className="px-3 py-2 whitespace-nowrap">
-                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(payment.status)}`}>
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(payment.status ?? "")}`}>
                           {payment.status}
                         </span>
                       </td>
@@ -124,10 +146,10 @@ export default function LeaseAgreementModal({ isOpen, onClose, lease }: LeaseAgr
             </div>
           )}
         </div>
-        
+
         <DialogFooter className="mt-6">
           <Button variant="outline" onClick={onClose}>Close</Button>
-          <Button className="bg-[#3498db]">Edit Agreement</Button>
+          <Button className="bg-brand text-white">Edit Agreement</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

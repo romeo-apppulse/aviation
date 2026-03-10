@@ -61,6 +61,10 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        brand: {
+          DEFAULT: "#3498db",
+          hover: "#2980b9",
+        },
       },
       keyframes: {
         "accordion-down": {

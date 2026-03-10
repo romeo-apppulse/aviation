@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { MaintenanceWithDetails, Aircraft } from "@shared/schema";
+import { MaintenanceWithDetails, Aircraft, AircraftWithDetails } from "@shared/schema";
 import { useState } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { formatCurrency, formatDate, getStatusColor, getRelativeDateLabel } from "@/lib/utils";
@@ -8,7 +8,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useModal } from "@/hooks/use-modal";
 import { CalendarIcon, CheckCircle, Plus, Search, Filter, Wrench, Plane, ArrowUpDown, ArrowUp, ArrowDown, Edit, Trash2 } from "lucide-react";
+import AircraftDetailsModal from "@/components/aircraft/aircraft-details-modal";
 import {
   Card,
   CardContent,
@@ -77,14 +79,10 @@ const maintenanceFormSchema = z.object({
     required_error: "Scheduled date is required",
   }),
   completedDate: z.date().optional().nullable(),
-  cost: z.string()
-    .optional()
-    .transform(val => val ? parseFloat(val) : undefined),
+  cost: z.coerce.number().optional(),
   performedBy: z.string().optional(),
   notes: z.string().optional(),
-  status: z.string({
-    required_error: "Status is required",
-  }),
+  status: z.string().default("Scheduled"),
 });
 
 type MaintenanceFormValues = z.infer<typeof maintenanceFormSchema>;
@@ -101,15 +99,15 @@ export default function Maintenance() {
   const [markAsCompleteId, setMarkAsCompleteId] = useState<number | null>(null);
   const [sortField, setSortField] = useState<SortField>('scheduledDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const aircraftModal = useModal<AircraftWithDetails>();
   const { toast } = useToast();
 
   const { data: maintenance, isLoading } = useQuery<MaintenanceWithDetails[]>({
     queryKey: ["/api/maintenance"],
   });
 
-  const { data: aircraft } = useQuery<Aircraft[]>({
+  const { data: aircraft } = useQuery<AircraftWithDetails[]>({
     queryKey: ["/api/aircraft"],
-    enabled: addMaintenanceOpen || !!editingMaintenance,
   });
 
   const handleSort = (field: SortField) => {
@@ -130,53 +128,53 @@ export default function Maintenance() {
 
   const filteredAndSortedMaintenance = maintenance
     ? maintenance
-        .filter((item) => {
-          const matchesSearch =
-            (item.type || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (item.aircraft?.registration || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (item.notes && item.notes.toLowerCase().includes(searchTerm.toLowerCase()));
-          
-          const matchesStatus = statusFilter === "all" || item.status === statusFilter;
-          
-          return matchesSearch && matchesStatus;
-        })
-        .sort((a, b) => {
-          let aValue: any;
-          let bValue: any;
-          
-          switch (sortField) {
-            case 'aircraft':
-              aValue = (a.aircraft?.registration || "").toLowerCase();
-              bValue = (b.aircraft?.registration || "").toLowerCase();
-              break;
-            case 'type':
-              aValue = (a.type || "").toLowerCase();
-              bValue = (b.type || "").toLowerCase();
-              break;
-            case 'scheduledDate':
-              aValue = new Date(a.scheduledDate);
-              bValue = new Date(b.scheduledDate);
-              break;
-            case 'status':
-              aValue = a.status.toLowerCase();
-              bValue = b.status.toLowerCase();
-              break;
-            case 'performedBy':
-              aValue = (a.performedBy || "").toLowerCase();
-              bValue = (b.performedBy || "").toLowerCase();
-              break;
-            default:
-              return 0;
-          }
-          
-          if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-          if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-          return 0;
-        })
+      .filter((item) => {
+        const matchesSearch =
+          (item.type || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (item.aircraft?.registration || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (item.notes && item.notes.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        const matchesStatus = statusFilter === "all" || item.status === statusFilter;
+
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortField) {
+          case 'aircraft':
+            aValue = (a.aircraft?.registration || "").toLowerCase();
+            bValue = (b.aircraft?.registration || "").toLowerCase();
+            break;
+          case 'type':
+            aValue = (a.type || "").toLowerCase();
+            bValue = (b.type || "").toLowerCase();
+            break;
+          case 'scheduledDate':
+            aValue = new Date(a.scheduledDate);
+            bValue = new Date(b.scheduledDate);
+            break;
+          case 'status':
+            aValue = (a.status || "").toLowerCase();
+            bValue = (b.status || "").toLowerCase();
+            break;
+          case 'performedBy':
+            aValue = (a.performedBy || "").toLowerCase();
+            bValue = (b.performedBy || "").toLowerCase();
+            break;
+          default:
+            return 0;
+        }
+
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      })
     : [];
 
   const createMaintenanceMutation = useMutation({
-    mutationFn: (data: MaintenanceFormValues) => 
+    mutationFn: (data: MaintenanceFormValues) =>
       apiRequest("POST", "/api/maintenance", data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/maintenance"] });
@@ -198,7 +196,7 @@ export default function Maintenance() {
   });
 
   const updateMaintenanceMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<MaintenanceFormValues> }) => 
+    mutationFn: ({ id, data }: { id: number; data: Partial<MaintenanceFormValues> }) =>
       apiRequest("PUT", `/api/maintenance/${id}`, data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/maintenance"] });
@@ -221,7 +219,7 @@ export default function Maintenance() {
   });
 
   const deleteMaintenanceMutation = useMutation({
-    mutationFn: (id: number) => 
+    mutationFn: (id: number) =>
       apiRequest("DELETE", `/api/maintenance/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/maintenance"] });
@@ -245,11 +243,11 @@ export default function Maintenance() {
   const form = useForm<MaintenanceFormValues>({
     resolver: zodResolver(maintenanceFormSchema),
     defaultValues: {
-      aircraftId: undefined,
+      aircraftId: 0,
       type: "",
-      scheduledDate: undefined,
+      scheduledDate: new Date(),
       completedDate: null,
-      cost: "",
+      cost: 0,
       performedBy: "",
       notes: "",
       status: "Scheduled",
@@ -257,13 +255,19 @@ export default function Maintenance() {
   });
 
   function onSubmit(values: MaintenanceFormValues) {
+    const data = {
+      ...values,
+      scheduledDate: format(values.scheduledDate, "yyyy-MM-dd"),
+      completedDate: values.completedDate ? format(values.completedDate, "yyyy-MM-dd") : null,
+    };
+
     if (editingMaintenance) {
       updateMaintenanceMutation.mutate({
         id: editingMaintenance.id,
-        data: values
+        data: data as any
       });
     } else {
-      createMaintenanceMutation.mutate(values);
+      createMaintenanceMutation.mutate(data as any);
     }
   }
 
@@ -272,8 +276,8 @@ export default function Maintenance() {
       id: maintenanceId,
       data: {
         status: "Completed",
-        completedDate: new Date()
-      }
+        completedDate: format(new Date(), "yyyy-MM-dd")
+      } as any
     });
   };
 
@@ -291,9 +295,9 @@ export default function Maintenance() {
             Schedule and track aircraft maintenance
           </p>
         </div>
-        <Button 
+        <Button
           onClick={() => setAddMaintenanceOpen(true)}
-          className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+          className="bg-brand hover:bg-brand-hover text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Schedule Maintenance
@@ -316,7 +320,7 @@ export default function Maintenance() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <div className="w-full md:w-52">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
@@ -339,7 +343,7 @@ export default function Maintenance() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-8 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3498db]"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand"></div>
             </div>
           ) : filteredAndSortedMaintenance.length > 0 ? (
             <div className="overflow-x-auto">
@@ -347,7 +351,7 @@ export default function Maintenance() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>
-                      <button 
+                      <button
                         onClick={() => handleSort('aircraft')}
                         className="flex items-center gap-2 hover:text-gray-900 transition-colors"
                       >
@@ -355,7 +359,7 @@ export default function Maintenance() {
                       </button>
                     </TableHead>
                     <TableHead>
-                      <button 
+                      <button
                         onClick={() => handleSort('type')}
                         className="flex items-center gap-2 hover:text-gray-900 transition-colors"
                       >
@@ -363,7 +367,7 @@ export default function Maintenance() {
                       </button>
                     </TableHead>
                     <TableHead>
-                      <button 
+                      <button
                         onClick={() => handleSort('scheduledDate')}
                         className="flex items-center gap-2 hover:text-gray-900 transition-colors"
                       >
@@ -371,7 +375,7 @@ export default function Maintenance() {
                       </button>
                     </TableHead>
                     <TableHead>
-                      <button 
+                      <button
                         onClick={() => handleSort('status')}
                         className="flex items-center gap-2 hover:text-gray-900 transition-colors"
                       >
@@ -379,13 +383,15 @@ export default function Maintenance() {
                       </button>
                     </TableHead>
                     <TableHead>
-                      <button 
+                      <button
                         onClick={() => handleSort('performedBy')}
                         className="flex items-center gap-2 hover:text-gray-900 transition-colors"
                       >
                         Performed By {getSortIcon('performedBy')}
                       </button>
                     </TableHead>
+                    <TableHead>Cost</TableHead>
+                    <TableHead>Completed Date</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -393,10 +399,18 @@ export default function Maintenance() {
                   {filteredAndSortedMaintenance.map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">
-                        <div className="flex items-center space-x-2">
+                        <div
+                          className="flex items-center space-x-2 cursor-pointer group"
+                          onClick={() => {
+                            if (item.aircraft) {
+                              const fullAc = aircraft?.find(a => a.id === item.aircraftId);
+                              if (fullAc) aircraftModal.openModal(fullAc);
+                            }
+                          }}
+                        >
                           <Plane className="h-4 w-4 text-gray-400" />
                           <div>
-                            <p>{item.aircraft?.registration || "N/A"}</p>
+                            <p className="text-brand group-hover:underline">{item.aircraft?.registration || "N/A"}</p>
                             <p className="text-xs text-gray-500">
                               {item.aircraft ? `${item.aircraft.make} ${item.aircraft.model}` : ""}
                             </p>
@@ -414,13 +428,19 @@ export default function Maintenance() {
                       </TableCell>
                       <TableCell>
                         <Badge
-                          className={getStatusColor(item.status)}
+                          className={getStatusColor(item.status || "Scheduled")}
                           variant="outline"
                         >
                           {item.status}
                         </Badge>
                       </TableCell>
                       <TableCell>{item.performedBy || "Not assigned"}</TableCell>
+                      <TableCell className="font-mono">
+                        {item.cost != null && item.cost > 0 ? formatCurrency(item.cost) : <span className="text-gray-400">—</span>}
+                      </TableCell>
+                      <TableCell>
+                        {item.completedDate ? formatDate(item.completedDate) : <span className="text-gray-400">—</span>}
+                      </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
                           <Button
@@ -434,10 +454,10 @@ export default function Maintenance() {
                                 type: item.type,
                                 scheduledDate: new Date(item.scheduledDate),
                                 completedDate: item.completedDate ? new Date(item.completedDate) : null,
-                                cost: item.cost?.toString() || "",
+                                cost: item.cost || 0,
                                 performedBy: item.performedBy || "",
                                 notes: item.notes || "",
-                                status: item.status,
+                                status: item.status || "Scheduled",
                               });
                             }}
                           >
@@ -451,8 +471,8 @@ export default function Maintenance() {
                             <Trash2 className="h-4 w-4" />
                           </Button>
                           {item.status !== "Completed" && (
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               className="text-green-600 border-green-200 hover:bg-green-50"
                               onClick={() => setMarkAsCompleteId(item.id)}
@@ -480,7 +500,7 @@ export default function Maintenance() {
                   : "Get started by scheduling maintenance"}
               </p>
               {searchTerm || statusFilter !== "all" ? (
-                <Button 
+                <Button
                   onClick={() => {
                     setSearchTerm("");
                     setStatusFilter("all");
@@ -489,9 +509,9 @@ export default function Maintenance() {
                   Clear Filters
                 </Button>
               ) : (
-                <Button 
+                <Button
                   onClick={() => setAddMaintenanceOpen(true)}
-                  className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+                  className="bg-brand hover:bg-brand-hover text-white"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Schedule Maintenance
@@ -525,7 +545,7 @@ export default function Maintenance() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Aircraft</FormLabel>
-                    <Select 
+                    <Select
                       onValueChange={(value) => field.onChange(parseInt(value))}
                       value={field.value?.toString()}
                     >
@@ -546,7 +566,7 @@ export default function Maintenance() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="type"
@@ -571,7 +591,7 @@ export default function Maintenance() {
                   </FormItem>
                 )}
               />
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -608,7 +628,7 @@ export default function Maintenance() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="status"
@@ -632,7 +652,7 @@ export default function Maintenance() {
                   )}
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -647,7 +667,7 @@ export default function Maintenance() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="cost"
@@ -665,7 +685,7 @@ export default function Maintenance() {
                   )}
                 />
               </div>
-              
+
               {form.watch("status") === "Completed" && (
                 <FormField
                   control={form.control}
@@ -703,7 +723,7 @@ export default function Maintenance() {
                   )}
                 />
               )}
-              
+
               <FormField
                 control={form.control}
                 name="notes"
@@ -717,7 +737,7 @@ export default function Maintenance() {
                   </FormItem>
                 )}
               />
-              
+
               <DialogFooter>
                 <Button
                   type="button"
@@ -730,12 +750,12 @@ export default function Maintenance() {
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   type="submit"
-                  className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+                  className="bg-brand hover:bg-brand-hover text-white"
                   disabled={createMaintenanceMutation.isPending || updateMaintenanceMutation.isPending}
                 >
-                  {editingMaintenance ? 
+                  {editingMaintenance ?
                     (updateMaintenanceMutation.isPending ? "Updating..." : "Update Maintenance") :
                     (createMaintenanceMutation.isPending ? "Scheduling..." : "Schedule Maintenance")
                   }
@@ -815,6 +835,15 @@ export default function Maintenance() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Aircraft Detail Modal */}
+      {aircraftModal.data && (
+        <AircraftDetailsModal
+          isOpen={aircraftModal.isOpen}
+          onClose={aircraftModal.closeModal}
+          aircraft={aircraftModal.data}
+        />
+      )}
     </>
   );
 }

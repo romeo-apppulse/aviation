@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Phone, Mail, MapPin, Clock, Send, CheckCircle } from "lucide-react";
+import { Phone, Mail, MapPin, Clock, Send, CheckCircle, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,10 +46,7 @@ export default function HelpSupport() {
 
   const submitSupportRequest = useMutation({
     mutationFn: (data: SupportRequestFormData) =>
-      apiRequest("/api/support/request", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+      apiRequest("POST", "/api/support/request", data),
     onSuccess: () => {
       setSubmitted(true);
       form.reset();
@@ -104,6 +101,13 @@ export default function HelpSupport() {
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Help & Support</h1>
         <p className="text-gray-600 text-sm sm:text-base">
           Get help with your aircraft management system or contact our support team
+        </p>
+      </div>
+
+      <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-6 sm:mb-8">
+        <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+        <p className="text-sm text-blue-700">
+          Email notifications are currently being configured. In-app notifications are active. Contact your administrator for updates.
         </p>
       </div>
 

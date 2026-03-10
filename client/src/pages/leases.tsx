@@ -64,7 +64,7 @@ export default function Leases() {
   });
 
   const deleteLeaseMutation = useMutation({
-    mutationFn: (id: number) => 
+    mutationFn: (id: number) =>
       apiRequest("DELETE", `/api/leases/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leases"] });
@@ -87,16 +87,16 @@ export default function Leases() {
 
   const filteredLeases = leases
     ? leases.filter((lease) => {
-        const matchesSearch =
-          (lease.aircraft?.registration || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (lease.aircraft?.make || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (lease.aircraft?.model || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (lease.lessee?.name || "").toLowerCase().includes(searchTerm.toLowerCase());
-        
-        const matchesStatus = statusFilter === "all" || lease.status === statusFilter;
-        
-        return matchesSearch && matchesStatus;
-      })
+      const matchesSearch =
+        (lease.aircraft?.registration || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (lease.aircraft?.make || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (lease.aircraft?.model || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (lease.lessee?.name || "").toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus = statusFilter === "all" || lease.status === statusFilter;
+
+      return matchesSearch && matchesStatus;
+    })
     : [];
 
   const handleSort = (field: SortField) => {
@@ -112,47 +112,47 @@ export default function Leases() {
     if (sortField !== field) {
       return <ArrowUpDown className="ml-1 h-3 w-3" />;
     }
-    return sortDirection === 'asc' ? 
-      <ArrowUp className="ml-1 h-3 w-3" /> : 
+    return sortDirection === 'asc' ?
+      <ArrowUp className="ml-1 h-3 w-3" /> :
       <ArrowDown className="ml-1 h-3 w-3" />;
   };
 
   const filteredAndSortedLeases = filteredLeases.length > 0
-    ? filteredLeases.sort((a, b) => {
-        let aValue = '';
-        let bValue = '';
-        
-        switch (sortField) {
-          case 'aircraft':
-            aValue = `${a.aircraft?.make || ''} ${a.aircraft?.model || ''} (${a.aircraft?.registration || ''})`;
-            bValue = `${b.aircraft?.make || ''} ${b.aircraft?.model || ''} (${b.aircraft?.registration || ''})`;
-            break;
-          case 'lessee':
-            aValue = a.lessee?.name || '';
-            bValue = b.lessee?.name || '';
-            break;
-          case 'startDate':
-            aValue = a.startDate || '';
-            bValue = b.startDate || '';
-            break;
-          case 'endDate':
-            aValue = a.endDate || '';
-            bValue = b.endDate || '';
-            break;
-          case 'monthlyRate':
-            return sortDirection === 'asc' ? a.monthlyRate - b.monthlyRate : b.monthlyRate - a.monthlyRate;
-          case 'status':
-            aValue = a.status || '';
-            bValue = b.status || '';
-            break;
-          default:
-            return 0;
-        }
-        
-        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-        return 0;
-      })
+    ? [...filteredLeases].sort((a, b) => {
+      let aValue = '';
+      let bValue = '';
+
+      switch (sortField) {
+        case 'aircraft':
+          aValue = `${a.aircraft?.make || ''} ${a.aircraft?.model || ''} (${a.aircraft?.registration || ''})`;
+          bValue = `${b.aircraft?.make || ''} ${b.aircraft?.model || ''} (${b.aircraft?.registration || ''})`;
+          break;
+        case 'lessee':
+          aValue = a.lessee?.name || '';
+          bValue = b.lessee?.name || '';
+          break;
+        case 'startDate':
+          aValue = a.startDate || '';
+          bValue = b.startDate || '';
+          break;
+        case 'endDate':
+          aValue = a.endDate || '';
+          bValue = b.endDate || '';
+          break;
+        case 'monthlyRate':
+          return sortDirection === 'asc' ? a.monthlyRate - b.monthlyRate : b.monthlyRate - a.monthlyRate;
+        case 'status':
+          aValue = a.status || '';
+          bValue = b.status || '';
+          break;
+        default:
+          return 0;
+      }
+
+      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+      return 0;
+    })
     : [];
 
   return (
@@ -169,9 +169,9 @@ export default function Leases() {
             Manage all aircraft lease agreements
           </p>
         </div>
-        <Button 
+        <Button
           onClick={() => addLeaseModal.openModal()}
-          className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+          className="bg-brand hover:bg-brand-hover text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Lease
@@ -194,7 +194,7 @@ export default function Leases() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <div className="w-full md:w-52">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
@@ -209,7 +209,7 @@ export default function Leases() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex rounded-md border border-gray-200 bg-gray-50">
               <Button
                 variant={viewMode === 'grid' ? 'default' : 'ghost'}
@@ -236,7 +236,7 @@ export default function Leases() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-8 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3498db]"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand"></div>
             </div>
           ) : filteredAndSortedLeases.length > 0 ? (
             viewMode === 'grid' ? (
@@ -253,38 +253,44 @@ export default function Leases() {
                             {lease.aircraft?.registration}
                           </p>
                         </div>
-                        <Badge 
+                        <Badge
                           variant={lease.status === 'Active' ? 'default' : 'secondary'}
                           className={getStatusColor(lease.status || '')}
                         >
                           {lease.status || 'Unknown'}
                         </Badge>
                       </div>
-                      
+
                       <div className="space-y-3">
                         <div className="flex items-center text-sm">
                           <Building2 className="h-4 w-4 mr-2 text-gray-500" />
                           <span className="font-medium">{lease.lessee?.name}</span>
                         </div>
-                        
+
                         <div className="flex items-center text-sm">
                           <Calendar className="h-4 w-4 mr-2 text-gray-500" />
                           <span>
                             {formatDate(lease.startDate)} - {formatDate(lease.endDate)}
                           </span>
                         </div>
-                        
+
                         <div className="flex items-center text-sm">
                           <DollarSign className="h-4 w-4 mr-2 text-gray-500" />
-                          <span className="font-semibold text-[#3498db]">
+                          <span className="font-semibold text-brand">
                             {formatCurrency(lease.monthlyRate)}/month
                           </span>
                         </div>
+
+                        {lease.minimumHours != null && (
+                          <div className="flex items-center text-sm text-gray-500">
+                            <span>Min: {lease.minimumHours} hrs/mo</span>
+                          </div>
+                        )}
                       </div>
-                      
+
                       <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
@@ -371,6 +377,7 @@ export default function Leases() {
                           {getSortIcon('monthlyRate')}
                         </Button>
                       </TableHead>
+                      <TableHead>Min Hrs/Mo</TableHead>
                       <TableHead>
                         <Button
                           variant="ghost"
@@ -387,8 +394,8 @@ export default function Leases() {
                   </TableHeader>
                   <TableBody>
                     {filteredAndSortedLeases.map((lease) => (
-                      <TableRow 
-                        key={lease.id} 
+                      <TableRow
+                        key={lease.id}
                         className="cursor-pointer hover:bg-gray-50"
                         onClick={() => viewLeaseModal.openModal(lease)}
                       >
@@ -412,6 +419,7 @@ export default function Leases() {
                             <span className="font-mono">{formatCurrency(lease.monthlyRate)}</span>
                           </div>
                         </TableCell>
+                        <TableCell>{lease.minimumHours != null ? `${lease.minimumHours} hrs` : "—"}</TableCell>
                         <TableCell>
                           <Badge
                             className={getStatusColor(lease.status || '')}
@@ -422,8 +430,8 @@ export default function Leases() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-1">
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="sm"
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -445,8 +453,8 @@ export default function Leases() {
                           </div>
                         </TableCell>
                       </TableRow>
-                  ))}
-                </TableBody>
+                    ))}
+                  </TableBody>
                 </Table>
               </div>
             )
@@ -462,7 +470,7 @@ export default function Leases() {
                   : "Get started by creating a lease agreement"}
               </p>
               {searchTerm || statusFilter !== "all" ? (
-                <Button 
+                <Button
                   onClick={() => {
                     setSearchTerm("");
                     setStatusFilter("all");
@@ -471,9 +479,9 @@ export default function Leases() {
                   Clear Filters
                 </Button>
               ) : (
-                <Button 
+                <Button
                   onClick={() => addLeaseModal.openModal()}
-                  className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+                  className="bg-brand hover:bg-brand-hover text-white"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Lease Agreement

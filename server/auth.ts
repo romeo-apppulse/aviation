@@ -3,32 +3,24 @@ import { Strategy as LocalStrategy } from "passport-local";
 import session from "express-session";
 import bcrypt from "bcrypt";
 import type { Express, RequestHandler } from "express";
-import connectPg from "connect-pg-simple";
+import pgSession from "connect-pg-simple";
 import { storage } from "./storage";
+import { pool } from "./db";
 import type { User } from "@shared/schema";
 
 const SALT_ROUNDS = 12;
 
 export function getSession() {
   const sessionSecret = process.env.SESSION_SECRET;
-  
-  // In production, require a strong SESSION_SECRET
-  if (process.env.NODE_ENV === "production") {
-    if (!sessionSecret || sessionSecret.length < 32) {
-      throw new Error("SESSION_SECRET must be at least 32 characters in production");
-    }
-  } else if (!sessionSecret || sessionSecret.length < 32) {
-    console.warn("⚠️  WARNING: Using default SESSION_SECRET (INSECURE - set SESSION_SECRET in production!)");
-  }
 
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
-    ttl: sessionTtl,
-    tableName: "sessions",
+  const PostgresStore = pgSession(session);
+  const sessionStore = new PostgresStore({
+    pool,
+    tableName: 'sessions',
+    createTableIfMissing: true
   });
+
   return session({
     secret: sessionSecret || "aviation-ape-dev-secret-CHANGE-IN-PRODUCTION-12345678",
     store: sessionStore,
@@ -78,10 +70,12 @@ export async function setupAuth(app: Express) {
           }
 
           if (user.status !== "approved") {
-            return done(null, false, { 
-              message: user.status === "pending" 
-                ? "Your account is pending approval" 
-                : "Your account has been blocked" 
+            return done(null, false, {
+              message: user.status === "pending"
+                ? "Your account is pending approval"
+                : user.status === "invited"
+                ? "Please check your email to activate your account"
+                : "Your account has been blocked"
             });
           }
 
@@ -107,23 +101,31 @@ export async function setupAuth(app: Express) {
   });
 }
 
-export const isAuthenticated: RequestHandler = async (req, res, next) => {
+export const isAuthenticated: RequestHandler = (req, res, next) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  return next();
+};
+
+export const isApproved: RequestHandler = (req, res, next) => {
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
 
   const user = req.user as User;
   if (user.status !== "approved") {
-    return res.status(403).json({ 
-      message: "Account pending approval", 
-      status: user.status 
+    return res.status(403).json({
+      message: "Account pending approval",
+      status: user.status,
+      code: "PENDING_APPROVAL"
     });
   }
 
   return next();
 };
 
-export const isAdmin: RequestHandler = async (req, res, next) => {
+export const isAdmin: RequestHandler = (req, res, next) => {
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
@@ -136,7 +138,7 @@ export const isAdmin: RequestHandler = async (req, res, next) => {
   return next();
 };
 
-export const isSuperAdmin: RequestHandler = async (req, res, next) => {
+export const isSuperAdmin: RequestHandler = (req, res, next) => {
   if (!req.isAuthenticated() || !req.user) {
     return res.status(401).json({ message: "Unauthorized" });
   }
@@ -147,4 +149,28 @@ export const isSuperAdmin: RequestHandler = async (req, res, next) => {
   }
 
   return next();
+};
+
+export const isAssetOwner: RequestHandler = (req, res, next) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const user = req.user as User;
+  if (user.role === "asset_owner" || user.role === "admin" || user.role === "super_admin") {
+    return next();
+  }
+  return res.status(403).json({ message: "Asset owner access required" });
+};
+
+export const isFlightSchool: RequestHandler = (req, res, next) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  const user = req.user as User;
+  if (user.role === "flight_school" || user.role === "admin" || user.role === "super_admin") {
+    return next();
+  }
+  return res.status(403).json({ message: "Flight school access required" });
 };

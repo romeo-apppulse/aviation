@@ -56,7 +56,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
   const [imageMode, setImageMode] = useState<"url" | "file">("url");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
-  
+
   // Fetch owners to populate the owner dropdown
   const { data: owners } = useQuery<Owner[]>({
     queryKey: ["/api/owners"],
@@ -92,7 +92,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
 
   // Mutation for creating a new aircraft
   const createAircraftMutation = useMutation({
-    mutationFn: (data: InsertAircraft) => 
+    mutationFn: (data: InsertAircraft) =>
       apiRequest("POST", "/api/aircraft", data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/aircraft"] });
@@ -139,12 +139,12 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
   async function onSubmit(values: AircraftFormValues) {
     try {
       let imageData = values.image;
-      
+
       // If file mode and a file is selected, convert to base64
       if (imageMode === "file" && selectedFile) {
         imageData = await convertFileToBase64(selectedFile);
       }
-      
+
       createAircraftMutation.mutate({
         ...values,
         image: imageData,
@@ -167,7 +167,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
             Enter the details of the aircraft you want to add to your fleet
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -184,7 +184,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="status"
@@ -209,7 +209,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
                 )}
               />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
@@ -224,7 +224,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="model"
@@ -238,7 +238,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="year"
@@ -253,7 +253,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
                 )}
               />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -268,7 +268,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="totalTime"
@@ -283,7 +283,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="avionics"
@@ -297,14 +297,14 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="image"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Aircraft Image</FormLabel>
-                  
+
                   {/* Toggle between URL and File upload */}
                   <div className="flex gap-2 mb-3">
                     <Button
@@ -338,8 +338,8 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
 
                   {imageMode === "url" ? (
                     <FormControl>
-                      <Input 
-                        placeholder="URL to aircraft image" 
+                      <Input
+                        placeholder="URL to aircraft image"
                         {...field}
                         onChange={(e) => {
                           field.onChange(e);
@@ -391,20 +391,20 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
                       </div>
                     </div>
                   )}
-                  
+
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="ownerId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Owner</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
+                  <Select
+                    onValueChange={field.onChange}
                     defaultValue={field.value?.toString()}
                   >
                     <FormControl>
@@ -425,7 +425,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="notes"
@@ -439,7 +439,7 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter>
               <Button
                 type="button"
@@ -448,9 +448,9 @@ export default function AddAircraftForm({ isOpen, onClose }: AddAircraftFormProp
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 type="submit"
-                className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+                className="bg-brand hover:bg-brand-hover text-white"
                 disabled={createAircraftMutation.isPending}
               >
                 {createAircraftMutation.isPending ? "Adding..." : "Add Aircraft"}

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { pgTable, text, integer, boolean, timestamp, jsonb, doublePrecision, date, varchar, index, serial } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, boolean, timestamp, jsonb, doublePrecision, date, varchar, index, serial, unique } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -32,6 +32,12 @@ export const users = pgTable("users", {
   approvedAt: timestamp("approved_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  lesseeId: integer("lessee_id"),
+  ownerId: integer("owner_id"),
+  inviteToken: text("invite_token"),
+  inviteExpiresAt: timestamp("invite_expires_at"),
+  invitedAt: timestamp("invited_at"),
+  lastLoginAt: timestamp("last_login_at"),
 });
 
 // Aircraft table
@@ -47,6 +53,7 @@ export const aircraft = pgTable("aircraft", {
   image: text("image"),
   notes: text("notes"),
   ownerId: integer("owner_id"),
+  hourlyRate: doublePrecision("hourly_rate").default(0),
   status: text("status").default("Available"), // Available, Leased, Maintenance, etc.
 });
 
@@ -59,6 +66,7 @@ export const owners = pgTable("owners", {
   address: text("address"),
   notes: text("notes"),
   paymentDetails: text("payment_details"),
+  portalStatus: text("portal_status").default("none"),
 });
 
 // Lessee table (Flight Schools)
@@ -70,6 +78,9 @@ export const lessees = pgTable("lessees", {
   address: text("address"),
   contactPerson: text("contact_person"),
   notes: text("notes"),
+  state: text("state"),
+  certificationNumber: text("certification_number"),
+  portalStatus: text("portal_status").default("none"),
 });
 
 // Lease Agreements
@@ -101,6 +112,13 @@ export const payments = pgTable("payments", {
   notes: text("notes"),
   invoiceUrl: text("invoice_url"), // URL or base64 data for invoice
   invoiceNumber: text("invoice_number"), // Invoice number for tracking
+  grossAmount: doublePrecision("gross_amount"),
+  commissionAmount: doublePrecision("commission_amount"),  // gross × 0.10
+  netAmount: doublePrecision("net_amount"),               // gross × 0.90
+  flightHourLogId: integer("flight_hour_log_id"),         // links to the log that generated this
+  stripePaymentIntentId: text("stripe_payment_intent_id"),
+  lesseeId: integer("lessee_id"),                         // denormalized for faster queries
+  aircraftId: integer("aircraft_id"),
 });
 
 // Maintenance Records
@@ -127,6 +145,26 @@ export const documents = pgTable("documents", {
   uploadDate: timestamp("upload_date").defaultNow(),
 });
 
+// Flight Hour Logs
+export const flightHourLogs = pgTable("flight_hour_logs", {
+  id: serial("id").primaryKey(),
+  aircraftId: integer("aircraft_id").notNull(),
+  lesseeId: integer("lessee_id").notNull(),
+  leaseId: integer("lease_id").notNull(),
+  month: text("month").notNull(),             // "YYYY-MM"
+  reportedHours: doublePrecision("reported_hours").notNull(),
+  verifiedHours: doublePrecision("verified_hours"),
+  submittedAt: timestamp("submitted_at").defaultNow(),
+  status: text("status").default("submitted"), // submitted, verified, disputed
+  notes: text("notes"),
+  flightAwareHours: doublePrecision("flight_aware_hours"),
+  flightAwareCheckedAt: timestamp("flight_aware_checked_at"),
+  discrepancyFlagged: boolean("discrepancy_flagged").default(false),
+  discrepancyNotes: text("discrepancy_notes"),
+}, (table) => [
+  unique().on(table.aircraftId, table.lesseeId, table.month)
+]);
+
 // Notifications
 export const notifications = pgTable("notifications", {
   id: serial("id").primaryKey(),
@@ -143,6 +181,21 @@ export const notifications = pgTable("notifications", {
   readAt: timestamp("read_at"),
 });
 
+// Email Queue
+export const emailQueue = pgTable("email_queue", {
+  id: serial("id").primaryKey(),
+  to: text("to").notNull(),
+  subject: text("subject").notNull(),
+  templateType: text("template_type").notNull(),
+  templateData: jsonb("template_data"),
+  status: text("status").default("pending"), // pending, sent, failed
+  scheduledFor: timestamp("scheduled_for"),
+  sentAt: timestamp("sent_at"),
+  failedAt: timestamp("failed_at"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // Create insert schemas
 export const insertAircraftSchema = createInsertSchema(aircraft).omit({ id: true });
 export const insertOwnerSchema = createInsertSchema(owners).omit({ id: true });
@@ -152,15 +205,17 @@ export const insertPaymentSchema = createInsertSchema(payments).omit({ id: true 
 export const insertMaintenanceSchema = createInsertSchema(maintenance).omit({ id: true });
 export const insertDocumentSchema = createInsertSchema(documents).omit({ id: true, uploadDate: true });
 export const insertNotificationSchema = createInsertSchema(notifications).omit({ id: true, createdAt: true, readAt: true });
+export const insertFlightHourLogSchema = createInsertSchema(flightHourLogs).omit({ id: true, submittedAt: true });
+export const insertEmailQueueSchema = createInsertSchema(emailQueue).omit({ id: true, createdAt: true });
 
 // Create update schemas (allow partial updates)
 export const updateAircraftSchema = insertAircraftSchema.partial();
 
 // User authentication schemas  
-export const upsertUserSchema = createInsertSchema(users).omit({ 
+export const upsertUserSchema = createInsertSchema(users).omit({
   passwordHash: true,
-  createdAt: true, 
-  updatedAt: true 
+  createdAt: true,
+  updatedAt: true
 });
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -215,6 +270,12 @@ export type InsertDocument = z.infer<typeof insertDocumentSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
+export type FlightHourLog = typeof flightHourLogs.$inferSelect;
+export type InsertFlightHourLog = z.infer<typeof insertFlightHourLogSchema>;
+
+export type EmailQueue = typeof emailQueue.$inferSelect;
+export type InsertEmailQueue = z.infer<typeof insertEmailQueueSchema>;
+
 // Dashboard Stats
 export type DashboardStats = {
   totalAircraft: number;
@@ -231,6 +292,12 @@ export type DashboardStats = {
     revenue: number;
     managementFee: number;
   }>;
+  trends?: {
+    aircraft: string;
+    leases: string;
+    revenue: string;
+    fees: string;
+  };
 };
 
 // Combined types for UI
@@ -247,4 +314,11 @@ export type LeaseWithDetails = Lease & {
 
 export type MaintenanceWithDetails = Maintenance & {
   aircraft?: Aircraft;
+};
+
+export type PaymentWithDetails = Payment & {
+  lease?: Lease & {
+    aircraft?: Aircraft;
+    lessee?: Lessee;
+  };
 };

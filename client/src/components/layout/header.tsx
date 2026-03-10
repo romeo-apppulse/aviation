@@ -1,105 +1,109 @@
 import { useLocation } from "wouter";
-import { Menu, X, LogOut } from "lucide-react";
+import { Menu, X, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/useAuth";
 import { NotificationsDropdown } from "@/components/ui/notifications-dropdown";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useMutation } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
 
 type HeaderProps = {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
 };
 
-export default function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
-  const [location, setLocation] = useLocation();
-  const { user } = useAuth();
-  const { toast } = useToast();
+const pageMeta: Record<string, { title: string; subtitle: string }> = {
+  "/":                     { title: "Home",               subtitle: "Welcome back" },
+  "/dashboard":            { title: "Dashboard",          subtitle: "Fleet overview" },
+  "/aircraft":             { title: "Aircraft",           subtitle: "Fleet registry" },
+  "/owners":               { title: "Owners",             subtitle: "Asset owners" },
+  "/lessees":              { title: "Flight Schools",     subtitle: "Operators & lessees" },
+  "/leases":               { title: "Leases",             subtitle: "Lease agreements" },
+  "/payments":             { title: "Payments",           subtitle: "Billing & invoices" },
+  "/maintenance":          { title: "Maintenance",        subtitle: "Service records" },
+  "/documents":            { title: "Documents",          subtitle: "Files & attachments" },
+  "/settings":             { title: "Settings",           subtitle: "Account & preferences" },
+  "/help-support":         { title: "Help & Support",     subtitle: "Get assistance" },
+  "/admin/users":          { title: "User Management",    subtitle: "Accounts & roles" },
+  "/admin/revenue":        { title: "Revenue Analytics",  subtitle: "Platform financials" },
+  "/portal/dashboard":     { title: "My Dashboard",       subtitle: "Flight school overview" },
+  "/portal/my-aircraft":   { title: "My Aircraft",        subtitle: "Leased fleet" },
+  "/portal/hour-logging":  { title: "Hour Logging",       subtitle: "Log & track flight hours" },
+  "/portal/payments":      { title: "Invoices & Payments", subtitle: "Billing & payment history" },
+  "/owner":                { title: "Owner Dashboard",    subtitle: "Portfolio overview" },
+  "/owner/dashboard":      { title: "Owner Dashboard",    subtitle: "Portfolio overview" },
+  "/owner/aircraft":       { title: "My Fleet",           subtitle: "Aircraft portfolio" },
+  "/owner/revenue":        { title: "Revenue",            subtitle: "Earnings & analytics" },
+  "/owner/documents":      { title: "Documents",          subtitle: "Contracts & files" },
+  "/notifications":        { title: "Notifications",      subtitle: "Activity & alerts" },
+};
 
-  const logoutMutation = useMutation({
-    mutationFn: async () => {
-      await apiRequest("POST", "/api/auth/logout");
-    },
-    onSuccess: async () => {
-      // Clear all cache and invalidate auth
-      await queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
-      queryClient.clear();
-      // Redirect to landing page
-      window.location.href = "/";
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Logout Failed",
-        description: error.message || "Failed to logout",
-        variant: "destructive",
-      });
-    },
-  });
-  
-  const getPageTitle = () => {
-    const pathTitles: Record<string, string> = {
-      "/": "Home",
-      "/dashboard": "Dashboard",
-      "/aircraft": "Aircraft",
-      "/owners": "Owners",
-      "/lessees": "Flight Schools",
-      "/leases": "Lease Agreements",
-      "/payments": "Payments",
-      "/maintenance": "Maintenance",
-      "/documents": "Documents",
-      "/settings": "Settings",
-      "/help-support": "Help & Support"
-    };
-    
-    return pathTitles[location] || "Dashboard";
+export default function Header({ sidebarOpen, setSidebarOpen }: HeaderProps) {
+  const [location] = useLocation();
+  const { user } = useAuth();
+
+  const getDynamicMeta = (path: string): { title: string; subtitle: string } => {
+    if (path.startsWith("/portal/aircraft/")) {
+      return { title: "Aircraft Detail", subtitle: "Leased aircraft info" };
+    }
+    if (path.startsWith("/owner/aircraft/")) {
+      return { title: "Aircraft Detail", subtitle: "Asset detail view" };
+    }
+    return { title: "Dashboard", subtitle: "Fleet overview" };
   };
-  
+
+  const meta = pageMeta[location] ?? getDynamicMeta(location);
+
   return (
-    <header className="bg-white shadow-sm z-10">
-      <div className="px-4 py-3 flex justify-between items-center">
-        <div className="flex items-center md:hidden">
+    <header className="sticky top-0 z-40 h-[64px] bg-white/75 backdrop-blur-2xl border-b border-black/[0.06]">
+      <div className="h-full px-6 flex items-center justify-between gap-4">
+
+        {/* Left — mobile toggle + page title */}
+        <div className="flex items-center gap-4 min-w-0">
           <Button
             variant="ghost"
             size="icon"
+            className="md:hidden shrink-0 h-9 w-9 rounded-xl hover:bg-black/5"
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            aria-label="Toggle menu"
           >
-            {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {sidebarOpen ? <X className="h-[18px] w-[18px]" /> : <Menu className="h-[18px] w-[18px]" />}
           </Button>
-        </div>
-        
-        <div className="flex-1 px-4 md:px-0">
-          <h2 className="text-lg font-sans font-semibold text-gray-700">{getPageTitle()}</h2>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <NotificationsDropdown />
-          
-          <div className="flex items-center space-x-2">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-[#3498db] text-white">
-                {user?.firstName?.[0] || user?.email?.[0] || 'U'}
-              </AvatarFallback>
-            </Avatar>
-            <span className="ml-2 text-sm font-sans text-gray-700 hidden md:block">
-              {user?.firstName || user?.lastName 
-                ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
-                : user?.email || 'User'}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => logoutMutation.mutate()}
-              disabled={logoutMutation.isPending}
-              aria-label="Sign out"
-              data-testid="button-logout"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
+
+          <div className="min-w-0">
+            <h1 className="text-[15px] font-semibold text-[#1d1d1f] leading-tight tracking-[-0.01em] truncate">
+              {meta.title}
+            </h1>
+            <p className="text-[11px] text-[#86868b] font-medium leading-tight hidden sm:block">
+              {meta.subtitle}
+            </p>
           </div>
         </div>
+
+        {/* Center — search */}
+        <div className="hidden md:flex flex-1 max-w-[320px] mx-auto">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-[14px] w-[14px] text-[#86868b]" />
+            <input
+              type="text"
+              placeholder="Search"
+              className="w-full h-[34px] pl-8 pr-4 bg-black/[0.06] rounded-[10px] text-[13px] text-[#1d1d1f] placeholder:text-[#86868b] font-medium outline-none focus:bg-black/[0.08] transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* Right — notifications + user */}
+        <div className="flex items-center gap-3 shrink-0">
+          <NotificationsDropdown />
+
+          <div className="hidden sm:flex items-center gap-2.5 pl-1 border-l border-black/[0.08]">
+            <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#6366f1] to-[#8b5cf6] flex items-center justify-center shadow-sm">
+              <span className="text-[11px] font-bold text-white leading-none">
+                {user?.firstName?.[0] || user?.email?.[0] || 'U'}
+              </span>
+            </div>
+            <span className="text-[13px] font-medium text-[#1d1d1f] hidden lg:block">
+              {user?.firstName || user?.email || ''}
+            </span>
+          </div>
+        </div>
+
       </div>
     </header>
   );

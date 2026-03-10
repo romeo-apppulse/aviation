@@ -29,22 +29,41 @@ export function calculatePercentageChange(current: number, previous: number) {
 }
 
 export function getStatusColor(status: string) {
-  const statusColorMap: Record<string, string> = {
-    'Active': 'bg-green-100 text-green-800',
-    'Expired': 'bg-gray-100 text-gray-800',
-    'Terminated': 'bg-red-100 text-red-800',
-    'Leased': 'bg-green-100 text-green-800',
-    'Available': 'bg-blue-100 text-blue-800',
-    'Maintenance': 'bg-yellow-100 text-yellow-800',
-    'Unassigned': 'bg-red-100 text-red-800',
-    'Paid': 'bg-green-100 text-green-800',
-    'Pending': 'bg-yellow-100 text-yellow-800',
-    'Overdue': 'bg-red-100 text-red-800',
-    'Scheduled': 'bg-blue-100 text-blue-800',
-    'Completed': 'bg-green-100 text-green-800',
+  // Premium color palette mapping
+  const statusMap: Record<string, string> = {
+    // Semantic states
+    'success': 'text-[#10b981] bg-[#ecfdf5] border-[#d1fae5] shadow-[#10b98120]',
+    'warning': 'text-[#f59e0b] bg-[#fffbeb] border-[#fef3c7] shadow-[#f59e0b20]',
+    'error': 'text-[#ef4444] bg-[#fef2f2] border-[#fee2e2] shadow-[#ef444420]',
+    'info': 'text-[#6366f1] bg-[#f5f3ff] border-[#ede9fe] shadow-[#6366f120]',
+
+    // Functional states (mapped to premium tokens)
+    'Active': 'text-[#10b981] bg-[#ecfdf5] border-[#d1fae5]',
+    'Leased': 'text-[#10b981] bg-[#ecfdf5] border-[#d1fae5]',
+    'Paid': 'text-[#10b981] bg-[#ecfdf5] border-[#d1fae5]',
+    'Completed': 'text-[#10b981] bg-[#ecfdf5] border-[#d1fae5]',
+
+    'Pending': 'text-[#f59e0b] bg-[#fffbeb] border-[#fef3c7]',
+    'Maintenance': 'text-[#f59e0b] bg-[#fffbeb] border-[#fef3c7]',
+    'Scheduled': 'text-[#6366f1] bg-[#f5f3ff] border-[#ede9fe]',
+    'Available': 'text-[#6366f1] bg-[#f5f3ff] border-[#ede9fe]',
+
+    'Overdue': 'text-[#ef4444] bg-[#fef2f2] border-[#fee2e2]',
+    'Terminated': 'text-[#ef4444] bg-[#fef2f2] border-[#fee2e2]',
+    'Unassigned': 'text-[#ef4444] bg-[#fef2f2] border-[#fee2e2]',
+    'Blocked': 'text-[#ef4444] bg-[#fef2f2] border-[#fee2e2]',
+    'blocked': 'text-[#ef4444] bg-[#fef2f2] border-[#fee2e2]',
+
+    // User account states
+    'approved': 'text-[#10b981] bg-[#ecfdf5] border-[#d1fae5]',
+    'pending': 'text-[#f59e0b] bg-[#fffbeb] border-[#fef3c7]',
+    'Expired': 'text-[#64748b] bg-[#f8fafc] border-[#f1f5f9]',
+    'submitted': 'text-[#6366f1] bg-[#f5f3ff] border-[#ede9fe]',
+    'verified': 'text-[#10b981] bg-[#ecfdf5] border-[#d1fae5]',
+    'disputed': 'text-[#ef4444] bg-[#fef2f2] border-[#fee2e2]',
   };
 
-  return statusColorMap[status] || 'bg-gray-100 text-gray-800';
+  return statusMap[status] || 'text-[#64748b] bg-[#f8fafc] border-[#f1f5f9]';
 }
 
 export function getInitials(name: string) {
@@ -65,13 +84,13 @@ export function getDaysDifference(dateStr: string | Date): number {
 
 export function getRelativeDateLabel(dateStr: string | Date): string {
   const days = getDaysDifference(dateStr);
-  
+
   if (days === 0) return 'Today';
   if (days === 1) return 'Tomorrow';
   if (days === -1) return 'Yesterday';
-  
+
   if (days > 0 && days < 7) return `In ${days} days`;
   if (days < 0 && days > -7) return `${Math.abs(days)} days ago`;
-  
+
   return formatDate(dateStr);
 }

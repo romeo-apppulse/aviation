@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { User } from "@shared/schema";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Helmet } from "react-helmet";
 import { Search, UserCheck, UserX, Trash2, Users, Clock, CheckCircle, XCircle, Edit, Plus, Save, X } from "lucide-react";
-import { formatDate } from "@/lib/utils";
-import { apiRequest } from "@/lib/queryClient";
+import { formatDate, getStatusColor } from "@/lib/utils";
+import LesseeDetailDrawer from "@/components/lessees/lessee-detail-drawer";
+import OwnerDetailDrawer from "@/components/owners/owner-detail-drawer";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -32,7 +34,7 @@ const userEditSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
-  password: z.string().optional(),
+  password: z.string().min(8, "Password must be at least 8 characters").optional().or(z.literal("")),
   role: z.enum(["user", "admin", "super_admin"]),
   status: z.enum(["pending", "approved", "blocked"])
 });
@@ -43,7 +45,7 @@ const newUserSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   email: z.string().email("Invalid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
   role: z.enum(["user", "admin"]),
 });
 
@@ -51,11 +53,14 @@ type NewUserForm = z.infer<typeof newUserSchema>;
 
 export default function AdminUsers() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "blocked">("all");
+  const [filter, setFilter] = useState<"all" | "pending" | "approved" | "blocked" | "invited">("all");
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showNewUserDialog, setShowNewUserDialog] = useState(false);
+  const [selectedLesseeId, setSelectedLesseeId] = useState<number>(0);
+  const [lesseeDrawerOpen, setLesseeDrawerOpen] = useState(false);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<number>(0);
+  const [ownerDrawerOpen, setOwnerDrawerOpen] = useState(false);
   const { toast } = useToast();
-  const queryClient = useQueryClient();
 
   const { data: users, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
@@ -109,10 +114,7 @@ export default function AdminUsers() {
   });
 
   const deleteUserMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      const response = await apiRequest("DELETE", `/api/admin/users/${userId}`);
-      return response.json();
-    },
+    mutationFn: (userId: string) => apiRequest("DELETE", `/api/admin/users/${userId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({
@@ -208,8 +210,8 @@ export default function AdminUsers() {
       lastName: user.lastName || "",
       email: user.email || "",
       password: "",
-      role: user.role || "user",
-      status: user.status || "pending"
+      role: (user.role || "user") as "user" | "admin" | "super_admin",
+      status: (user.status || "pending") as "pending" | "approved" | "blocked"
     });
   };
 
@@ -224,28 +226,15 @@ export default function AdminUsers() {
   };
 
   const filteredUsers = users?.filter((user) => {
-    const matchesSearch = 
+    const matchesSearch =
       user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.lastName?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesFilter = filter === "all" || user.status === filter;
-    
+
     return matchesSearch && matchesFilter;
   }) || [];
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "approved":
-        return "bg-green-100 text-green-800";
-      case "pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "blocked":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
-    }
-  };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -255,6 +244,8 @@ export default function AdminUsers() {
         return <Clock className="h-4 w-4" />;
       case "blocked":
         return <XCircle className="h-4 w-4" />;
+      case "invited":
+        return <Clock className="h-4 w-4" />;
       default:
         return null;
     }
@@ -273,8 +264,8 @@ export default function AdminUsers() {
   return (
     <>
       <Helmet>
-        <title>User Management - Aviation Ape</title>
-        <meta name="description" content="Manage user accounts and permissions in Aviation Ape portal" />
+        <title>User Management - AeroLease Manager</title>
+        <meta name="description" content="Manage user accounts and permissions in AeroLease Manager portal" />
       </Helmet>
 
       <div className="p-6 space-y-6">
@@ -285,7 +276,7 @@ export default function AdminUsers() {
           </div>
           <Button
             onClick={() => setShowNewUserDialog(true)}
-            className="bg-[#3498db] hover:bg-[#2980b9]"
+            className="bg-brand hover:bg-brand-hover text-white"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add New User
@@ -392,6 +383,13 @@ export default function AdminUsers() {
                   >
                     Blocked
                   </Button>
+                  <Button
+                    variant={filter === "invited" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFilter("invited")}
+                  >
+                    Invited
+                  </Button>
                 </div>
               </div>
             </div>
@@ -401,12 +399,14 @@ export default function AdminUsers() {
               <table className="w-full min-w-[800px]">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left p-2 w-[25%]">User</th>
-                    <th className="text-left p-2 w-[25%]">Email</th>
-                    <th className="text-left p-2 w-[12%]">Status</th>
-                    <th className="text-left p-2 w-[10%]">Role</th>
-                    <th className="text-left p-2 w-[13%]">Joined</th>
-                    <th className="text-left p-2 w-[15%]">Actions</th>
+                    <th className="text-left p-2">User</th>
+                    <th className="text-left p-2">Email</th>
+                    <th className="text-left p-2">Status</th>
+                    <th className="text-left p-2">Role</th>
+                    <th className="text-left p-2">Linked Entity</th>
+                    <th className="text-left p-2">Last Login</th>
+                    <th className="text-left p-2">Joined</th>
+                    <th className="text-left p-2">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -421,7 +421,7 @@ export default function AdminUsers() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="font-medium text-sm break-words leading-tight">
-                              {user.firstName && user.lastName 
+                              {user.firstName && user.lastName
                                 ? `${user.firstName} ${user.lastName}`
                                 : user.email
                               }
@@ -443,6 +443,36 @@ export default function AdminUsers() {
                         <Badge variant="outline" className="capitalize text-xs">
                           {user.role || 'user'}
                         </Badge>
+                      </td>
+                      <td className="p-2">
+                        {(user as any).lesseeId ? (
+                          <span
+                            className="text-xs text-brand hover:underline cursor-pointer font-medium"
+                            onClick={() => { setSelectedLesseeId((user as any).lesseeId); setLesseeDrawerOpen(true); }}
+                            title={`View Flight School (ID: ${(user as any).lesseeId})`}
+                          >
+                            {(user as any).lesseeName
+                              ? (user as any).lesseeName
+                              : `Flight School (ID: ${(user as any).lesseeId})`}
+                          </span>
+                        ) : (user as any).ownerId ? (
+                          <span
+                            className="text-xs text-brand hover:underline cursor-pointer font-medium"
+                            onClick={() => { setSelectedOwnerId((user as any).ownerId); setOwnerDrawerOpen(true); }}
+                            title={`View Owner (ID: ${(user as any).ownerId})`}
+                          >
+                            {(user as any).ownerName
+                              ? (user as any).ownerName
+                              : `Owner (ID: ${(user as any).ownerId})`}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="p-2">
+                        <span className="text-xs">
+                          {(user as any).lastLoginAt ? formatDate((user as any).lastLoginAt) : "Never"}
+                        </span>
                       </td>
                       <td className="p-2">
                         <span className="text-xs">{formatDate(user.createdAt || new Date())}</span>
@@ -491,7 +521,7 @@ export default function AdminUsers() {
                               )}
                               {user.status === 'blocked' && (
                                 <Button
-                                  size="sm"  
+                                  size="sm"
                                   variant="outline"
                                   className="text-green-600 hover:text-green-700"
                                   onClick={() => approveUserMutation.mutate(user.id)}
@@ -742,7 +772,7 @@ export default function AdminUsers() {
                   <FormItem>
                     <FormLabel>Password</FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="Password (min 6 characters)" {...field} />
+                      <Input type="password" placeholder="Password (min 8 characters)" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -783,6 +813,18 @@ export default function AdminUsers() {
           </Form>
         </DialogContent>
       </Dialog>
+
+      {/* Entity Detail Drawers */}
+      <LesseeDetailDrawer
+        isOpen={lesseeDrawerOpen}
+        onClose={() => setLesseeDrawerOpen(false)}
+        lesseeId={selectedLesseeId}
+      />
+      <OwnerDetailDrawer
+        isOpen={ownerDrawerOpen}
+        onClose={() => setOwnerDrawerOpen(false)}
+        ownerId={selectedOwnerId}
+      />
     </>
   );
 }

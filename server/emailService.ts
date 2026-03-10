@@ -217,6 +217,114 @@ class EmailService {
   isReady(): boolean {
     return this.isConfigured;
   }
+
+  async sendInviteEmail({ to, firstName, inviteUrl, role }: {
+    to: string;
+    firstName: string;
+    inviteUrl: string;
+    role: 'flight_school' | 'asset_owner';
+  }): Promise<boolean> {
+    if (!this.isConfigured) {
+      console.error('Email service not configured');
+      return false;
+    }
+
+    const roleLabel = role === 'flight_school' ? 'Flight School' : 'Asset Owner';
+    const companyName = 'AeroLease Wise';
+    const brandColor = '#5856D6'; // Indigo/purple
+
+    const html = `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>You've been invited to AeroLease Wise</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background: #f5f5f7; }
+          .container { max-width: 600px; margin: 40px auto; padding: 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+          .header { background: ${brandColor}; color: white; padding: 40px 40px 30px; text-align: center; }
+          .header h1 { margin: 0 0 8px; font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+          .header p { margin: 0; opacity: 0.85; font-size: 15px; }
+          .content { background: white; padding: 40px; }
+          .greeting { font-size: 20px; font-weight: 600; color: #1a1a1a; margin-bottom: 16px; }
+          .body-text { font-size: 15px; color: #444; margin-bottom: 24px; line-height: 1.7; }
+          .role-badge { display: inline-block; background: ${brandColor}15; color: ${brandColor}; border: 1px solid ${brandColor}30; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: 600; margin-bottom: 28px; }
+          .cta-wrapper { text-align: center; margin: 36px 0; }
+          .cta-button { background: ${brandColor}; color: white; padding: 16px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-size: 16px; font-weight: 700; letter-spacing: 0.2px; }
+          .url-fallback { font-size: 13px; color: #888; margin-top: 20px; word-break: break-all; }
+          .expiry-note { background: #fff8e1; border: 1px solid #ffe082; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #795548; margin-bottom: 28px; }
+          .footer { background: #f8f9fa; padding: 24px 40px; text-align: center; font-size: 12px; color: #888; border-top: 1px solid #eee; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>${companyName}</h1>
+            <p>Aircraft Management Platform</p>
+          </div>
+          <div class="content">
+            <p class="greeting">Hello ${firstName},</p>
+            <p class="body-text">You've been invited to access the <strong>${companyName}</strong> platform.</p>
+            <div><span class="role-badge">${roleLabel}</span></div>
+            <p class="body-text">Your account has been created. Click the button below to set your password and get started with your ${roleLabel} portal.</p>
+            <div class="expiry-note">
+              ⏰ This invitation link expires in <strong>24 hours</strong>. Please set up your account promptly.
+            </div>
+            <div class="cta-wrapper">
+              <a href="${inviteUrl}" class="cta-button">Set Up Your Account</a>
+            </div>
+            <p class="url-fallback">If the button doesn't work, copy and paste this link into your browser:<br>${inviteUrl}</p>
+            <hr style="margin: 32px 0; border: none; border-top: 1px solid #eee;">
+            <p style="font-size:13px;color:#888;">Need help? Contact support at <a href="mailto:support@aerolease.com" style="color:${brandColor};">support@aerolease.com</a></p>
+          </div>
+          <div class="footer">
+            <p>${companyName} — Aircraft Management System</p>
+            <p>This is an automated invitation. Please do not reply to this email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `
+${companyName} — You've been invited!
+
+Hello ${firstName},
+
+You've been invited to access the ${companyName} platform as a ${roleLabel}.
+
+Click the link below to set your password and get started:
+${inviteUrl}
+
+This invitation expires in 24 hours.
+
+Need help? Email support@aerolease.com
+
+${companyName} — Aircraft Management System
+This is an automated invitation. Please do not reply.
+    `;
+
+    try {
+      const mailOptions = {
+        from: `"AeroLease Wise" <${EMAIL_CONFIG.auth.user}>`,
+        to,
+        subject: "You've been invited to AeroLease Wise",
+        text,
+        html,
+      };
+
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('Invite email sent successfully:', info.messageId);
+      if (nodemailer.getTestMessageUrl(info)) {
+        console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+      }
+      return true;
+    } catch (error) {
+      console.error('Failed to send invite email:', error);
+      return false;
+    }
+  }
 }
 
 // Export singleton instance

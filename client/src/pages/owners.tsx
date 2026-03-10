@@ -1,8 +1,12 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Owner, InsertOwner } from "@shared/schema";
+import { Owner, InsertOwner, AircraftWithDetails } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Plus, Mail, Phone, MapPin, User, Search, Edit, Trash2, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useModal } from "@/hooks/use-modal";
+import { Plus, Mail, Phone, MapPin, User, Search, Edit, Trash2, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import OwnerDetailDrawer from "@/components/owners/owner-detail-drawer";
+import AircraftDetailsModal from "@/components/aircraft/aircraft-details-modal";
 import { Helmet } from "react-helmet";
 import { formatCurrency } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -78,6 +82,8 @@ export default function Owners() {
   const [addOwnerOpen, setAddOwnerOpen] = useState(false);
   const [editingOwner, setEditingOwner] = useState<Owner | null>(null);
   const [deleteOwner, setDeleteOwner] = useState<Owner | null>(null);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<number | null>(null);
+  const aircraftModal = useModal<AircraftWithDetails>(false);
   const { toast } = useToast();
 
   const { data: owners, isLoading } = useQuery<Owner[]>({
@@ -102,43 +108,43 @@ export default function Owners() {
 
   const filteredAndSortedOwners = owners
     ? owners
-        .filter((owner) =>
-          owner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          owner.email.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        .sort((a, b) => {
-          let aValue: any;
-          let bValue: any;
-          
-          switch (sortField) {
-            case 'name':
-              aValue = a.name.toLowerCase();
-              bValue = b.name.toLowerCase();
-              break;
-            case 'email':
-              aValue = a.email.toLowerCase();
-              bValue = b.email.toLowerCase();
-              break;
-            case 'phone':
-              aValue = (a.phone || "").toLowerCase();
-              bValue = (b.phone || "").toLowerCase();
-              break;
-            case 'address':
-              aValue = (a.address || "").toLowerCase();
-              bValue = (b.address || "").toLowerCase();
-              break;
-            default:
-              return 0;
-          }
-          
-          if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-          if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-          return 0;
-        })
+      .filter((owner) =>
+        owner.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        owner.email.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortField) {
+          case 'name':
+            aValue = a.name.toLowerCase();
+            bValue = b.name.toLowerCase();
+            break;
+          case 'email':
+            aValue = a.email.toLowerCase();
+            bValue = b.email.toLowerCase();
+            break;
+          case 'phone':
+            aValue = (a.phone || "").toLowerCase();
+            bValue = (b.phone || "").toLowerCase();
+            break;
+          case 'address':
+            aValue = (a.address || "").toLowerCase();
+            bValue = (b.address || "").toLowerCase();
+            break;
+          default:
+            return 0;
+        }
+
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      })
     : [];
 
   const createOwnerMutation = useMutation({
-    mutationFn: (data: InsertOwner) => 
+    mutationFn: (data: InsertOwner) =>
       apiRequest("POST", "/api/owners", data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/owners"] });
@@ -159,7 +165,7 @@ export default function Owners() {
   });
 
   const updateOwnerMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<InsertOwner> }) => 
+    mutationFn: ({ id, data }: { id: number; data: Partial<InsertOwner> }) =>
       apiRequest("PUT", `/api/owners/${id}`, data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/owners"] });
@@ -180,7 +186,7 @@ export default function Owners() {
   });
 
   const deleteOwnerMutation = useMutation({
-    mutationFn: (id: number) => 
+    mutationFn: (id: number) =>
       apiRequest("DELETE", `/api/owners/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/owners"] });
@@ -257,12 +263,12 @@ export default function Owners() {
             Manage all aircraft owners and their details
           </p>
         </div>
-        <Button 
+        <Button
           onClick={() => {
             setEditingOwner(null);
             setAddOwnerOpen(true);
           }}
-          className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+          className="bg-brand hover:bg-brand-hover text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Owner
@@ -326,74 +332,105 @@ export default function Owners() {
         viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredAndSortedOwners.map((owner) => (
-            <Card key={owner.id}>
-              <CardContent className="p-6">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="font-bold text-lg text-gray-900">{owner.name}</h3>
-                    <p className="text-sm text-gray-500 flex items-center mt-1">
-                      <User className="h-3.5 w-3.5 mr-1" />
-                      Owner
-                    </p>
+              <Card key={owner.id}>
+                <CardContent className="p-6">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-lg text-gray-900">{owner.name}</h3>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm text-gray-500 flex items-center">
+                          <User className="h-3.5 w-3.5 mr-1" />
+                          Owner
+                        </p>
+                        {owner.portalStatus && owner.portalStatus !== "none" && (
+                          <Badge
+                            variant="outline"
+                            className={
+                              owner.portalStatus === "active"
+                                ? "text-green-700 border-green-300 bg-green-50 text-xs"
+                                : owner.portalStatus === "invited"
+                                ? "text-blue-700 border-blue-300 bg-blue-50 text-xs"
+                                : "text-gray-600 border-gray-300 bg-gray-50 text-xs"
+                            }
+                          >
+                            {owner.portalStatus}
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingOwner(owner);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setDeleteOwner(owner);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingOwner(owner);
-                      }}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setDeleteOwner(owner);
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-                
-                <div className="mt-4 space-y-2">
-                  <div className="flex items-center text-sm">
-                    <Mail className="h-4 w-4 mr-2 text-gray-500" />
-                    <a href={`mailto:${owner.email}`} className="text-[#3498db]">
-                      {owner.email}
-                    </a>
-                  </div>
-                  
-                  {owner.phone && (
+
+                  <div className="mt-4 space-y-2">
                     <div className="flex items-center text-sm">
-                      <Phone className="h-4 w-4 mr-2 text-gray-500" />
-                      <a href={`tel:${owner.phone}`} className="text-gray-700">
-                        {owner.phone}
+                      <Mail className="h-4 w-4 mr-2 text-gray-500" />
+                      <a href={`mailto:${owner.email}`} className="text-brand">
+                        {owner.email}
                       </a>
                     </div>
-                  )}
-                  
-                  {owner.address && (
-                    <div className="flex items-start text-sm">
-                      <MapPin className="h-4 w-4 mr-2 text-gray-500 mt-0.5" />
-                      <span className="text-gray-700">{owner.address}</span>
+
+                    {owner.phone && (
+                      <div className="flex items-center text-sm">
+                        <Phone className="h-4 w-4 mr-2 text-gray-500" />
+                        <a href={`tel:${owner.phone}`} className="text-gray-700">
+                          {owner.phone}
+                        </a>
+                      </div>
+                    )}
+
+                    {owner.address && (
+                      <div className="flex items-start text-sm">
+                        <MapPin className="h-4 w-4 mr-2 text-gray-500 mt-0.5" />
+                        <span className="text-gray-700">{owner.address}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {owner.paymentDetails && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm">
+                      <p className="font-medium text-gray-700 mb-1">Payment Details</p>
+                      <p className="text-gray-600">{owner.paymentDetails}</p>
                     </div>
                   )}
-                </div>
-                
-                {owner.paymentDetails && (
-                  <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm">
-                    <p className="font-medium text-gray-700 mb-1">Payment Details</p>
-                    <p className="text-gray-600">{owner.paymentDetails}</p>
+
+                  <div className="mt-4 pt-4 border-t border-gray-100">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedOwnerId(owner.id);
+                      }}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      View Portfolio
+                    </Button>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
           </div>
         ) : (
           <Card>
@@ -444,6 +481,7 @@ export default function Owners() {
                       {getSortIcon('address')}
                     </Button>
                   </TableHead>
+                  <TableHead>Portal Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -452,7 +490,7 @@ export default function Owners() {
                   <TableRow key={owner.id} className="hover:bg-gray-50">
                     <TableCell className="font-medium">{owner.name}</TableCell>
                     <TableCell>
-                      <a href={`mailto:${owner.email}`} className="text-[#3498db] hover:underline">
+                      <a href={`mailto:${owner.email}`} className="text-brand hover:underline">
                         {owner.email}
                       </a>
                     </TableCell>
@@ -473,7 +511,33 @@ export default function Owners() {
                       )}
                     </TableCell>
                     <TableCell>
+                      {owner.portalStatus && owner.portalStatus !== "none" ? (
+                        <Badge
+                          variant="outline"
+                          className={
+                            owner.portalStatus === "active"
+                              ? "text-green-700 border-green-300 bg-green-50 text-xs"
+                              : owner.portalStatus === "invited"
+                              ? "text-blue-700 border-blue-300 bg-blue-50 text-xs"
+                              : "text-gray-600 border-gray-300 bg-gray-50 text-xs"
+                          }
+                        >
+                          {owner.portalStatus}
+                        </Badge>
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
                       <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelectedOwnerId(owner.id)}
+                          title="View Portfolio"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -517,7 +581,7 @@ export default function Owners() {
                 setEditingOwner(null);
                 setAddOwnerOpen(true);
               }}
-              className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+              className="bg-brand hover:bg-brand-hover text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Owner
@@ -633,9 +697,9 @@ export default function Owners() {
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   type="submit"
-                  className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+                  className="bg-brand hover:bg-brand-hover text-white"
                   disabled={createOwnerMutation.isPending || updateOwnerMutation.isPending}
                 >
                   {(createOwnerMutation.isPending || updateOwnerMutation.isPending) ? "Saving..." : editingOwner ? "Update Owner" : "Add Owner"}
@@ -672,6 +736,28 @@ export default function Owners() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Owner Detail Drawer */}
+      {selectedOwnerId && (
+        <OwnerDetailDrawer
+          isOpen={!!selectedOwnerId}
+          onClose={() => setSelectedOwnerId(null)}
+          ownerId={selectedOwnerId}
+          onViewAircraft={(aircraft) => {
+            setSelectedOwnerId(null);
+            aircraftModal.openModal(aircraft);
+          }}
+        />
+      )}
+
+      {/* Aircraft Details Modal (from owner drawer) */}
+      {aircraftModal.isOpen && aircraftModal.data && (
+        <AircraftDetailsModal
+          isOpen={aircraftModal.isOpen}
+          onClose={aircraftModal.closeModal}
+          aircraft={aircraftModal.data}
+        />
+      )}
     </>
   );
 }

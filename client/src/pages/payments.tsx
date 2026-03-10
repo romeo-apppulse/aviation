@@ -1,14 +1,17 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Payment, Lease, LeaseWithDetails } from "@shared/schema";
+import { Payment, Lease, LeaseWithDetails, PaymentWithDetails, AircraftWithDetails } from "@shared/schema";
 import { useState } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
+import { formatCurrency, formatDate, getStatusColor, cn } from "@/lib/utils";
 import { Helmet } from "react-helmet";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
+import { useModal } from "@/hooks/use-modal";
 import { CalendarIcon, Check, Clock, DollarSign, Plus, Search, Filter, FileText, Plane, ArrowUpDown, ArrowUp, ArrowDown, Upload, Link2, X, Download, Trash2 } from "lucide-react";
+import AircraftDetailsModal from "@/components/aircraft/aircraft-details-modal";
+import LesseeDetailDrawer from "@/components/lessees/lessee-detail-drawer";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -100,9 +103,12 @@ export default function Payments() {
   const [invoiceMode, setInvoiceMode] = useState<"url" | "file">("url");
   const [selectedInvoiceFile, setSelectedInvoiceFile] = useState<File | null>(null);
   const [invoicePreview, setInvoicePreview] = useState<string>("");
+  const aircraftModal = useModal<AircraftWithDetails>();
+  const [selectedLesseeId, setSelectedLesseeId] = useState<number>(0);
+  const [lesseeDrawerOpen, setLesseeDrawerOpen] = useState(false);
   const { toast } = useToast();
 
-  const { data: payments, isLoading } = useQuery<Payment[]>({
+  const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
     queryKey: ["/api/payments"],
   });
 
@@ -124,57 +130,59 @@ export default function Payments() {
     if (sortField !== field) {
       return <ArrowUpDown className="h-4 w-4" />;
     }
-    return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+    return sortDirection === 'asc' ? <ArrowUp className="h-4 w-4 text-brand" /> : <ArrowDown className="h-4 w-4 text-brand" />;
   };
 
   const filteredAndSortedPayments = payments
     ? payments
-        .filter((payment) => {
-          const matchesSearch =
-            payment.period.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            (payment.notes && payment.notes.toLowerCase().includes(searchTerm.toLowerCase()));
-          
-          const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
-          
-          return matchesSearch && matchesStatus;
-        })
-        .sort((a, b) => {
-          let aValue: any;
-          let bValue: any;
-          
-          switch (sortField) {
-            case 'period':
-              aValue = a.period.toLowerCase();
-              bValue = b.period.toLowerCase();
-              break;
-            case 'amount':
-              aValue = a.amount;
-              bValue = b.amount;
-              break;
-            case 'dueDate':
-              aValue = new Date(a.dueDate);
-              bValue = new Date(b.dueDate);
-              break;
-            case 'paidDate':
-              aValue = a.paidDate ? new Date(a.paidDate) : new Date('1900-01-01');
-              bValue = b.paidDate ? new Date(b.paidDate) : new Date('1900-01-01');
-              break;
-            case 'status':
-              aValue = (a.status || '').toLowerCase();
-              bValue = (b.status || '').toLowerCase();
-              break;
-            default:
-              return 0;
-          }
-          
-          if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-          if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
-          return 0;
-        })
+      .filter((payment) => {
+        const matchesSearch =
+          payment.period.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (payment.notes && payment.notes.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (payment.lease?.aircraft?.registration.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (payment.lease?.lessee?.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+        const matchesStatus = statusFilter === "all" || payment.status === statusFilter;
+
+        return matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        let aValue: any;
+        let bValue: any;
+
+        switch (sortField) {
+          case 'period':
+            aValue = a.period.toLowerCase();
+            bValue = b.period.toLowerCase();
+            break;
+          case 'amount':
+            aValue = a.amount;
+            bValue = b.amount;
+            break;
+          case 'dueDate':
+            aValue = new Date(a.dueDate);
+            bValue = new Date(b.dueDate);
+            break;
+          case 'paidDate':
+            aValue = a.paidDate ? new Date(a.paidDate) : new Date('1900-01-01');
+            bValue = b.paidDate ? new Date(b.paidDate) : new Date('1900-01-01');
+            break;
+          case 'status':
+            aValue = (a.status || '').toLowerCase();
+            bValue = (b.status || '').toLowerCase();
+            break;
+          default:
+            return 0;
+        }
+
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      })
     : [];
 
   const createPaymentMutation = useMutation({
-    mutationFn: (data: PaymentFormValues) => 
+    mutationFn: (data: PaymentFormValues) =>
       apiRequest("POST", "/api/payments", data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
@@ -196,7 +204,7 @@ export default function Payments() {
   });
 
   const updatePaymentMutation = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<Payment> }) => 
+    mutationFn: ({ id, data }: { id: number; data: Partial<Payment> }) =>
       apiRequest("PUT", `/api/payments/${id}`, data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
@@ -218,7 +226,7 @@ export default function Payments() {
   });
 
   const deletePaymentMutation = useMutation({
-    mutationFn: (id: number) => 
+    mutationFn: (id: number) =>
       apiRequest("DELETE", `/api/payments/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
@@ -315,15 +323,15 @@ export default function Payments() {
 
   async function onSubmit(values: any) {
     if (createPaymentMutation.isPending) return;
-    
+
     try {
       let invoiceData = values.invoiceUrl || "";
-      
+
       // If file mode and a file is selected, convert to base64
       if (invoiceMode === "file" && selectedInvoiceFile) {
         invoiceData = await convertFileToBase64(selectedInvoiceFile);
       }
-      
+
       // Prepare the final data
       const finalData = {
         ...values,
@@ -331,7 +339,7 @@ export default function Payments() {
         invoiceNumber: values.invoiceNumber || "",
         notes: values.notes || "",
       };
-      
+
       createPaymentMutation.mutate(finalData);
     } catch (error) {
       console.error("Form submission error:", error);
@@ -375,9 +383,9 @@ export default function Payments() {
             Track and manage all lease payments
           </p>
         </div>
-        <Button 
+        <Button
           onClick={() => setAddPaymentOpen(true)}
-          className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+          className="bg-brand hover:bg-brand-hover text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Record Payment
@@ -400,7 +408,7 @@ export default function Payments() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <div className="w-full md:w-52">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger>
@@ -423,7 +431,7 @@ export default function Payments() {
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-8 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#3498db]"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-brand"></div>
             </div>
           ) : filteredAndSortedPayments.length > 0 ? (
             <div className="overflow-x-auto">
@@ -431,41 +439,46 @@ export default function Payments() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>
-                      <button 
+                      <button
                         onClick={() => handleSort('period')}
-                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                        className={cn("flex items-center gap-2 transition-colors", sortField === 'period' ? "text-brand" : "hover:text-gray-900")}
                       >
                         Period {getSortIcon('period')}
                       </button>
                     </TableHead>
+                    <TableHead>Aircraft</TableHead>
+                    <TableHead>Client</TableHead>
                     <TableHead>
-                      <button 
+                      <button
                         onClick={() => handleSort('amount')}
-                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                        className={cn("flex items-center gap-2 transition-colors", sortField === 'amount' ? "text-brand" : "hover:text-gray-900")}
                       >
                         Amount {getSortIcon('amount')}
                       </button>
                     </TableHead>
+                    <TableHead>Gross</TableHead>
+                    <TableHead>Commission</TableHead>
+                    <TableHead>Net</TableHead>
                     <TableHead>
-                      <button 
+                      <button
                         onClick={() => handleSort('dueDate')}
-                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                        className={cn("flex items-center gap-2 transition-colors", sortField === 'dueDate' ? "text-brand" : "hover:text-gray-900")}
                       >
                         Due Date {getSortIcon('dueDate')}
                       </button>
                     </TableHead>
                     <TableHead>
-                      <button 
+                      <button
                         onClick={() => handleSort('paidDate')}
-                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                        className={cn("flex items-center gap-2 transition-colors", sortField === 'paidDate' ? "text-brand" : "hover:text-gray-900")}
                       >
                         Paid Date {getSortIcon('paidDate')}
                       </button>
                     </TableHead>
                     <TableHead>
-                      <button 
+                      <button
                         onClick={() => handleSort('status')}
-                        className="flex items-center gap-2 hover:text-gray-900 transition-colors"
+                        className={cn("flex items-center gap-2 transition-colors", sortField === 'status' ? "text-brand" : "hover:text-gray-900")}
                       >
                         Status {getSortIcon('status')}
                       </button>
@@ -476,11 +489,49 @@ export default function Payments() {
                 <TableBody>
                   {filteredAndSortedPayments.map((payment) => (
                     <TableRow key={payment.id}>
-                      <TableCell className="font-medium">
-                        {payment.period}
+                      <TableCell>
+                        <div className="font-medium">{payment.period}</div>
+                        <div className="text-xs text-gray-500">{payment.invoiceNumber || 'No Invoice #'}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div
+                          className="flex items-center cursor-pointer group"
+                          onClick={() => {
+                            if (payment.lease?.aircraft) {
+                              aircraftModal.openModal(payment.lease.aircraft as AircraftWithDetails);
+                            }
+                          }}
+                        >
+                          <Plane className="h-4 w-4 mr-2 text-gray-400" />
+                          <span className="font-medium text-brand group-hover:underline">{payment.lease?.aircraft?.registration || 'N/A'}</span>
+                        </div>
+                        <div className="text-xs text-gray-500">{payment.lease?.aircraft?.make} {payment.lease?.aircraft?.model}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div
+                          className={payment.lease?.lessee ? "font-medium text-brand hover:underline cursor-pointer" : "font-medium"}
+                          onClick={() => {
+                            if (payment.lease?.lessee) {
+                              setSelectedLesseeId(payment.lease.lessee.id);
+                              setLesseeDrawerOpen(true);
+                            }
+                          }}
+                        >
+                          {payment.lease?.lessee?.name || 'N/A'}
+                        </div>
+                        <div className="text-xs text-gray-500">{payment.lease?.lessee?.email}</div>
                       </TableCell>
                       <TableCell className="font-mono">
                         {formatCurrency(payment.amount)}
+                      </TableCell>
+                      <TableCell className="font-mono text-gray-600">
+                        {payment.grossAmount != null ? formatCurrency(payment.grossAmount) : <span className="text-gray-400">—</span>}
+                      </TableCell>
+                      <TableCell className="font-mono text-gray-600">
+                        {payment.commissionAmount != null ? formatCurrency(payment.commissionAmount) : <span className="text-gray-400">—</span>}
+                      </TableCell>
+                      <TableCell className="font-mono text-gray-600">
+                        {payment.netAmount != null ? formatCurrency(payment.netAmount) : <span className="text-gray-400">—</span>}
                       </TableCell>
                       <TableCell>
                         {formatDate(payment.dueDate)}
@@ -499,8 +550,8 @@ export default function Payments() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {payment.status !== "Paid" && (
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
                               className="text-green-600 border-green-200 hover:bg-green-50"
                               onClick={() => setMarkAsPaidId(payment.id)}
@@ -510,10 +561,10 @@ export default function Payments() {
                             </Button>
                           )}
                           {payment.invoiceUrl && (
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               size="sm"
-                              className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                              className="text-brand border-blue-100 hover:bg-blue-50"
                               onClick={() => generateInvoiceDownload(payment)}
                             >
                               <Download className="h-4 w-4 mr-1" />
@@ -546,7 +597,7 @@ export default function Payments() {
                   : "Get started by recording a payment"}
               </p>
               {searchTerm || statusFilter !== "all" ? (
-                <Button 
+                <Button
                   onClick={() => {
                     setSearchTerm("");
                     setStatusFilter("all");
@@ -555,9 +606,9 @@ export default function Payments() {
                   Clear Filters
                 </Button>
               ) : (
-                <Button 
+                <Button
                   onClick={() => setAddPaymentOpen(true)}
-                  className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+                  className="bg-brand hover:bg-brand-hover text-white"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Record Payment
@@ -566,14 +617,15 @@ export default function Payments() {
             </div>
           )}
         </CardContent>
-      </Card>
+      </Card >
 
       {/* Add Payment Dialog */}
-      <Dialog open={addPaymentOpen} onOpenChange={(open) => {
+      < Dialog open={addPaymentOpen} onOpenChange={(open) => {
         if (!open) {
           handleCloseForm();
         }
-      }}>
+      }
+      }>
         <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Record New Payment</DialogTitle>
@@ -589,7 +641,7 @@ export default function Payments() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Lease Agreement</FormLabel>
-                    <Select 
+                    <Select
                       onValueChange={(value) => {
                         field.onChange(parseInt(value));
                         onLeaseChange(parseInt(value));
@@ -618,7 +670,7 @@ export default function Payments() {
                   </FormItem>
                 )}
               />
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -643,7 +695,7 @@ export default function Payments() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="period"
@@ -658,7 +710,7 @@ export default function Payments() {
                   )}
                 />
               </div>
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -695,7 +747,7 @@ export default function Payments() {
                     </FormItem>
                   )}
                 />
-                
+
                 <FormField
                   control={form.control}
                   name="status"
@@ -719,7 +771,7 @@ export default function Payments() {
                   )}
                 />
               </div>
-              
+
               {form.watch("status") === "Paid" && (
                 <FormField
                   control={form.control}
@@ -757,7 +809,7 @@ export default function Payments() {
                   )}
                 />
               )}
-              
+
               <FormField
                 control={form.control}
                 name="notes"
@@ -792,7 +844,7 @@ export default function Payments() {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Invoice Document (Optional)</FormLabel>
-                    
+
                     {/* Toggle between URL and File upload */}
                     <div className="flex gap-2 mb-3">
                       <Button
@@ -826,8 +878,8 @@ export default function Payments() {
 
                     {invoiceMode === "url" ? (
                       <FormControl>
-                        <Input 
-                          placeholder="URL to invoice document" 
+                        <Input
+                          placeholder="URL to invoice document"
                           {...field}
                           onChange={(e) => {
                             field.onChange(e);
@@ -875,12 +927,12 @@ export default function Payments() {
                         </div>
                       </div>
                     )}
-                    
+
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
+
               <DialogFooter>
                 <Button
                   type="button"
@@ -889,9 +941,9 @@ export default function Payments() {
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   type="submit"
-                  className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+                  className="bg-brand hover:bg-brand-hover text-white"
                   disabled={createPaymentMutation.isPending}
                 >
                   {createPaymentMutation.isPending ? "Saving..." : "Record Payment"}
@@ -900,10 +952,10 @@ export default function Payments() {
             </form>
           </Form>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Mark as Paid Confirmation */}
-      <Dialog open={markAsPaidId !== null} onOpenChange={(open) => {
+      < Dialog open={markAsPaidId !== null} onOpenChange={(open) => {
         if (!open) setMarkAsPaidId(null);
       }}>
         <DialogContent className="sm:max-w-[400px]">
@@ -943,10 +995,10 @@ export default function Payments() {
             </Button>
           </div>
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Delete Payment Confirmation */}
-      <AlertDialog open={!!deletePayment} onOpenChange={(open) => {
+      < AlertDialog open={!!deletePayment} onOpenChange={(open) => {
         if (!open) setDeletePayment(null);
       }}>
         <AlertDialogContent>
@@ -970,7 +1022,23 @@ export default function Payments() {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+      </AlertDialog >
+
+      {/* Entity Detail Modals/Drawers */}
+      {aircraftModal.data && (
+        <AircraftDetailsModal
+          isOpen={aircraftModal.isOpen}
+          onClose={aircraftModal.closeModal}
+          aircraft={aircraftModal.data}
+          onViewLessee={(lesseeId) => { setSelectedLesseeId(lesseeId); setLesseeDrawerOpen(true); }}
+        />
+      )}
+      <LesseeDetailDrawer
+        isOpen={lesseeDrawerOpen}
+        onClose={() => setLesseeDrawerOpen(false)}
+        lesseeId={selectedLesseeId}
+        onViewAircraft={(ac) => aircraftModal.openModal(ac as AircraftWithDetails)}
+      />
     </>
   );
 }

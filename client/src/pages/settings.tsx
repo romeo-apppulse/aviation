@@ -16,6 +16,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { AlertCircle, Save, User as UserIcon, Mail, Lock, Shield, CheckCircle, XCircle, Send } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50, "First name must be less than 50 characters"),
@@ -116,7 +117,7 @@ export default function Settings() {
         lastName: user.lastName || "",
         email: user.email || "",
       });
-      
+
       emailPreferencesForm.reset({
         emailNotificationsEnabled: user.emailNotificationsEnabled ?? true,
         emailPaymentReminders: user.emailPaymentReminders ?? true,
@@ -239,7 +240,8 @@ export default function Settings() {
 
       {/* Main Content Area */}
       <div className="flex-1 p-4">
-          {activeTab === "profile" && (
+        {activeTab === "profile" && (
+          user ? (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -251,10 +253,8 @@ export default function Settings() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Profile Picture Section */}
                 <div className="flex items-center space-x-4">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={user?.profileImageUrl || undefined} />
                     <AvatarFallback className="bg-blue-500 text-white text-lg">
                       {user?.firstName?.[0] || user?.email?.[0] || 'U'}
                     </AvatarFallback>
@@ -262,11 +262,8 @@ export default function Settings() {
                   <div>
                     <h3 className="text-lg font-medium">Profile Picture</h3>
                     <p className="text-sm text-gray-600 mb-2">
-                      Your profile picture is managed by your Replit account
+                      Manage your profile information and contact details
                     </p>
-                    <Button variant="outline" size="sm" disabled>
-                      Change Picture
-                    </Button>
                   </div>
                 </div>
 
@@ -325,8 +322,8 @@ export default function Settings() {
                       </AlertDescription>
                     </Alert>
 
-                    <Button 
-                      type="submit" 
+                    <Button
+                      type="submit"
                       disabled={updateProfileMutation.isPending}
                       className="w-full md:w-auto"
                     >
@@ -337,86 +334,90 @@ export default function Settings() {
                 </Form>
               </CardContent>
             </Card>
-          )}
+          ) : (
+            <Skeleton className="h-96 w-full" />
+          )
+        )}
 
-          {activeTab === "password" && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Lock className="h-5 w-5 mr-2" />
-                  Change Password
-                </CardTitle>
-                <CardDescription>
-                  Update your password to keep your account secure
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...passwordForm}>
-                  <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
-                    <FormField
-                      control={passwordForm.control}
-                      name="currentPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Current Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Enter your current password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+        {activeTab === "password" && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Lock className="h-5 w-5 mr-2" />
+                Change Password
+              </CardTitle>
+              <CardDescription>
+                Update your password to keep your account secure
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...passwordForm}>
+                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
+                  <FormField
+                    control={passwordForm.control}
+                    name="currentPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Current Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Enter your current password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                    <FormField
-                      control={passwordForm.control}
-                      name="newPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>New Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Enter your new password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <FormField
+                    control={passwordForm.control}
+                    name="newPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>New Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Enter your new password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                    <FormField
-                      control={passwordForm.control}
-                      name="confirmPassword"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Confirm New Password</FormLabel>
-                          <FormControl>
-                            <Input type="password" placeholder="Confirm your new password" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <FormField
+                    control={passwordForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm New Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" placeholder="Confirm your new password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                    <Alert>
-                      <Shield className="h-4 w-4" />
-                      <AlertDescription>
-                        Your password should be at least 8 characters long and contain a mix of letters, numbers, and symbols.
-                      </AlertDescription>
-                    </Alert>
+                  <Alert>
+                    <Shield className="h-4 w-4" />
+                    <AlertDescription>
+                      Your password should be at least 8 characters long and contain a mix of letters, numbers, and symbols.
+                    </AlertDescription>
+                  </Alert>
 
-                    <Button 
-                      type="submit" 
-                      disabled={updatePasswordMutation.isPending}
-                      className="w-full md:w-auto"
-                    >
-                      <Lock className="h-4 w-4 mr-2" />
-                      {updatePasswordMutation.isPending ? "Updating..." : "Update Password"}
-                    </Button>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          )}
+                  <Button
+                    type="submit"
+                    disabled={updatePasswordMutation.isPending}
+                    className="w-full md:w-auto"
+                  >
+                    <Lock className="h-4 w-4 mr-2" />
+                    {updatePasswordMutation.isPending ? "Updating..." : "Update Password"}
+                  </Button>
+                </form>
+              </Form>
+            </CardContent>
+          </Card>
+        )}
 
-          {activeTab === "notifications" && (
+        {activeTab === "notifications" && (
+          user ? (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -429,227 +430,230 @@ export default function Settings() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                {/* Email Service Status */}
-                <div className="border rounded-lg p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-base font-medium">Email Service Status</h3>
-                    {emailStatusLoading ? (
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                    ) : emailStatus?.emailServiceReady ? (
-                      <div className="flex items-center text-green-600">
-                        <CheckCircle className="h-5 w-5 mr-2" />
-                        Online
-                      </div>
-                    ) : (
-                      <div className="flex items-center text-red-600">
-                        <XCircle className="h-5 w-5 mr-2" />
-                        Offline
-                      </div>
-                    )}
-                  </div>
-                  
-                  <div className="text-sm text-gray-600 space-y-2">
-                    <p>
-                      <strong>Status:</strong> {emailStatus?.emailServiceReady ? 'Connected' : 'Not Available'}
-                    </p>
-                    <p>
-                      <strong>Your Email:</strong> {user?.email || 'Not provided'}
-                    </p>
-                    {emailStatus?.timestamp && (
+                  {/* Email Service Status */}
+                  <div className="border rounded-lg p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-base font-medium">Email Service Status</h3>
+                      {emailStatusLoading ? (
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                      ) : emailStatus?.emailServiceReady ? (
+                        <div className="flex items-center text-green-600">
+                          <CheckCircle className="h-5 w-5 mr-2" />
+                          Online
+                        </div>
+                      ) : (
+                        <div className="flex items-center text-red-600">
+                          <XCircle className="h-5 w-5 mr-2" />
+                          Offline
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-sm text-gray-600 space-y-2">
                       <p>
-                        <strong>Last Checked:</strong> {new Date(emailStatus.timestamp).toLocaleString()}
+                        <strong>Status:</strong> {emailStatus?.emailServiceReady ? 'Connected' : 'Not Available'}
                       </p>
+                      <p>
+                        <strong>Your Email:</strong> {user?.email || 'Not provided'}
+                      </p>
+                      {emailStatus?.timestamp && (
+                        <p>
+                          <strong>Last Checked:</strong> {new Date(emailStatus.timestamp).toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Test Email Section */}
+                  <div className="border rounded-lg p-3">
+                    <h3 className="text-base font-medium mb-2">Test Email Notifications</h3>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Send a test email notification to verify that the email system is working properly.
+                    </p>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button
+                        onClick={() => sendTestEmailMutation.mutate()}
+                        disabled={sendTestEmailMutation.isPending || !emailStatus?.emailServiceReady || !user?.email}
+                        className="flex-1 sm:flex-none"
+                      >
+                        <Send className="h-4 w-4 mr-2" />
+                        {sendTestEmailMutation.isPending ? "Sending..." : "Send Test Email"}
+                      </Button>
+                    </div>
+
+                    {!user?.email && (
+                      <Alert className="mt-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          You need to provide an email address in your profile to receive email notifications.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+
+                    {!emailStatus?.emailServiceReady && (
+                      <Alert className="mt-4">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Email service is currently unavailable. Please try again later or contact support.
+                        </AlertDescription>
+                      </Alert>
                     )}
                   </div>
-                </div>
 
-                {/* Test Email Section */}
-                <div className="border rounded-lg p-3">
-                  <h3 className="text-base font-medium mb-2">Test Email Notifications</h3>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Send a test email notification to verify that the email system is working properly.
-                  </p>
-                  
-                  <div className="flex flex-col sm:flex-row gap-3">
-                    <Button 
-                      onClick={() => sendTestEmailMutation.mutate()}
-                      disabled={sendTestEmailMutation.isPending || !emailStatus?.emailServiceReady || !user?.email}
-                      className="flex-1 sm:flex-none"
-                    >
-                      <Send className="h-4 w-4 mr-2" />
-                      {sendTestEmailMutation.isPending ? "Sending..." : "Send Test Email"}
-                    </Button>
+                  {/* Email Preferences Form */}
+                  <div className="border rounded-lg p-3">
+                    <h3 className="text-base font-medium mb-2">Email Preferences</h3>
+                    <p className="text-sm text-gray-600 mb-3">
+                      Control which email notifications you receive from AeroLease Manager.
+                    </p>
+
+                    <Form {...emailPreferencesForm}>
+                      <form onSubmit={emailPreferencesForm.handleSubmit(onEmailPreferencesSubmit)} className="space-y-1">
+                        {/* Master email toggle */}
+                        <FormField
+                          control={emailPreferencesForm.control}
+                          name="emailNotificationsEnabled"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base font-medium">
+                                  Email Notifications
+                                </FormLabel>
+                                <div className="text-sm text-gray-500">
+                                  Enable or disable all email notifications
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        {/* Individual notification types */}
+                        <div className="space-y-1">
+                          <FormField
+                            control={emailPreferencesForm.control}
+                            name="emailPaymentReminders"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">
+                                    Payment Reminders
+                                  </FormLabel>
+                                  <div className="text-xs text-gray-500">
+                                    Receive notifications when payments are due
+                                  </div>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    disabled={!emailPreferencesForm.watch('emailNotificationsEnabled')}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={emailPreferencesForm.control}
+                            name="emailMaintenanceAlerts"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">
+                                    Maintenance Alerts
+                                  </FormLabel>
+                                  <div className="text-xs text-gray-500">
+                                    Get notified about upcoming maintenance schedules
+                                  </div>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    disabled={!emailPreferencesForm.watch('emailNotificationsEnabled')}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={emailPreferencesForm.control}
+                            name="emailLeaseExpiry"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">
+                                    Lease Expiration Alerts
+                                  </FormLabel>
+                                  <div className="text-xs text-gray-500">
+                                    Receive alerts when leases are about to expire
+                                  </div>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    disabled={!emailPreferencesForm.watch('emailNotificationsEnabled')}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={emailPreferencesForm.control}
+                            name="emailSystemUpdates"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
+                                <div className="space-y-0.5">
+                                  <FormLabel className="text-sm font-medium">
+                                    System Updates
+                                  </FormLabel>
+                                  <div className="text-xs text-gray-500">
+                                    Get notified about system updates and new features
+                                  </div>
+                                </div>
+                                <FormControl>
+                                  <Switch
+                                    checked={field.value}
+                                    onCheckedChange={field.onChange}
+                                    disabled={!emailPreferencesForm.watch('emailNotificationsEnabled')}
+                                  />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+
+                        <div className="mt-2 mb-0">
+                          <Button
+                            type="submit"
+                            disabled={updateEmailPreferencesMutation.isPending}
+                            className="w-full md:w-auto"
+                          >
+                            <Save className="h-4 w-4 mr-2" />
+                            {updateEmailPreferencesMutation.isPending ? "Saving..." : "Save Preferences"}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
                   </div>
-
-                  {!user?.email && (
-                    <Alert className="mt-4">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        You need to provide an email address in your profile to receive email notifications.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-
-                  {!emailStatus?.emailServiceReady && (
-                    <Alert className="mt-4">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        Email service is currently unavailable. Please try again later or contact support.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                </div>
-
-                {/* Email Preferences Form */}
-                <div className="border rounded-lg p-3">
-                  <h3 className="text-base font-medium mb-2">Email Preferences</h3>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Control which email notifications you receive from AeroLease Manager.
-                  </p>
-                  
-                  <Form {...emailPreferencesForm}>
-                    <form onSubmit={emailPreferencesForm.handleSubmit(onEmailPreferencesSubmit)} className="space-y-1">
-                      {/* Master email toggle */}
-                      <FormField
-                        control={emailPreferencesForm.control}
-                        name="emailNotificationsEnabled"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-base font-medium">
-                                Email Notifications
-                              </FormLabel>
-                              <div className="text-sm text-gray-500">
-                                Enable or disable all email notifications
-                              </div>
-                            </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Individual notification types */}
-                      <div className="space-y-1">
-                        <FormField
-                          control={emailPreferencesForm.control}
-                          name="emailPaymentReminders"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-sm font-medium">
-                                  Payment Reminders
-                                </FormLabel>
-                                <div className="text-xs text-gray-500">
-                                  Receive notifications when payments are due
-                                </div>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                  disabled={!emailPreferencesForm.watch('emailNotificationsEnabled')}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={emailPreferencesForm.control}
-                          name="emailMaintenanceAlerts"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-sm font-medium">
-                                  Maintenance Alerts
-                                </FormLabel>
-                                <div className="text-xs text-gray-500">
-                                  Get notified about upcoming maintenance schedules
-                                </div>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                  disabled={!emailPreferencesForm.watch('emailNotificationsEnabled')}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={emailPreferencesForm.control}
-                          name="emailLeaseExpiry"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-sm font-medium">
-                                  Lease Expiration Alerts
-                                </FormLabel>
-                                <div className="text-xs text-gray-500">
-                                  Receive alerts when leases are about to expire
-                                </div>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                  disabled={!emailPreferencesForm.watch('emailNotificationsEnabled')}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={emailPreferencesForm.control}
-                          name="emailSystemUpdates"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-2">
-                              <div className="space-y-0.5">
-                                <FormLabel className="text-sm font-medium">
-                                  System Updates
-                                </FormLabel>
-                                <div className="text-xs text-gray-500">
-                                  Get notified about system updates and new features
-                                </div>
-                              </div>
-                              <FormControl>
-                                <Switch
-                                  checked={field.value}
-                                  onCheckedChange={field.onChange}
-                                  disabled={!emailPreferencesForm.watch('emailNotificationsEnabled')}
-                                />
-                              </FormControl>
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-
-                      <div className="mt-2 mb-0">
-                        <Button 
-                          type="submit" 
-                          disabled={updateEmailPreferencesMutation.isPending}
-                          className="w-full md:w-auto"
-                        >
-                          <Save className="h-4 w-4 mr-2" />
-                          {updateEmailPreferencesMutation.isPending ? "Saving..." : "Save Preferences"}
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </div>
                 </div>
               </CardContent>
             </Card>
-          )}
+          ) : (
+            <Skeleton className="h-[400px] w-full" />
+          )
+        )}
       </div>
-    </div>
+    </div >
   );
 }

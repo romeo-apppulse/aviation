@@ -1,5 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Document as DocumentType, InsertDocument } from "@shared/schema";
+import { Document as DocumentType, InsertDocument, AircraftWithDetails } from "@shared/schema";
 import { useState } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { formatDate } from "@/lib/utils";
@@ -8,7 +8,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { FileText, Plus, Search, Filter, Download, Trash2, Upload, File, FileSpreadsheet, FilePen, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useModal } from "@/hooks/use-modal";
+import { FileText, Plus, Search, Filter, Download, Trash2, Upload, File, FileSpreadsheet, FilePen, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown, Plane, Users, Briefcase, User } from "lucide-react";
+import AircraftDetailsModal from "@/components/aircraft/aircraft-details-modal";
+import LesseeDetailDrawer from "@/components/lessees/lessee-detail-drawer";
+import OwnerDetailDrawer from "@/components/owners/owner-detail-drawer";
 import {
   Card,
   CardContent,
@@ -63,7 +67,7 @@ import {
 const documentFormSchema = z.object({
   name: z.string().min(1, "Document name is required"),
   type: z.string().min(1, "Document type is required"),
-  url: z.string().min(1, "Document URL is required"),
+  url: z.string().optional().or(z.literal("")),
   relatedType: z.string().optional(),
   relatedId: z.string()
     .optional()
@@ -84,22 +88,47 @@ export default function Documents() {
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [addDocumentOpen, setAddDocumentOpen] = useState(false);
   const [deleteDocument, setDeleteDocument] = useState<DocumentType | null>(null);
+  const [uploadMode, setUploadMode] = useState<"url" | "file">("file");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [filePreview, setFilePreview] = useState<string>("");
+  const aircraftModal = useModal<AircraftWithDetails>();
+  const [selectedLesseeId, setSelectedLesseeId] = useState<number>(0);
+  const [lesseeDrawerOpen, setLesseeDrawerOpen] = useState(false);
+  const [selectedOwnerId, setSelectedOwnerId] = useState<number>(0);
+  const [ownerDrawerOpen, setOwnerDrawerOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: documents, isLoading } = useQuery<DocumentType[]>({
     queryKey: ["/api/documents"],
   });
 
+  const { data: aircraft } = useQuery<AircraftWithDetails[]>({
+    queryKey: ["/api/aircraft"],
+  });
+
+  const { data: leases } = useQuery<any[]>({
+    queryKey: ["/api/leases"],
+    enabled: addDocumentOpen,
+  });
+
+  const { data: owners } = useQuery<any[]>({
+    queryKey: ["/api/owners"],
+  });
+
+  const { data: lessees } = useQuery<any[]>({
+    queryKey: ["/api/lessees"],
+  });
+
   const filteredDocuments = documents
     ? documents.filter((doc) => {
-        const matchesSearch =
-          doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          doc.type.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        const matchesType = typeFilter === "all" || doc.type === typeFilter;
-        
-        return matchesSearch && matchesType;
-      })
+      const matchesSearch =
+        doc.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        doc.type.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesType = typeFilter === "all" || doc.type === typeFilter;
+
+      return matchesSearch && matchesType;
+    })
     : [];
 
   const handleSort = (field: SortField) => {
@@ -115,22 +144,22 @@ export default function Documents() {
     if (sortField !== field) {
       return <ArrowUpDown className="ml-1 h-4 w-4" />;
     }
-    return sortDirection === 'asc' ? 
-      <ArrowUp className="ml-1 h-4 w-4" /> : 
+    return sortDirection === 'asc' ?
+      <ArrowUp className="ml-1 h-4 w-4" /> :
       <ArrowDown className="ml-1 h-4 w-4" />;
   };
 
   const sortedDocuments = [...filteredDocuments].sort((a, b) => {
     const aValue = a[sortField];
     const bValue = b[sortField];
-    
-    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+
+    if ((aValue ?? "") < (bValue ?? "")) return sortDirection === 'asc' ? -1 : 1;
+    if ((aValue ?? "") > (bValue ?? "")) return sortDirection === 'asc' ? 1 : -1;
     return 0;
   });
 
   const createDocumentMutation = useMutation({
-    mutationFn: (data: InsertDocument) => 
+    mutationFn: (data: InsertDocument) =>
       apiRequest("POST", "/api/documents", data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
@@ -151,7 +180,7 @@ export default function Documents() {
   });
 
   const deleteDocumentMutation = useMutation({
-    mutationFn: (id: number) => 
+    mutationFn: (id: number) =>
       apiRequest("DELETE", `/api/documents/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/documents"] });
@@ -182,14 +211,70 @@ export default function Documents() {
     },
   });
 
-  function onSubmit(values: DocumentFormValues) {
-    createDocumentMutation.mutate(values);
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setFilePreview(file.name);
+      if (!form.getValues("name")) {
+        form.setValue("name", file.name.split('.').slice(0, -1).join('.'));
+      }
+    }
+  };
+
+  const resetUploadState = () => {
+    setSelectedFile(null);
+    setFilePreview("");
+    setUploadMode("file");
+    form.reset();
+  };
+
+  async function onSubmit(values: DocumentFormValues) {
+    try {
+      let finalUrl = values.url;
+
+      if (uploadMode === "file" && selectedFile) {
+        finalUrl = await convertFileToBase64(selectedFile);
+      }
+
+      if (!finalUrl && uploadMode === "file") {
+        toast({
+          title: "Error",
+          description: "Please select a file to upload",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      createDocumentMutation.mutate({
+        ...values,
+        url: finalUrl,
+        relatedId: values.relatedId || undefined,
+        relatedType: values.relatedType === "none" ? undefined : values.relatedType,
+      } as InsertDocument);
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to process document file",
+        variant: "destructive",
+      });
+    }
   }
 
   const getDocumentIcon = (type: string) => {
     switch (type) {
       case "Lease":
-        return <FileText className="h-8 w-8 text-blue-500" />;
+        return <FileText className="h-8 w-8 text-brand" />;
       case "Registration":
         return <FilePen className="h-8 w-8 text-red-500" />;
       case "Insurance":
@@ -213,9 +298,9 @@ export default function Documents() {
             Store and manage all aircraft-related documents
           </p>
         </div>
-        <Button 
+        <Button
           onClick={() => setAddDocumentOpen(true)}
-          className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+          className="bg-brand hover:bg-brand-hover text-white"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Document
@@ -238,7 +323,7 @@ export default function Documents() {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <div className="w-full md:w-52">
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger>
@@ -305,46 +390,70 @@ export default function Documents() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {sortedDocuments.map((document) => (
               <Card key={document.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start">
-                    {getDocumentIcon(document.type)}
-                    <div className="ml-3">
-                      <h3 className="font-medium text-gray-900">{document.name}</h3>
-                      <p className="text-sm text-gray-500">{document.type}</p>
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start">
+                      {getDocumentIcon(document.type)}
+                      <div className="ml-3">
+                        <h3 className="font-medium text-gray-900">{document.name}</h3>
+                        <p className="text-sm text-gray-500">{document.type}</p>
+                      </div>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setDeleteDocument(document)}
+                    >
+                      <Trash2 className="h-4 w-4 text-gray-500 hover:text-red-500" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setDeleteDocument(document)}
-                  >
-                    <Trash2 className="h-4 w-4 text-gray-500 hover:text-red-500" />
-                  </Button>
-                </div>
-                
-                <div className="mt-4 text-sm text-gray-600">
-                  <p>Uploaded: {formatDate(document.uploadDate)}</p>
-                  {document.relatedType && (
-                    <p className="capitalize">
-                      Related to: {document.relatedType} #{document.relatedId}
-                    </p>
-                  )}
-                </div>
-                
-                <div className="mt-4">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="w-full"
-                    onClick={() => window.open(document.url, '_blank')}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+
+                  <div className="mt-4 text-sm text-gray-600">
+                    <p>Uploaded: {formatDate(document.uploadDate ?? undefined)}</p>
+                    {document.relatedType && document.relatedId && (
+                      <p className="capitalize">
+                        Related to:{" "}
+                        <span
+                          className="text-brand hover:underline cursor-pointer font-medium"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (document.relatedType === "aircraft") {
+                              const ac = aircraft?.find(a => a.id === document.relatedId);
+                              if (ac) aircraftModal.openModal(ac);
+                            } else if (document.relatedType === "owner") {
+                              setSelectedOwnerId(document.relatedId!);
+                              setOwnerDrawerOpen(true);
+                            } else if (document.relatedType === "lessee") {
+                              setSelectedLesseeId(document.relatedId!);
+                              setLesseeDrawerOpen(true);
+                            }
+                          }}
+                        >
+                          {document.relatedType === "aircraft"
+                            ? `Aircraft: ${aircraft?.find(a => a.id === document.relatedId)?.registration ?? `#${document.relatedId}`}`
+                            : document.relatedType === "owner"
+                            ? `Owner: ${owners?.find(o => o.id === document.relatedId)?.name ?? `#${document.relatedId}`}`
+                            : document.relatedType === "lessee"
+                            ? `School: ${lessees?.find(l => l.id === document.relatedId)?.name ?? `#${document.relatedId}`}`
+                            : `${document.relatedType} #${document.relatedId}`}
+                        </span>
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-4">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => window.open(document.url, '_blank')}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         ) : (
@@ -352,7 +461,7 @@ export default function Documents() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead 
+                  <TableHead
                     className="cursor-pointer select-none hover:bg-gray-50"
                     onClick={() => handleSort('name')}
                   >
@@ -361,7 +470,7 @@ export default function Documents() {
                       {getSortIcon('name')}
                     </div>
                   </TableHead>
-                  <TableHead 
+                  <TableHead
                     className="cursor-pointer select-none hover:bg-gray-50"
                     onClick={() => handleSort('type')}
                   >
@@ -370,7 +479,7 @@ export default function Documents() {
                       {getSortIcon('type')}
                     </div>
                   </TableHead>
-                  <TableHead 
+                  <TableHead
                     className="cursor-pointer select-none hover:bg-gray-50"
                     onClick={() => handleSort('uploadDate')}
                   >
@@ -379,7 +488,7 @@ export default function Documents() {
                       {getSortIcon('uploadDate')}
                     </div>
                   </TableHead>
-                  <TableHead 
+                  <TableHead
                     className="cursor-pointer select-none hover:bg-gray-50"
                     onClick={() => handleSort('relatedType')}
                   >
@@ -403,19 +512,39 @@ export default function Documents() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-brand">
                         {document.type}
                       </span>
                     </TableCell>
                     <TableCell>
                       <div className="text-sm text-gray-900">
-                        {formatDate(document.uploadDate)}
+                        {formatDate(document.uploadDate ?? undefined)}
                       </div>
                     </TableCell>
                     <TableCell>
                       {document.relatedType && document.relatedId ? (
-                        <div className="text-sm text-gray-900 capitalize">
-                          {document.relatedType} #{document.relatedId}
+                        <div
+                          className="text-sm text-brand hover:underline cursor-pointer font-medium"
+                          onClick={() => {
+                            if (document.relatedType === "aircraft") {
+                              const ac = aircraft?.find(a => a.id === document.relatedId);
+                              if (ac) aircraftModal.openModal(ac);
+                            } else if (document.relatedType === "owner") {
+                              setSelectedOwnerId(document.relatedId!);
+                              setOwnerDrawerOpen(true);
+                            } else if (document.relatedType === "lessee") {
+                              setSelectedLesseeId(document.relatedId!);
+                              setLesseeDrawerOpen(true);
+                            }
+                          }}
+                        >
+                          {document.relatedType === "aircraft"
+                            ? `Aircraft: ${aircraft?.find(a => a.id === document.relatedId)?.registration ?? `#${document.relatedId}`}`
+                            : document.relatedType === "owner"
+                            ? `Owner: ${owners?.find(o => o.id === document.relatedId)?.name ?? `#${document.relatedId}`}`
+                            : document.relatedType === "lessee"
+                            ? `School: ${lessees?.find(l => l.id === document.relatedId)?.name ?? `#${document.relatedId}`}`
+                            : `${document.relatedType} #${document.relatedId}`}
                         </div>
                       ) : (
                         <span className="text-gray-400">-</span>
@@ -457,7 +586,7 @@ export default function Documents() {
               : "Get started by adding a document"}
           </p>
           {searchTerm || typeFilter !== "all" ? (
-            <Button 
+            <Button
               onClick={() => {
                 setSearchTerm("");
                 setTypeFilter("all");
@@ -466,9 +595,9 @@ export default function Documents() {
               Clear Filters
             </Button>
           ) : (
-            <Button 
+            <Button
               onClick={() => setAddDocumentOpen(true)}
-              className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+              className="bg-brand hover:bg-brand-hover text-white"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Document
@@ -501,7 +630,7 @@ export default function Documents() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="type"
@@ -526,35 +655,62 @@ export default function Documents() {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="url"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Document URL</FormLabel>
+                    <FormLabel>Document Source</FormLabel>
+                    <div className="flex gap-2 mb-2">
+                      <Button
+                        type="button"
+                        variant={uploadMode === "file" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setUploadMode("file")}
+                        className="flex-1"
+                      >
+                        <Upload className="h-4 w-4 mr-2" />
+                        File Upload
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={uploadMode === "url" ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setUploadMode("url")}
+                        className="flex-1"
+                      >
+                        <Grid3X3 className="h-4 w-4 mr-2" />
+                        External URL
+                      </Button>
+                    </div>
+
                     <FormControl>
-                      <div className="flex">
-                        <Input placeholder="URL to the document" {...field} />
-                        {/* In a real app, this would be a file upload component */}
-                        <Button 
-                          type="button" 
-                          className="ml-2"
-                          variant="outline"
-                          onClick={() => toast({
-                            title: "Upload feature",
-                            description: "File upload would be integrated here in a production app",
-                          })}
-                        >
-                          <Upload className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      {uploadMode === "file" ? (
+                        <div className="flex flex-col gap-2">
+                          <label className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6 cursor-pointer hover:bg-gray-50 transition-colors">
+                            <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                            <span className="text-sm font-medium text-gray-600">
+                              {filePreview ? `Selected: ${filePreview}` : "Click to select or drag and drop"}
+                            </span>
+                            <span className="text-xs text-gray-500 mt-1">PDF, DOCX, JPG up to 10MB</span>
+                            <input
+                              type="file"
+                              className="hidden"
+                              onChange={handleFileChange}
+                              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.xls,.xlsx"
+                            />
+                          </label>
+                        </div>
+                      ) : (
+                        <Input placeholder="https://example.com/document.pdf" {...field} />
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -580,35 +736,79 @@ export default function Documents() {
                     </FormItem>
                   )}
                 />
-                
+
                 {form.watch("relatedType") && form.watch("relatedType") !== "none" && (
                   <FormField
                     control={form.control}
                     name="relatedId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Entity ID</FormLabel>
-                        <FormControl>
-                          <Input type="number" placeholder="ID number" {...field} />
-                        </FormControl>
+                        <FormLabel>Link to Entity</FormLabel>
+                        <Select
+                          onValueChange={(val) => field.onChange(val)}
+                          value={field.value?.toString()}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={`Select ${form.watch("relatedType")}`} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {form.watch("relatedType") === "aircraft" && aircraft?.map((a: any) => (
+                              <SelectItem key={a.id} value={a.id.toString()}>
+                                <div className="flex items-center">
+                                  <Plane className="h-3 w-3 mr-2 text-gray-400" />
+                                  {a.registration} ({a.make} {a.model})
+                                </div>
+                              </SelectItem>
+                            ))}
+                            {form.watch("relatedType") === "lease" && leases?.map((l: any) => (
+                              <SelectItem key={l.id} value={l.id.toString()}>
+                                <div className="flex items-center">
+                                  <Briefcase className="h-3 w-3 mr-2 text-gray-400" />
+                                  Lease #{l.id} - {l.aircraft?.registration}
+                                </div>
+                              </SelectItem>
+                            ))}
+                            {form.watch("relatedType") === "owner" && owners?.map((o: any) => (
+                              <SelectItem key={o.id} value={o.id.toString()}>
+                                <div className="flex items-center">
+                                  <User className="h-3 w-3 mr-2 text-gray-400" />
+                                  {o.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                            {form.watch("relatedType") === "lessee" && lessees?.map((ls: any) => (
+                              <SelectItem key={ls.id} value={ls.id.toString()}>
+                                <div className="flex items-center">
+                                  <Users className="h-3 w-3 mr-2 text-gray-400" />
+                                  {ls.name}
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 )}
               </div>
-              
+
               <DialogFooter>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setAddDocumentOpen(false)}
+                  onClick={() => {
+                    setAddDocumentOpen(false);
+                    resetUploadState();
+                  }}
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   type="submit"
-                  className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+                  className="bg-brand hover:bg-brand-hover text-white"
                   disabled={createDocumentMutation.isPending}
                 >
                   {createDocumentMutation.isPending ? "Saving..." : "Add Document"}
@@ -645,6 +845,29 @@ export default function Documents() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Entity Detail Modals/Drawers */}
+      {aircraftModal.data && (
+        <AircraftDetailsModal
+          isOpen={aircraftModal.isOpen}
+          onClose={aircraftModal.closeModal}
+          aircraft={aircraftModal.data}
+          onViewOwner={(ownerId) => { setSelectedOwnerId(ownerId); setOwnerDrawerOpen(true); }}
+          onViewLessee={(lesseeId) => { setSelectedLesseeId(lesseeId); setLesseeDrawerOpen(true); }}
+        />
+      )}
+      <LesseeDetailDrawer
+        isOpen={lesseeDrawerOpen}
+        onClose={() => setLesseeDrawerOpen(false)}
+        lesseeId={selectedLesseeId}
+        onViewAircraft={(ac) => aircraftModal.openModal(ac as AircraftWithDetails)}
+      />
+      <OwnerDetailDrawer
+        isOpen={ownerDrawerOpen}
+        onClose={() => setOwnerDrawerOpen(false)}
+        ownerId={selectedOwnerId}
+        onViewAircraft={(ac) => aircraftModal.openModal(ac)}
+      />
     </>
   );
 }

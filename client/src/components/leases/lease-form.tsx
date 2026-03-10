@@ -37,25 +37,21 @@ interface LeaseFormProps {
 const leaseFormSchema = z.object({
   aircraftId: z.number({
     required_error: "Aircraft is required",
-  }),
+    invalid_type_error: "Aircraft is required",
+  }).min(1, "Aircraft is required"),
   lesseeId: z.number({
     required_error: "Lessee is required",
-  }),
+    invalid_type_error: "Lessee is required",
+  }).min(1, "Lessee is required"),
   startDate: z.date({
     required_error: "Start date is required",
   }),
   endDate: z.date({
     required_error: "End date is required",
   }),
-  monthlyRate: z.string()
-    .min(1, "Monthly rate is required")
-    .transform(val => parseFloat(val)),
-  minimumHours: z.string()
-    .min(1, "Minimum hours is required")
-    .transform(val => parseInt(val)),
-  hourlyRate: z.string()
-    .min(1, "Hourly rate is required")
-    .transform(val => parseFloat(val)),
+  monthlyRate: z.coerce.number().min(0, "Monthly rate is required"),
+  minimumHours: z.coerce.number().int().min(0, "Minimum hours is required"),
+  hourlyRate: z.coerce.number().min(0, "Hourly rate is required"),
   maintenanceTerms: z.string().optional(),
   notes: z.string().optional(),
   status: z.string().default("Active"),
@@ -69,13 +65,13 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
   const [documentMode, setDocumentMode] = useState<"url" | "file">("url");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [documentPreview, setDocumentPreview] = useState<string>("");
-  
+
   // Fetch aircraft and lessees to populate dropdowns
   const { data: aircraft } = useQuery<Aircraft[]>({
     queryKey: ["/api/aircraft"],
     enabled: isOpen,
   });
-  
+
   const { data: lessees } = useQuery<Lessee[]>({
     queryKey: ["/api/lessees"],
     enabled: isOpen,
@@ -85,13 +81,13 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
   const form = useForm<LeaseFormValues>({
     resolver: zodResolver(leaseFormSchema),
     defaultValues: {
-      aircraftId: undefined,
-      lesseeId: undefined,
-      startDate: undefined,
-      endDate: undefined,
-      monthlyRate: "",
-      minimumHours: "",
-      hourlyRate: "",
+      aircraftId: 0,
+      lesseeId: 0,
+      startDate: new Date(),
+      endDate: new Date(),
+      monthlyRate: 0,
+      minimumHours: 0,
+      hourlyRate: 0,
       maintenanceTerms: "",
       notes: "",
       status: "Active",
@@ -101,7 +97,7 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
 
   // Mutation for creating a new lease
   const createLeaseMutation = useMutation({
-    mutationFn: (data: InsertLease) => 
+    mutationFn: (data: InsertLease) =>
       apiRequest("POST", "/api/leases", data).then(res => res.json()),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/leases"] });
@@ -153,16 +149,18 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
   async function onSubmit(values: LeaseFormValues) {
     try {
       let documentData = values.documentUrl;
-      
+
       // If file mode and a file is selected, convert to base64
       if (documentMode === "file" && selectedFile) {
         documentData = await convertFileToBase64(selectedFile);
       }
-      
+
       createLeaseMutation.mutate({
         ...values,
+        startDate: format(values.startDate, "yyyy-MM-dd"),
+        endDate: format(values.endDate, "yyyy-MM-dd"),
         documentUrl: documentData,
-      });
+      } as any);
     } catch (error) {
       toast({
         title: "Error",
@@ -184,7 +182,7 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
             Enter the details of the new lease agreement
           </DialogDescription>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -193,8 +191,8 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Aircraft</FormLabel>
-                  <Select 
-                    onValueChange={(value) => field.onChange(parseInt(value))} 
+                  <Select
+                    onValueChange={(value) => field.onChange(parseInt(value))}
                     value={field.value?.toString()}
                   >
                     <FormControl>
@@ -221,15 +219,15 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="lesseeId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Flight School / Lessee</FormLabel>
-                  <Select 
-                    onValueChange={(value) => field.onChange(parseInt(value))} 
+                  <Select
+                    onValueChange={(value) => field.onChange(parseInt(value))}
                     value={field.value?.toString()}
                   >
                     <FormControl>
@@ -252,7 +250,7 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
                 </FormItem>
               )}
             />
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -289,7 +287,7 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="endDate"
@@ -326,7 +324,7 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
                 )}
               />
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
                 control={form.control}
@@ -344,7 +342,7 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="minimumHours"
@@ -358,7 +356,7 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="hourlyRate"
@@ -376,7 +374,7 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="maintenanceTerms"
@@ -384,23 +382,23 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
                 <FormItem>
                   <FormLabel>Maintenance Terms</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="Describe the maintenance responsibilities and terms"
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="documentUrl"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Lease Agreement Document (Optional)</FormLabel>
-                  
+
                   {/* Toggle between URL and File upload */}
                   <div className="flex gap-2 mb-3">
                     <Button
@@ -434,8 +432,8 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
 
                   {documentMode === "url" ? (
                     <FormControl>
-                      <Input 
-                        placeholder="URL to the lease document PDF" 
+                      <Input
+                        placeholder="URL to the lease document PDF"
                         {...field}
                         onChange={(e) => {
                           field.onChange(e);
@@ -483,12 +481,12 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
                       </div>
                     </div>
                   )}
-                  
+
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="notes"
@@ -496,16 +494,16 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
                 <FormItem>
                   <FormLabel>Notes (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea 
+                    <Textarea
                       placeholder="Additional information or special conditions"
-                      {...field} 
+                      {...field}
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="status"
@@ -529,7 +527,7 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter>
               <Button
                 type="button"
@@ -538,9 +536,9 @@ export default function LeaseForm({ isOpen, onClose }: LeaseFormProps) {
               >
                 Cancel
               </Button>
-              <Button 
+              <Button
                 type="submit"
-                className="bg-[#3498db] hover:bg-[#2980b9] text-white"
+                className="bg-brand hover:bg-brand-hover text-white"
                 disabled={createLeaseMutation.isPending}
               >
                 {createLeaseMutation.isPending ? "Creating..." : "Create Lease"}
