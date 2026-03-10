@@ -59,7 +59,8 @@ export interface IStorage {
 
   // Maintenance
   getMaintenance(id: number): Promise<Maintenance | undefined>;
-  getAllMaintenance(): Promise<Maintenance[]>;
+  getAllMaintenance(): Promise<MaintenanceWithDetails[]>;
+  getMaintenanceByLesseeId(lesseeId: number): Promise<MaintenanceWithDetails[]>;
   createMaintenance(maintenance: InsertMaintenance): Promise<Maintenance>;
   updateMaintenance(id: number, maintenance: Partial<InsertMaintenance>): Promise<Maintenance | undefined>;
   deleteMaintenance(id: number): Promise<boolean>;
@@ -495,8 +496,47 @@ export class DatabaseStorage implements IStorage {
     return maintenanceRecord || undefined;
   }
 
-  async getAllMaintenance(): Promise<Maintenance[]> {
-    return await db.select().from(maintenance);
+  async getAllMaintenance(): Promise<MaintenanceWithDetails[]> {
+    const records = await db.select().from(maintenance);
+    return Promise.all(
+      records.map(async (record) => {
+        const ac = await this.getAircraft(record.aircraftId);
+        let reportedByLessee: { id: number; name: string } | null = null;
+        if (record.reportedByLesseeId) {
+          const lessee = await this.getLessee(record.reportedByLesseeId);
+          if (lessee) reportedByLessee = { id: lessee.id, name: lessee.name };
+        }
+        return { ...record, aircraft: ac, reportedByLessee };
+      })
+    );
+  }
+
+  async getMaintenanceByLesseeId(lesseeId: number): Promise<MaintenanceWithDetails[]> {
+    // Get active leases for this lessee to find their aircraft
+    const activeLeases = await db
+      .select()
+      .from(leases)
+      .where(and(eq(leases.lesseeId, lesseeId), eq(leases.status, 'Active')));
+
+    if (activeLeases.length === 0) return [];
+
+    const aircraftIds = activeLeases.map((l) => l.aircraftId);
+    const records = await db
+      .select()
+      .from(maintenance)
+      .where(inArray(maintenance.aircraftId, aircraftIds));
+
+    const aircraftList = await db
+      .select()
+      .from(aircraft)
+      .where(inArray(aircraft.id, aircraftIds));
+
+    const aircraftMap = new Map(aircraftList.map((a) => [a.id, a]));
+    return records.map((record) => ({
+      ...record,
+      aircraft: aircraftMap.get(record.aircraftId),
+      reportedByLessee: null,
+    }));
   }
 
   async createMaintenance(maintenanceData: InsertMaintenance): Promise<Maintenance> {

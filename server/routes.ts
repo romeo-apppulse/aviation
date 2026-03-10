@@ -998,6 +998,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  portalRouter.get('/maintenance', async (req, res) => {
+    try {
+      const user = req.user as User;
+      if (!user.lesseeId) return res.status(400).json({ message: "User not linked to a flight school" });
+      const records = await storage.getMaintenanceByLesseeId(user.lesseeId);
+      res.json(records);
+    } catch (error) {
+      console.error("Error fetching portal maintenance:", error);
+      res.status(500).json({ message: "Failed to fetch maintenance records" });
+    }
+  });
+
   protectedRouter.use('/portal', portalRouter);
 
   // Dashboard routes
@@ -1631,25 +1643,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  protectedRouter.post("/maintenance", isAdmin, async (req: Request, res: Response) => {
+  protectedRouter.post("/maintenance", async (req: Request, res: Response) => {
     try {
-      const validatedData = insertMaintenanceSchema.parse(req.body);
-      const maintenance = await storage.createMaintenance(validatedData);
-      res.status(201).json(maintenance);
+      const user = req.user as User;
+      let bodyData = { ...req.body };
+
+      if (user.role === 'flight_school') {
+        if (!user.lesseeId) {
+          return res.status(400).json({ error: "User not linked to a flight school" });
+        }
+        // Verify the aircraft belongs to their lessee (via active lease)
+        const schoolLeases = await storage.getLeasesForLessee(user.lesseeId);
+        const activeLeases = schoolLeases.filter((l) => l.status === 'Active');
+        const aircraftId = parseInt(bodyData.aircraftId);
+        const hasLease = activeLeases.some((l) => l.aircraftId === aircraftId);
+        if (!hasLease) {
+          return res.status(403).json({ error: "Aircraft does not belong to your leased fleet" });
+        }
+        bodyData.reportedByLesseeId = user.lesseeId;
+      } else if (user.role !== 'admin' && user.role !== 'super_admin') {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const validatedData = insertMaintenanceSchema.parse(bodyData);
+      const maintenanceRecord = await storage.createMaintenance(validatedData);
+      res.status(201).json(maintenanceRecord);
     } catch (err) {
       handleZodError(err, res);
     }
   });
 
-  protectedRouter.put("/maintenance/:id", isAdmin, async (req: Request, res: Response) => {
+  protectedRouter.put("/maintenance/:id", async (req: Request, res: Response) => {
     try {
+      const user = req.user as User;
       const id = parseInt(req.params.id);
       const validatedData = insertMaintenanceSchema.partial().parse(req.body);
-      const maintenance = await storage.updateMaintenance(id, validatedData);
-      if (!maintenance) {
+
+      if (user.role === 'flight_school') {
+        if (!user.lesseeId) {
+          return res.status(400).json({ error: "User not linked to a flight school" });
+        }
+        // Can only update records they reported
+        const existing = await storage.getMaintenance(id);
+        if (!existing) {
+          return res.status(404).json({ error: "Maintenance record not found" });
+        }
+        if (existing.reportedByLesseeId !== user.lesseeId) {
+          return res.status(403).json({ error: "You can only update maintenance records you reported" });
+        }
+      } else if (user.role !== 'admin' && user.role !== 'super_admin') {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+
+      const maintenanceRecord = await storage.updateMaintenance(id, validatedData);
+      if (!maintenanceRecord) {
         return res.status(404).json({ error: "Maintenance record not found" });
       }
-      res.json(maintenance);
+      res.json(maintenanceRecord);
     } catch (err) {
       handleZodError(err, res);
     }

@@ -390,6 +390,7 @@ export default function Maintenance() {
                         Performed By {getSortIcon('performedBy')}
                       </button>
                     </TableHead>
+                    <TableHead>Reported By</TableHead>
                     <TableHead>Cost</TableHead>
                     <TableHead>Completed Date</TableHead>
                     <TableHead>Actions</TableHead>
@@ -435,6 +436,13 @@ export default function Maintenance() {
                         </Badge>
                       </TableCell>
                       <TableCell>{item.performedBy || "Not assigned"}</TableCell>
+                      <TableCell>
+                        {item.reportedByLessee ? (
+                          <span className="text-sm">{item.reportedByLessee.name}</span>
+                        ) : (
+                          <span className="text-sm text-gray-500">Admin</span>
+                        )}
+                      </TableCell>
                       <TableCell className="font-mono">
                         {item.cost != null && item.cost > 0 ? formatCurrency(item.cost) : <span className="text-gray-400">—</span>}
                       </TableCell>

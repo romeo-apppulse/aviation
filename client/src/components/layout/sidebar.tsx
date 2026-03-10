@@ -221,6 +221,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
               )}
               <nav className="space-y-0.5">
                 <NavLink href="/portal/hour-logging" icon={Clock} label="Log Flight Hours" />
+                <NavLink href="/portal/maintenance" icon={Wrench} label="Maintenance" />
                 <NavLink href="/portal/payments" icon={DollarSign} label="Billing & Payments" />
                 <NavLink href="/portal/documents" icon={FileText} label="Documents" />
               </nav>

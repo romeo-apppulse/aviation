@@ -132,6 +132,7 @@ export const maintenance = pgTable("maintenance", {
   status: text("status").default("Scheduled"), // Scheduled, Completed, Overdue
   notes: text("notes"),
   performedBy: text("performed_by"),
+  reportedByLesseeId: integer("reported_by_lessee_id"),
 });
 
 // Documents
@@ -314,6 +315,7 @@ export type LeaseWithDetails = Lease & {
 
 export type MaintenanceWithDetails = Maintenance & {
   aircraft?: Aircraft;
+  reportedByLessee?: { id: number; name: string } | null;
 };
 
 export type PaymentWithDetails = Payment & {

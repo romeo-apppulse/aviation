@@ -23,6 +23,7 @@ import PortalHourLogging from "@/pages/portal/hour-logging";
 import PortalPayments from "@/pages/portal/payments";
 import PortalAircraftDetail from "@/pages/portal/aircraft-detail";
 import PortalDocuments from "@/pages/portal/documents";
+import PortalMaintenance from "@/pages/portal/maintenance";
 import AcceptInvite from "@/pages/accept-invite";
 import OwnerDashboard from "@/pages/owner/dashboard";
 import OwnerAircraft from "@/pages/owner/aircraft";
@@ -140,6 +141,9 @@ function Router() {
       </Route>
       <Route path="/portal/documents">
         {isFlightSchool || isAdmin ? <PortalDocuments /> : <Redirect to="/dashboard" />}
+      </Route>
+      <Route path="/portal/maintenance">
+        {isFlightSchool || isAdmin ? <PortalMaintenance /> : <Redirect to="/dashboard" />}
       </Route>
       {/* Owner Routes — accessible to asset_owner and admin */}
       <Route path="/owner">
