@@ -9,6 +9,8 @@ import { Plane, DollarSign, TrendingUp, ChevronRight, BarChart3 } from "lucide-r
 import { Link } from "wouter";
 import { formatCurrency, formatDate, getStatusColor } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { Payout } from "@shared/schema";
+import { Helmet } from "react-helmet";
 
 function formatPeriod(period: string): string {
     if (!period) return "";
@@ -25,6 +27,8 @@ export default function OwnerDashboard() {
         queryKey: ["/api/owner/dashboard"],
     });
 
+    const { data: payouts = [] } = useQuery<Payout[]>({ queryKey: ["/api/owner/payouts"] });
+
     if (isLoading) {
         return (
             <div className="p-10 max-w-7xl mx-auto space-y-8">
@@ -40,8 +44,15 @@ export default function OwnerDashboard() {
     const aircraft = stats?.aircraft || [];
     const recentPayments = stats?.recentPayments || [];
 
+    const payoutStatusColor = (status: string) => {
+        if (status === "completed") return "bg-emerald-50 text-emerald-700 border-emerald-100";
+        if (status === "processing") return "bg-blue-50 text-[#007AFF] border-blue-100";
+        return "bg-amber-50 text-amber-700 border-amber-100";
+    };
+
     return (
         <div className="p-10 max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700">
+            <Helmet><title>Owner Dashboard — AeroLease Wise</title></Helmet>
             <div className="space-y-1.5">
                 <h1 className="text-3xl font-bold text-[#1C1C1E] tracking-tight">Owner Dashboard</h1>
                 <p className="text-[#8E8E93] text-[15px] font-medium tracking-tight">Welcome back, {user?.firstName}. Here is your portfolio overview.</p>
@@ -176,6 +187,53 @@ export default function OwnerDashboard() {
                                         <p className="text-[10px] text-[#8E8E93] font-medium">
                                             {p.status === "Paid" ? `Paid ${formatDate(p.paidDate)}` : `Due ${formatDate(p.dueDate)}`}
                                         </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
+            {/* Payout History */}
+            <Card className="rounded-[24px] border border-black/[0.04] bg-white shadow-sm overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between pb-6 pt-8 px-8 border-b border-black/[0.02]">
+                    <div className="space-y-1">
+                        <CardTitle className="text-[17px] font-bold text-[#1C1C1E] tracking-tight">Payout History</CardTitle>
+                        <CardDescription className="text-[13px] font-medium text-[#8E8E93] tracking-tight">Payouts processed by your account manager</CardDescription>
+                    </div>
+                </CardHeader>
+                <CardContent className="p-8">
+                    {payouts.length === 0 ? (
+                        <div className="text-center py-12">
+                            <DollarSign className="h-12 w-12 text-[#e2e8f0] mx-auto mb-3" />
+                            <p className="text-[15px] font-bold text-[#1C1C1E]">No payout records yet</p>
+                            <p className="text-[13px] text-[#8E8E93] mt-1">Payouts will appear here once processed by your account manager.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {payouts.map((payout) => (
+                                <div key={payout.id} className="flex items-center justify-between p-4 rounded-xl bg-[#f8fafc] border border-black/[0.03]">
+                                    <div className="flex items-center gap-4">
+                                        <div className="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                                            <DollarSign className="h-5 w-5 text-[#007AFF]" />
+                                        </div>
+                                        <div>
+                                            <p className="text-[13px] font-bold text-[#1C1C1E]">{payout.period}</p>
+                                            {payout.notes && (
+                                                <p className="text-[11px] text-[#8E8E93] font-medium">{payout.notes}</p>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <Badge className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full capitalize border", payoutStatusColor(payout.status || "pending"))}>
+                                            {payout.status || "pending"}
+                                        </Badge>
+                                        <div className="text-right">
+                                            <p className="text-[14px] font-black text-[#007AFF]">{formatCurrency(Number(payout.amount))}</p>
+                                            {payout.processedAt && (
+                                                <p className="text-[10px] text-[#8E8E93] font-medium">Processed {formatDate(payout.processedAt)}</p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             ))}

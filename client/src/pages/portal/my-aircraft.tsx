@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet";
 import { useQuery } from "@tanstack/react-query";
 import { Plane, Calendar, Clock, DollarSign, ChevronRight, Fuel, Gauge, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -26,6 +27,10 @@ export default function PortalMyAircraft() {
     }
 
     return (
+        <>
+        <Helmet>
+            <title>My Fleet — AeroLease Wise</title>
+        </Helmet>
         <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-2">
                 <h1 className="text-3xl font-bold text-[#1e293b] tracking-tight">My Fleet</h1>
@@ -118,8 +123,8 @@ export default function PortalMyAircraft() {
                                                     <Calendar className="h-5 w-5" />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide">Scheduling</p>
-                                                    <p className="text-[13px] font-bold text-[#1e293b] group-hover:text-brand transition-colors">View maintenance & usage</p>
+                                                    <p className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide">Log Hours</p>
+                                                    <p className="text-[13px] font-bold text-[#1e293b] group-hover:text-brand transition-colors">Log flight hours</p>
                                                 </div>
                                                 <ChevronRight className="ml-auto h-4 w-4 text-[#cbd5e1] group-hover:text-brand" />
                                             </Link>
@@ -144,5 +149,6 @@ export default function PortalMyAircraft() {
                 )}
             </div>
         </div>
+        </>
     );
 }

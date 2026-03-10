@@ -1,12 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, TrendingUp, Percent, BarChart3 } from "lucide-react";
+import { DollarSign, TrendingUp, Percent, BarChart3, Download } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, formatMonth } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { AreaChart } from "@/components/ui/area-chart";
+import { Helmet } from "react-helmet";
 
 type Period = "current" | "last" | "quarter" | "all";
 
@@ -16,14 +18,6 @@ const PERIODS: { value: Period; label: string }[] = [
     { value: "quarter", label: "Last 3 Months" },
     { value: "all", label: "All Time" },
 ];
-
-function formatMonth(ym: string): string {
-    if (!ym) return "";
-    const [year, month] = ym.split("-");
-    if (!year || !month) return ym;
-    return new Date(parseInt(year), parseInt(month) - 1, 1)
-        .toLocaleDateString("en-US", { month: "long", year: "numeric" });
-}
 
 export default function OwnerRevenue() {
     const [period, setPeriod] = useState<Period>("all");
@@ -67,11 +61,21 @@ export default function OwnerRevenue() {
 
     return (
         <div className="p-10 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Helmet><title>Revenue & Earnings — AeroLease Wise</title></Helmet>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-2">
                     <h1 className="text-3xl font-bold text-[#1e293b] tracking-tight">Revenue & Earnings</h1>
                     <p className="text-[#64748b] font-medium">Track your fleet earnings and platform fees.</p>
                 </div>
+                <div className="flex items-center gap-3">
+                <Button
+                    variant="outline"
+                    onClick={() => window.open('/api/owner/revenue/export', '_blank')}
+                    className="flex items-center gap-2 font-bold text-[#007AFF] border-[#007AFF]/30 hover:bg-blue-50"
+                >
+                    <Download className="h-4 w-4" />
+                    Export CSV
+                </Button>
                 <div className="flex items-center gap-1 bg-white rounded-xl border border-[#f1f5f9] p-1 shadow-sm">
                     {PERIODS.map(({ value, label }) => (
                         <button
@@ -85,6 +89,7 @@ export default function OwnerRevenue() {
                             {label}
                         </button>
                     ))}
+                </div>
                 </div>
             </div>
 

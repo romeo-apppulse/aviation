@@ -101,15 +101,30 @@ export default function Payments() {
   const [sortField, setSortField] = useState<SortField>('dueDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [invoiceMode, setInvoiceMode] = useState<"url" | "file">("url");
+  const [periodMonth, setPeriodMonth] = useState<string>("");
+  const [periodYear, setPeriodYear] = useState<string>("");
   const [selectedInvoiceFile, setSelectedInvoiceFile] = useState<File | null>(null);
   const [invoicePreview, setInvoicePreview] = useState<string>("");
   const aircraftModal = useModal<AircraftWithDetails>();
   const [selectedLesseeId, setSelectedLesseeId] = useState<number>(0);
   const [lesseeDrawerOpen, setLesseeDrawerOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const { toast } = useToast();
 
   const { data: payments, isLoading } = useQuery<PaymentWithDetails[]>({
-    queryKey: ["/api/payments"],
+    queryKey: ["/api/payments", startDate, endDate],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (startDate) params.set("startDate", startDate);
+      if (endDate) params.set("endDate", endDate);
+      const url = `/api/payments${params.toString() ? `?${params.toString()}` : ""}`;
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) throw new Error("Failed to load payments");
+      return res.json();
+    },
   });
 
   const { data: leases } = useQuery<LeaseWithDetails[]>({
@@ -297,6 +312,8 @@ export default function Payments() {
       setSelectedInvoiceFile(null);
       setInvoicePreview("");
       setInvoiceMode("url");
+      setPeriodMonth("");
+      setPeriodYear("");
       form.reset();
       setAddPaymentOpen(false);
     } catch (error) {
@@ -359,6 +376,34 @@ export default function Payments() {
     }
   };
 
+  const bulkActionMutation = useMutation({
+    mutationFn: ({ ids, action }: { ids: number[]; action: "mark_paid" | "mark_overdue" | "delete" }) =>
+      apiRequest("POST", "/api/payments/bulk", { ids, action }).then(res => res.json()),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payments"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+      setSelectedIds([]);
+      setBulkDeleteOpen(false);
+      const labels: Record<string, string> = { mark_paid: "marked as paid", mark_overdue: "marked as overdue", delete: "deleted" };
+      toast({ title: "Bulk action complete", description: `${variables.ids.length} payment(s) ${labels[variables.action]}` });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: `Bulk action failed: ${error.message}`, variant: "destructive" });
+    }
+  });
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredAndSortedPayments.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredAndSortedPayments.map(p => p.id));
+    }
+  };
+
+  const toggleSelectOne = (id: number) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   const markAsPaid = (paymentId: number) => {
     updatePaymentMutation.mutate({
       id: paymentId,
@@ -372,8 +417,7 @@ export default function Payments() {
   return (
     <>
       <Helmet>
-        <title>Payments - AeroLease Manager</title>
-        <meta name="description" content="Track and manage payments for aircraft leases" />
+        <title>Payments — AeroLease Wise</title>
       </Helmet>
 
       <div className="flex justify-between items-center mb-6">
@@ -423,9 +467,69 @@ export default function Payments() {
                 </SelectContent>
               </Select>
             </div>
+
+            <div className="flex items-center gap-2">
+              <Input
+                type="date"
+                placeholder="Start Date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-36"
+              />
+              <span className="text-gray-400 text-sm">to</span>
+              <Input
+                type="date"
+                placeholder="End Date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-36"
+              />
+              {(startDate || endDate) && (
+                <Button variant="ghost" size="icon" onClick={() => { setStartDate(""); setEndDate(""); }}>
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* Bulk Action Toolbar */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+          <span className="text-sm font-semibold text-blue-700">{selectedIds.length} selected</span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-green-600 border-green-200 hover:bg-green-50"
+            onClick={() => bulkActionMutation.mutate({ ids: selectedIds, action: "mark_paid" })}
+            disabled={bulkActionMutation.isPending}
+          >
+            <Check className="h-4 w-4 mr-1" /> Mark Paid
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-amber-600 border-amber-200 hover:bg-amber-50"
+            onClick={() => bulkActionMutation.mutate({ ids: selectedIds, action: "mark_overdue" })}
+            disabled={bulkActionMutation.isPending}
+          >
+            <Clock className="h-4 w-4 mr-1" /> Mark Overdue
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-red-600 border-red-200 hover:bg-red-50"
+            onClick={() => setBulkDeleteOpen(true)}
+            disabled={bulkActionMutation.isPending}
+          >
+            <Trash2 className="h-4 w-4 mr-1" /> Delete Selected
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       <Card>
         <CardContent className="p-0">
@@ -438,6 +542,16 @@ export default function Payments() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        checked={filteredAndSortedPayments.length > 0 && selectedIds.length === filteredAndSortedPayments.length}
+                        onChange={toggleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead>Aircraft</TableHead>
+                    <TableHead>Lessee / School</TableHead>
                     <TableHead>
                       <button
                         onClick={() => handleSort('period')}
@@ -446,33 +560,12 @@ export default function Payments() {
                         Period {getSortIcon('period')}
                       </button>
                     </TableHead>
-                    <TableHead>Aircraft</TableHead>
-                    <TableHead>Client</TableHead>
                     <TableHead>
                       <button
                         onClick={() => handleSort('amount')}
                         className={cn("flex items-center gap-2 transition-colors", sortField === 'amount' ? "text-brand" : "hover:text-gray-900")}
                       >
                         Amount {getSortIcon('amount')}
-                      </button>
-                    </TableHead>
-                    <TableHead>Gross</TableHead>
-                    <TableHead>Commission</TableHead>
-                    <TableHead>Net</TableHead>
-                    <TableHead>
-                      <button
-                        onClick={() => handleSort('dueDate')}
-                        className={cn("flex items-center gap-2 transition-colors", sortField === 'dueDate' ? "text-brand" : "hover:text-gray-900")}
-                      >
-                        Due Date {getSortIcon('dueDate')}
-                      </button>
-                    </TableHead>
-                    <TableHead>
-                      <button
-                        onClick={() => handleSort('paidDate')}
-                        className={cn("flex items-center gap-2 transition-colors", sortField === 'paidDate' ? "text-brand" : "hover:text-gray-900")}
-                      >
-                        Paid Date {getSortIcon('paidDate')}
                       </button>
                     </TableHead>
                     <TableHead>
@@ -483,15 +576,27 @@ export default function Payments() {
                         Status {getSortIcon('status')}
                       </button>
                     </TableHead>
+                    <TableHead>
+                      <button
+                        onClick={() => handleSort('dueDate')}
+                        className={cn("flex items-center gap-2 transition-colors", sortField === 'dueDate' ? "text-brand" : "hover:text-gray-900")}
+                      >
+                        Date {getSortIcon('dueDate')}
+                      </button>
+                    </TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredAndSortedPayments.map((payment) => (
-                    <TableRow key={payment.id}>
-                      <TableCell>
-                        <div className="font-medium">{payment.period}</div>
-                        <div className="text-xs text-gray-500">{payment.invoiceNumber || 'No Invoice #'}</div>
+                    <TableRow key={payment.id} className={selectedIds.includes(payment.id) ? "bg-blue-50" : ""}>
+                      <TableCell className="w-10">
+                        <input
+                          type="checkbox"
+                          className="rounded"
+                          checked={selectedIds.includes(payment.id)}
+                          onChange={() => toggleSelectOne(payment.id)}
+                        />
                       </TableCell>
                       <TableCell>
                         <div
@@ -521,23 +626,12 @@ export default function Payments() {
                         </div>
                         <div className="text-xs text-gray-500">{payment.lease?.lessee?.email}</div>
                       </TableCell>
-                      <TableCell className="font-mono">
-                        {formatCurrency(payment.amount)}
-                      </TableCell>
-                      <TableCell className="font-mono text-gray-600">
-                        {payment.grossAmount != null ? formatCurrency(payment.grossAmount) : <span className="text-gray-400">—</span>}
-                      </TableCell>
-                      <TableCell className="font-mono text-gray-600">
-                        {payment.commissionAmount != null ? formatCurrency(payment.commissionAmount) : <span className="text-gray-400">—</span>}
-                      </TableCell>
-                      <TableCell className="font-mono text-gray-600">
-                        {payment.netAmount != null ? formatCurrency(payment.netAmount) : <span className="text-gray-400">—</span>}
-                      </TableCell>
                       <TableCell>
-                        {formatDate(payment.dueDate)}
+                        <div className="font-medium">{payment.period}</div>
+                        <div className="text-xs text-gray-500">{payment.invoiceNumber || 'No Invoice #'}</div>
                       </TableCell>
-                      <TableCell>
-                        {payment.paidDate ? formatDate(payment.paidDate) : 'Not paid'}
+                      <TableCell className="font-mono font-medium">
+                        {formatCurrency(payment.grossAmount ?? payment.amount)}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -546,6 +640,9 @@ export default function Payments() {
                         >
                           {payment.status || 'Unknown'}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {payment.paidDate ? formatDate(payment.paidDate) : formatDate(payment.dueDate)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
@@ -699,15 +796,49 @@ export default function Payments() {
                 <FormField
                   control={form.control}
                   name="period"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Period</FormLabel>
-                      <FormControl>
-                        <Input placeholder="e.g. January 2024" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+                    const currentYear = new Date().getFullYear();
+                    const years = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1].map(String);
+                    return (
+                      <FormItem>
+                        <FormLabel>Period</FormLabel>
+                        <div className="flex gap-2">
+                          <Select
+                            value={periodMonth}
+                            onValueChange={(m) => {
+                              setPeriodMonth(m);
+                              const y = periodYear || String(currentYear);
+                              field.onChange(`${m} ${y}`);
+                            }}
+                          >
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {months.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={periodYear}
+                            onValueChange={(y) => {
+                              setPeriodYear(y);
+                              const m = periodMonth || months[new Date().getMonth()];
+                              field.onChange(`${m} ${y}`);
+                            }}
+                          >
+                            <SelectTrigger className="w-[100px]">
+                              <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {years.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
               </div>
 
@@ -1023,6 +1154,27 @@ export default function Payments() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog >
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.length} Payment(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the selected payment records. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => bulkActionMutation.mutate({ ids: selectedIds, action: "delete" })}
+            >
+              {bulkActionMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Entity Detail Modals/Drawers */}
       {aircraftModal.data && (

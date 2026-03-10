@@ -62,8 +62,8 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
         brand: {
-          DEFAULT: "#3498db",
-          hover: "#2980b9",
+          DEFAULT: "#007AFF",
+          hover: "#0062CC",
         },
       },
       keyframes: {

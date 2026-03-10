@@ -1,21 +1,13 @@
+import { Helmet } from "react-helmet";
 import { useQuery } from "@tanstack/react-query";
-import { useRoute } from "wouter";
-
-function formatMonth(ym: string): string {
-    if (!ym) return "";
-    const [year, month] = ym.split("-");
-    if (!year || !month) return ym;
-    return new Date(parseInt(year), parseInt(month) - 1, 1)
-        .toLocaleDateString("en-US", { month: "long", year: "numeric" });
-}
-import { Link } from "wouter";
+import { useRoute, Link } from "wouter";
 import { Plane, ArrowLeft, Calendar, Download, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatDate, formatCurrency, formatMonth } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 
 export default function OwnerAircraftDetail() {
@@ -55,6 +47,10 @@ export default function OwnerAircraftDetail() {
     const documents = aircraft.documents || [];
 
     return (
+        <>
+        <Helmet>
+            <title>Aircraft Detail — AeroLease Wise</title>
+        </Helmet>
         <div className="p-10 max-w-5xl mx-auto space-y-8 animate-in fade-in duration-500">
             <Button variant="ghost" className="text-[#007AFF] font-bold text-sm rounded-xl hover:bg-blue-50 -ml-3" asChild>
                 <Link href="/owner/aircraft"><ArrowLeft className="h-4 w-4 mr-2" /> Back to Fleet</Link>
@@ -219,5 +215,6 @@ export default function OwnerAircraftDetail() {
                 </CardContent>
             </Card>
         </div>
+        </>
     );
 }

@@ -83,7 +83,7 @@ export default function RegisterPage() {
             <div className="space-y-4">
               <h1 className="text-3xl font-bold text-[#1e293b]">Request Logged</h1>
               <p className="text-[15px] font-medium text-[#64748b] leading-relaxed">
-                Your enterprise account application for **AeroLease Wise** is now under manual verification. You will receive an email once your access is granted.
+                Your enterprise account application for <strong>AeroLease Wise</strong> is now under manual verification. You will receive an email once your access is granted.
               </p>
             </div>
             <Button

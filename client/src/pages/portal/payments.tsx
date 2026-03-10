@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { jsPDF } from "jspdf";
 import { DollarSign, CheckCircle2, Clock, AlertCircle, Calendar, ArrowRight, Wallet, Receipt, History, ChevronDown, Download } from "lucide-react";
@@ -38,8 +39,8 @@ export default function PortalPayments() {
             queryClient.invalidateQueries({ queryKey: ["/api/portal/payments"] });
             queryClient.invalidateQueries({ queryKey: ["/api/portal/dashboard"] });
             toast({
-                title: "Payment successful",
-                description: "Your simulated payment has been processed.",
+                title: "Payment Submitted",
+                description: "Your payment has been processed successfully.",
             });
             setSelectedPayments([]);
         },
@@ -237,6 +238,10 @@ export default function PortalPayments() {
         .reduce((sum, p) => sum + p.amount, 0) || 0;
 
     return (
+        <>
+        <Helmet>
+            <title>Billing & Payments — AeroLease Wise</title>
+        </Helmet>
         <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-2">
@@ -417,9 +422,6 @@ export default function PortalPayments() {
                                     Invoices are generated on the 1st of each month based on your flight hour reports. Payments are due within 15 days of generation.
                                 </p>
                             </div>
-                            <Button variant="outline" className="w-full h-11 bg-white/10 border-white/20 text-white/50 font-bold rounded-xl cursor-not-allowed" disabled title="Contact your administrator">
-                                Download Full Policy
-                            </Button>
                         </div>
                         <div className="absolute -bottom-6 -right-6 h-32 w-32 bg-white/10 rounded-full blur-2xl" />
                         <div className="absolute top-10 right-10 h-16 w-16 bg-blue-400/20 rounded-full blur-xl animate-pulse" />
@@ -434,6 +436,7 @@ export default function PortalPayments() {
                 </div>
             </div>
         </div>
+        </>
     );
 }
 

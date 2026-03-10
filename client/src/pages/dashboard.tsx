@@ -13,7 +13,7 @@ export default function Dashboard() {
   return (
     <>
       <Helmet>
-        <title>Dashboard - AeroLease Manager</title>
+        <title>Admin Metrics — AeroLease Wise</title>
         <meta name="description" content="Dashboard overview of aircraft fleet, revenue, and maintenance status" />
       </Helmet>
       

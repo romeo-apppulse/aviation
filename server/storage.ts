@@ -2,7 +2,8 @@ import {
   Aircraft, Owner, Lessee, Lease, Payment, Maintenance, Document, User, Notification, FlightHourLog,
   InsertAircraft, InsertOwner, InsertLessee, InsertLease, InsertPayment, InsertMaintenance, InsertDocument, UpsertUser, InsertNotification, InsertFlightHourLog,
   DashboardStats, AircraftWithDetails, LeaseWithDetails, MaintenanceWithDetails, PaymentWithDetails,
-  aircraft, owners, lessees, leases, payments, maintenance, documents, users, notifications, flightHourLogs, emailQueue
+  aircraft, owners, lessees, leases, payments, maintenance, documents, users, notifications, flightHourLogs, emailQueue,
+  Payout, InsertPayout, payouts, FlightHourLogWithDetails,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, asc, and, gte, lte, sql, or, inArray } from "drizzle-orm";
@@ -122,6 +123,29 @@ export interface IStorage {
     lastPaymentAmount: number;
     outstandingBalance: number;
   }>;
+
+  // Lease Lifecycle
+  terminateLease(id: number, reason: string, effectiveDate: string): Promise<Lease | undefined>;
+  renewLease(id: number, newEndDate: string, newMonthlyRate?: number): Promise<Lease | undefined>;
+  suspendLease(id: number, reason: string): Promise<Lease | undefined>;
+  reactivateLease(id: number): Promise<Lease | undefined>;
+
+  // Bulk Actions
+  bulkUpdatePayments(ids: number[], action: string): Promise<number>;
+  bulkUpdateMaintenance(ids: number[], action: string): Promise<number>;
+
+  // Payouts
+  getPayoutsByOwnerId(ownerId: number): Promise<Payout[]>;
+  getAllPayouts(): Promise<(Payout & { owner?: { name: string } })[]>;
+  createPayout(data: InsertPayout): Promise<Payout>;
+  updatePayoutStatus(id: number, status: string, processedAt?: Date): Promise<Payout | undefined>;
+
+  // Flight Hour Logs (admin)
+  getAllFlightHourLogs(): Promise<FlightHourLogWithDetails[]>;
+  verifyFlightHourLog(id: number, verifiedHours: number): Promise<FlightHourLog | undefined>;
+
+  // Payments with date filter
+  getAllPaymentsFiltered(filter?: { startDate?: string; endDate?: string; status?: string }): Promise<Payment[]>;
 
   // Admin Revenue
   getRevenueStats(startMonth: string, endMonth: string): Promise<{
@@ -1272,6 +1296,158 @@ export class DatabaseStorage implements IStorage {
       byAircraft,
       byOwner
     };
+  }
+
+  // --- Lease Lifecycle ---
+
+  async terminateLease(id: number, reason: string, effectiveDate: string): Promise<Lease | undefined> {
+    const [updated] = await db
+      .update(leases)
+      .set({ status: "terminated", terminationReason: reason, terminationDate: effectiveDate })
+      .where(eq(leases.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async renewLease(id: number, newEndDate: string, newMonthlyRate?: number): Promise<Lease | undefined> {
+    const updateData: any = { status: "Active", endDate: newEndDate };
+    if (newMonthlyRate !== undefined) updateData.monthlyRate = newMonthlyRate;
+    const [updated] = await db
+      .update(leases)
+      .set(updateData)
+      .where(eq(leases.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async suspendLease(id: number, reason: string): Promise<Lease | undefined> {
+    const [updated] = await db
+      .update(leases)
+      .set({ status: "suspended", suspendedAt: new Date(), suspendedReason: reason })
+      .where(eq(leases.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async reactivateLease(id: number): Promise<Lease | undefined> {
+    const [updated] = await db
+      .update(leases)
+      .set({ status: "Active", suspendedAt: null, suspendedReason: null })
+      .where(eq(leases.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // --- Bulk Actions ---
+
+  async bulkUpdatePayments(ids: number[], action: string): Promise<number> {
+    if (ids.length === 0) return 0;
+    if (action === "delete") {
+      const result = await db.delete(payments).where(inArray(payments.id, ids));
+      return result.rowCount ?? 0;
+    }
+    const statusMap: Record<string, string> = {
+      mark_paid: "Paid",
+      mark_overdue: "Overdue",
+    };
+    const newStatus = statusMap[action];
+    if (!newStatus) return 0;
+    const updateData: any = { status: newStatus };
+    if (action === "mark_paid") updateData.paidDate = new Date().toISOString().split('T')[0];
+    const result = await db
+      .update(payments)
+      .set(updateData)
+      .where(inArray(payments.id, ids));
+    return result.rowCount ?? 0;
+  }
+
+  async bulkUpdateMaintenance(ids: number[], action: string): Promise<number> {
+    if (ids.length === 0) return 0;
+    if (action === "delete") {
+      const result = await db.delete(maintenance).where(inArray(maintenance.id, ids));
+      return result.rowCount ?? 0;
+    }
+    if (action === "mark_completed") {
+      const result = await db
+        .update(maintenance)
+        .set({ status: "Completed", completedDate: new Date().toISOString().split('T')[0] })
+        .where(inArray(maintenance.id, ids));
+      return result.rowCount ?? 0;
+    }
+    return 0;
+  }
+
+  // --- Payouts ---
+
+  async getPayoutsByOwnerId(ownerId: number): Promise<Payout[]> {
+    return await db.select().from(payouts).where(eq(payouts.ownerId, ownerId)).orderBy(desc(payouts.createdAt));
+  }
+
+  async getAllPayouts(): Promise<(Payout & { owner?: { name: string } })[]> {
+    const allPayouts = await db.select().from(payouts).orderBy(desc(payouts.createdAt));
+    if (allPayouts.length === 0) return [];
+    const ownerIds = Array.from(new Set(allPayouts.map(p => p.ownerId)));
+    const ownerList = await db.select().from(owners).where(inArray(owners.id, ownerIds));
+    const ownerMap = new Map(ownerList.map(o => [o.id, o]));
+    return allPayouts.map(p => ({
+      ...p,
+      owner: ownerMap.get(p.ownerId) ? { name: ownerMap.get(p.ownerId)!.name } : undefined,
+    }));
+  }
+
+  async createPayout(data: InsertPayout): Promise<Payout> {
+    const [newPayout] = await db.insert(payouts).values(data).returning();
+    return newPayout;
+  }
+
+  async updatePayoutStatus(id: number, status: string, processedAt?: Date): Promise<Payout | undefined> {
+    const updateData: any = { status };
+    if (processedAt) updateData.processedAt = processedAt;
+    const [updated] = await db.update(payouts).set(updateData).where(eq(payouts.id, id)).returning();
+    return updated || undefined;
+  }
+
+  // --- Flight Hour Logs (Admin) ---
+
+  async getAllFlightHourLogs(): Promise<FlightHourLogWithDetails[]> {
+    const logs = await db.select().from(flightHourLogs).orderBy(desc(flightHourLogs.submittedAt));
+    if (logs.length === 0) return [];
+    const aircraftIds = Array.from(new Set(logs.map(l => l.aircraftId)));
+    const lesseeIds = Array.from(new Set(logs.map(l => l.lesseeId)));
+    const [acList, lesseeList] = await Promise.all([
+      db.select().from(aircraft).where(inArray(aircraft.id, aircraftIds)),
+      db.select().from(lessees).where(inArray(lessees.id, lesseeIds)),
+    ]);
+    const acMap = new Map(acList.map(a => [a.id, a]));
+    const lesseeMap = new Map(lesseeList.map(l => [l.id, l]));
+    return logs.map(log => ({
+      ...log,
+      aircraftRegistration: acMap.get(log.aircraftId)?.registration ?? null,
+      lesseeName: lesseeMap.get(log.lesseeId)?.name ?? null,
+    }));
+  }
+
+  async verifyFlightHourLog(id: number, verifiedHours: number): Promise<FlightHourLog | undefined> {
+    const [log] = await db.select().from(flightHourLogs).where(eq(flightHourLogs.id, id));
+    if (!log) return undefined;
+    const discrepancyFlagged = verifiedHours !== log.reportedHours;
+    const [updated] = await db
+      .update(flightHourLogs)
+      .set({ verifiedHours, discrepancyFlagged, status: "verified" })
+      .where(eq(flightHourLogs.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  // --- Payments with date filter ---
+
+  async getAllPaymentsFiltered(filter?: { startDate?: string; endDate?: string; status?: string }): Promise<Payment[]> {
+    const conditions = [];
+    if (filter?.startDate) conditions.push(gte(payments.dueDate, filter.startDate));
+    if (filter?.endDate) conditions.push(lte(payments.dueDate, filter.endDate));
+    if (filter?.status) conditions.push(eq(payments.status, filter.status));
+    if (conditions.length === 0) return await db.select().from(payments);
+    return await db.select().from(payments).where(and(...conditions));
   }
 }
 

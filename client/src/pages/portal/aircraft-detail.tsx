@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Plane, Calendar, ArrowLeft } from "lucide-react";
+import { Helmet } from "react-helmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,7 +15,7 @@ export default function PortalAircraftDetail() {
     const id = parseInt(params?.id || "0");
 
     const { data: aircraft, isLoading: isAircraftLoading } = useQuery<AircraftWithDetails>({
-        queryKey: [`/api/portal/browse/${id}`],
+        queryKey: [`/api/portal/aircraft/${id}`],
     });
 
     const { data: availability, isLoading: isAvailLoading } = useQuery<{ days: { date: string, status: string }[] }>({
@@ -29,6 +30,7 @@ export default function PortalAircraftDetail() {
 
     return (
         <div className="p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <Helmet><title>Aircraft Detail — AeroLease Wise</title></Helmet>
             <Button variant="ghost" className="text-[#64748b] hover:text-brand font-bold mb-2 rounded-xl" asChild>
                 <Link href="/portal/my-aircraft">
                     <ArrowLeft className="h-4 w-4 mr-2" />

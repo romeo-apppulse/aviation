@@ -99,6 +99,8 @@ export default function Maintenance() {
   const [markAsCompleteId, setMarkAsCompleteId] = useState<number | null>(null);
   const [sortField, setSortField] = useState<SortField>('scheduledDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const aircraftModal = useModal<AircraftWithDetails>();
   const { toast } = useToast();
 
@@ -271,6 +273,34 @@ export default function Maintenance() {
     }
   }
 
+  const bulkActionMutation = useMutation({
+    mutationFn: ({ ids, action }: { ids: number[]; action: "mark_completed" | "delete" }) =>
+      apiRequest("POST", "/api/maintenance/bulk", { ids, action }).then(res => res.json()),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/maintenance"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/aircraft"] });
+      setSelectedIds([]);
+      setBulkDeleteOpen(false);
+      const labels: Record<string, string> = { mark_completed: "marked as completed", delete: "deleted" };
+      toast({ title: "Bulk action complete", description: `${variables.ids.length} record(s) ${labels[variables.action]}` });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: `Bulk action failed: ${error.message}`, variant: "destructive" });
+    }
+  });
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredAndSortedMaintenance.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredAndSortedMaintenance.map(m => m.id));
+    }
+  };
+
+  const toggleSelectOne = (id: number) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
   const markAsComplete = (maintenanceId: number) => {
     updateMaintenanceMutation.mutate({
       id: maintenanceId,
@@ -339,6 +369,34 @@ export default function Maintenance() {
         </CardContent>
       </Card>
 
+      {/* Bulk Action Toolbar */}
+      {selectedIds.length > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+          <span className="text-sm font-semibold text-blue-700">{selectedIds.length} selected</span>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-green-600 border-green-200 hover:bg-green-50"
+            onClick={() => bulkActionMutation.mutate({ ids: selectedIds, action: "mark_completed" })}
+            disabled={bulkActionMutation.isPending}
+          >
+            <CheckCircle className="h-4 w-4 mr-1" /> Mark Completed
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-red-600 border-red-200 hover:bg-red-50"
+            onClick={() => setBulkDeleteOpen(true)}
+            disabled={bulkActionMutation.isPending}
+          >
+            <Trash2 className="h-4 w-4 mr-1" /> Delete Selected
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setSelectedIds([])}>
+            ✕
+          </Button>
+        </div>
+      )}
+
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
@@ -350,6 +408,14 @@ export default function Maintenance() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <input
+                        type="checkbox"
+                        className="rounded"
+                        checked={filteredAndSortedMaintenance.length > 0 && selectedIds.length === filteredAndSortedMaintenance.length}
+                        onChange={toggleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>
                       <button
                         onClick={() => handleSort('aircraft')}
@@ -398,7 +464,15 @@ export default function Maintenance() {
                 </TableHeader>
                 <TableBody>
                   {filteredAndSortedMaintenance.map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className={selectedIds.includes(item.id) ? "bg-blue-50" : ""}>
+                      <TableCell className="w-10">
+                        <input
+                          type="checkbox"
+                          className="rounded"
+                          checked={selectedIds.includes(item.id)}
+                          onChange={() => toggleSelectOne(item.id)}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         <div
                           className="flex items-center space-x-2 cursor-pointer group"
@@ -439,8 +513,10 @@ export default function Maintenance() {
                       <TableCell>
                         {item.reportedByLessee ? (
                           <span className="text-sm">{item.reportedByLessee.name}</span>
+                        ) : item.performedBy ? (
+                          <span className="text-sm">{item.performedBy}</span>
                         ) : (
-                          <span className="text-sm text-gray-500">Admin</span>
+                          <span className="text-sm text-gray-500">Internal</span>
                         )}
                       </TableCell>
                       <TableCell className="font-mono">
@@ -841,6 +917,27 @@ export default function Maintenance() {
               }}
             >
               {deleteMaintenanceMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Delete Confirmation */}
+      <AlertDialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete {selectedIds.length} Maintenance Record(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the selected maintenance records. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => bulkActionMutation.mutate({ ids: selectedIds, action: "delete" })}
+            >
+              {bulkActionMutation.isPending ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

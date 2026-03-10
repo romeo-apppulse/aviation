@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Helmet } from "react-helmet";
 import { Search, UserCheck, UserX, Trash2, Users, Clock, CheckCircle, XCircle, Edit, Plus, Save, X } from "lucide-react";
 import { formatDate, getStatusColor } from "@/lib/utils";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import LesseeDetailDrawer from "@/components/lessees/lessee-detail-drawer";
 import OwnerDetailDrawer from "@/components/owners/owner-detail-drawer";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -396,23 +397,23 @@ export default function AdminUsers() {
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[800px]">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-2">User</th>
-                    <th className="text-left p-2">Email</th>
-                    <th className="text-left p-2">Status</th>
-                    <th className="text-left p-2">Role</th>
-                    <th className="text-left p-2">Linked Entity</th>
-                    <th className="text-left p-2">Last Login</th>
-                    <th className="text-left p-2">Joined</th>
-                    <th className="text-left p-2">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <Table className="min-w-[800px]">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Linked Entity</TableHead>
+                    <TableHead>Last Login</TableHead>
+                    <TableHead>Joined</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
                   {filteredUsers.map((user) => (
-                    <tr key={user.id} className="border-b hover:bg-gray-50">
-                      <td className="p-2">
+                    <TableRow key={user.id}>
+                      <TableCell>
                         <div className="flex items-center space-x-2">
                           <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
                             <span className="text-white text-sm font-semibold">
@@ -426,25 +427,24 @@ export default function AdminUsers() {
                                 : user.email
                               }
                             </p>
-                            <p className="text-xs text-gray-500 truncate">ID: {user.id}</p>
                           </div>
                         </div>
-                      </td>
-                      <td className="p-2">
+                      </TableCell>
+                      <TableCell>
                         <span className="text-sm break-words">{user.email}</span>
-                      </td>
-                      <td className="p-2">
+                      </TableCell>
+                      <TableCell>
                         <Badge className={`${getStatusColor(user.status || 'pending')} flex items-center space-x-1 w-fit text-xs`}>
                           {getStatusIcon(user.status || 'pending')}
                           <span className="capitalize">{user.status || 'pending'}</span>
                         </Badge>
-                      </td>
-                      <td className="p-2">
+                      </TableCell>
+                      <TableCell>
                         <Badge variant="outline" className="capitalize text-xs">
                           {user.role || 'user'}
                         </Badge>
-                      </td>
-                      <td className="p-2">
+                      </TableCell>
+                      <TableCell>
                         {(user as any).lesseeId ? (
                           <span
                             className="text-xs text-brand hover:underline cursor-pointer font-medium"
@@ -468,19 +468,19 @@ export default function AdminUsers() {
                         ) : (
                           <span className="text-xs text-gray-400">-</span>
                         )}
-                      </td>
-                      <td className="p-2">
+                      </TableCell>
+                      <TableCell>
                         <span className="text-xs">
                           {(user as any).lastLoginAt ? formatDate((user as any).lastLoginAt) : "Never"}
                         </span>
-                      </td>
-                      <td className="p-2">
+                      </TableCell>
+                      <TableCell>
                         <span className="text-xs">{formatDate(user.createdAt || new Date())}</span>
-                      </td>
-                      <td className="p-2">
+                      </TableCell>
+                      <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {/* Prevent actions on permanent admin (Zach) */}
-                          {user.email === 'zacharypurvis2@gmail.com' ? (
+                          {/* Prevent actions on super_admin accounts */}
+                          {user.role === 'super_admin' ? (
                             <Badge variant="secondary" className="text-xs">
                               Permanent Admin
                             </Badge>
@@ -563,11 +563,11 @@ export default function AdminUsers() {
                             </>
                           )}
                         </div>
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
               {filteredUsers.length === 0 && (
                 <div className="text-center py-8">
                   <Users className="mx-auto h-12 w-12 text-gray-400 mb-3" />

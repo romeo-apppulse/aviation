@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Phone, Mail, MapPin, Clock, Send, CheckCircle, Info } from "lucide-react";
+import { Mail, Clock, Send, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,13 +104,6 @@ export default function HelpSupport() {
         </p>
       </div>
 
-      <div className="flex items-start gap-3 bg-blue-50 border border-blue-100 rounded-xl px-4 py-3 mb-6 sm:mb-8">
-        <Info className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-        <p className="text-sm text-blue-700">
-          Email notifications are currently being configured. In-app notifications are active. Contact your administrator for updates.
-        </p>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
         {/* Contact Information */}
         <div className="lg:col-span-1">
@@ -120,32 +113,11 @@ export default function HelpSupport() {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-start gap-3">
-                <Phone className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">Phone Support</h3>
-                  <p className="text-gray-600 text-sm sm:text-base break-all">1-800-AERO-LEASE</p>
-                  <p className="text-gray-600 text-sm sm:text-base break-all">(1-800-237-6532)</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
                 <Mail className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-gray-900 mb-1">Email Support</h3>
                   <p className="text-gray-600 text-sm sm:text-base break-all">support@aerolease.com</p>
                   <p className="text-gray-600 text-sm sm:text-base break-all">billing@aerolease.com</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-1">Office Address</h3>
-                  <div className="text-gray-600 text-sm sm:text-base">
-                    <p className="break-words">123 Aviation Way</p>
-                    <p className="break-words">Suite 500</p>
-                    <p className="break-words">Miami, FL 33142</p>
-                  </div>
                 </div>
               </div>
 
@@ -160,24 +132,8 @@ export default function HelpSupport() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
 
-          {/* Emergency Support */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle className="text-red-600">Emergency Support</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600 mb-3 text-sm sm:text-base break-words">
-                For urgent aircraft maintenance or safety issues:
-              </p>
-              <p className="font-semibold text-red-600 text-sm sm:text-base break-all">
-                Emergency Hotline: 1-800-AERO-911
-              </p>
-              <p className="text-xs sm:text-sm text-gray-500 mt-2 break-words">
-                Available 24/7 for critical aircraft issues
-              </p>
+              <p className="text-gray-600 text-sm sm:text-base">Contact your platform administrator for support.</p>
             </CardContent>
           </Card>
         </div>

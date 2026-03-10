@@ -5,10 +5,11 @@ import { emailService } from "./emailService";
 export function startScheduler() {
   console.log("[Scheduler] Starting scheduled jobs...");
 
-  // Daily at 8am: check overdue payments, upcoming lease expiry
+  // Daily at 8am: check overdue payments, upcoming lease expiry, auto-mark overdue
   cron.schedule("0 8 * * *", async () => {
     console.log("[Scheduler] Running daily checks...");
     try {
+      await autoMarkOverduePayments();
       await checkOverduePayments();
       await checkExpiringLeases();
     } catch (err) {
@@ -54,6 +55,42 @@ export function startScheduler() {
       console.error("[Scheduler] Final hours reminder error:", err);
     }
   });
+}
+
+async function autoMarkOverduePayments() {
+  const allPayments = await storage.getAllPayments();
+  const now = new Date();
+  let overdueCount = 0;
+
+  for (const payment of allPayments) {
+    if (payment.status !== "Pending" && payment.status !== "Unpaid") continue;
+
+    const dueDate = payment.dueDate
+      ? new Date(payment.dueDate)
+      : new Date(new Date(payment.dueDate || now).getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    if (dueDate < now) {
+      await storage.updatePayment(payment.id, { status: "Overdue" });
+      overdueCount++;
+    }
+  }
+
+  if (overdueCount > 0) {
+    console.log(`[Scheduler] Auto-marked ${overdueCount} payment(s) as Overdue`);
+    const admins = await storage.getAdminUsers();
+    for (const admin of admins) {
+      await storage.createNotification({
+        userId: admin.id,
+        type: "payment",
+        priority: "high",
+        title: "Overdue Payments Detected",
+        message: `${overdueCount} payment(s) have been automatically marked as overdue.`,
+        relatedType: "payment",
+        relatedId: null,
+        actionUrl: "/payments",
+      });
+    }
+  }
 }
 
 async function checkOverduePayments() {

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Plane, AlertCircle, CheckCircle2 } from "lucide-react";
 import { Link } from "wouter";
+import { Helmet } from "react-helmet";
 
 export default function AcceptInvite() {
     const search = useSearch();
@@ -83,7 +84,7 @@ export default function AcceptInvite() {
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#007AFF]"></div>
             </div>
         );
     }
@@ -108,6 +109,8 @@ export default function AcceptInvite() {
     }
 
     return (
+        <>
+        <Helmet><title>Accept Invitation — AeroLease Wise</title></Helmet>
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
             <Card className="max-w-md w-full rounded-2xl shadow-lg">
                 <CardHeader className="text-center pb-2">
@@ -162,5 +165,6 @@ export default function AcceptInvite() {
                 </CardContent>
             </Card>
         </div>
+        </>
     );
 }

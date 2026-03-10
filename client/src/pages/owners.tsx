@@ -3,12 +3,20 @@ import { Owner, InsertOwner, AircraftWithDetails } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useModal } from "@/hooks/use-modal";
-import { Plus, Mail, Phone, MapPin, User, Search, Edit, Trash2, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import { Plus, Mail, Phone, MapPin, User, Search, Edit, Trash2, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown, Eye, MoreHorizontal, RefreshCw, Copy, XCircle } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import OwnerDetailDrawer from "@/components/owners/owner-detail-drawer";
 import AircraftDetailsModal from "@/components/aircraft/aircraft-details-modal";
 import { Helmet } from "react-helmet";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -82,6 +90,7 @@ export default function Owners() {
   const [addOwnerOpen, setAddOwnerOpen] = useState(false);
   const [editingOwner, setEditingOwner] = useState<Owner | null>(null);
   const [deleteOwner, setDeleteOwner] = useState<Owner | null>(null);
+  const [cancelInviteOwner, setCancelInviteOwner] = useState<Owner | null>(null);
   const [selectedOwnerId, setSelectedOwnerId] = useState<number | null>(null);
   const aircraftModal = useModal<AircraftWithDetails>(false);
   const { toast } = useToast();
@@ -185,6 +194,41 @@ export default function Owners() {
     }
   });
 
+  const resendInviteMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiRequest("POST", `/api/owners/${id}/resend-invite`),
+    onSuccess: () => {
+      toast({ title: "Invite resent successfully" });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: `Failed to resend invite: ${error.message}`, variant: "destructive" });
+    }
+  });
+
+  const cancelInviteMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiRequest("DELETE", `/api/owners/${id}/invite`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/owners"] });
+      setCancelInviteOwner(null);
+      toast({ title: "Invite cancelled" });
+    },
+    onError: (error) => {
+      toast({ title: "Error", description: `Failed to cancel invite: ${error.message}`, variant: "destructive" });
+    }
+  });
+
+  async function copyInviteLink(id: number) {
+    try {
+      const res = await apiRequest("GET", `/api/owners/${id}/invite-link`);
+      const data = await res.json() as { link: string };
+      await navigator.clipboard.writeText(data.link);
+      toast({ title: "Invite link copied to clipboard" });
+    } catch {
+      toast({ title: "Error", description: "Failed to copy invite link", variant: "destructive" });
+    }
+  }
+
   const deleteOwnerMutation = useMutation({
     mutationFn: (id: number) =>
       apiRequest("DELETE", `/api/owners/${id}`),
@@ -252,14 +296,13 @@ export default function Owners() {
   return (
     <>
       <Helmet>
-        <title>Aircraft Owners - AeroLease Manager</title>
-        <meta name="description" content="Manage aircraft owners, their contact information, and payment details" />
+        <title>Asset Owners — AeroLease Wise</title>
       </Helmet>
 
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Aircraft Owners</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-[32px] font-bold tracking-tight text-[#1e293b]">Aircraft Owners</h1>
+          <p className="text-[14px] text-[#64748b] font-medium mt-1">
             Manage all aircraft owners and their details
           </p>
         </div>
@@ -275,33 +318,39 @@ export default function Owners() {
         </Button>
       </div>
 
-      <Card className="mb-6">
+      <Card className="rounded-2xl border-[#f1f5f9] shadow-sm mb-6 bg-white/50 backdrop-blur-sm">
         <CardContent className="pt-6">
           <div className="flex gap-4">
             <div className="flex-1 relative">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-[#94a3b8]" />
               <Input
                 type="text"
                 placeholder="Search owners by name or email..."
-                className="pl-8"
+                className="pl-10 h-11 border-[#e2e8f0] focus:border-brand focus:ring-brand rounded-xl transition-all text-[14px]"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="flex rounded-md border border-gray-200 bg-gray-50">
+            <div className="flex bg-[#f1f5f9] p-1.5 rounded-[14px] border border-[#e2e8f0]">
               <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                variant="ghost"
                 size="sm"
                 onClick={() => setViewMode('grid')}
-                className="rounded-r-none"
+                className={cn(
+                  "h-8 w-8 p-0 rounded-lg transition-all",
+                  viewMode === 'grid' ? "bg-white shadow-sm text-brand" : "text-[#94a3b8] hover:text-[#64748b]"
+                )}
               >
                 <Grid3X3 className="h-4 w-4" />
               </Button>
               <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
+                variant="ghost"
                 size="sm"
                 onClick={() => setViewMode('list')}
-                className="rounded-l-none"
+                className={cn(
+                  "h-8 w-8 p-0 rounded-lg transition-all",
+                  viewMode === 'list' ? "bg-white shadow-sm text-brand" : "text-[#94a3b8] hover:text-[#64748b]"
+                )}
               >
                 <List className="h-4 w-4" />
               </Button>
@@ -315,14 +364,14 @@ export default function Owners() {
           {Array(6)
             .fill(null)
             .map((_, index) => (
-              <Card key={index}>
-                <CardContent className="p-6">
-                  <div className="h-5 bg-gray-200 rounded animate-pulse mb-2 w-3/4" />
-                  <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2 mb-4" />
+              <Card key={index} className="rounded-[24px] border-[#f1f5f9] shadow-sm overflow-hidden">
+                <CardContent className="p-6 space-y-4">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
                   <div className="space-y-2">
-                    <div className="h-3 bg-gray-200 rounded animate-pulse" />
-                    <div className="h-3 bg-gray-200 rounded animate-pulse" />
-                    <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-1/2" />
                   </div>
                 </CardContent>
               </Card>
@@ -332,13 +381,13 @@ export default function Owners() {
         viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredAndSortedOwners.map((owner) => (
-              <Card key={owner.id}>
+              <Card key={owner.id} className="rounded-[24px] border-[#f1f5f9] shadow-sm bg-white hover:shadow-md transition-shadow overflow-hidden">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start">
                     <div>
-                      <h3 className="font-bold text-lg text-gray-900">{owner.name}</h3>
+                      <h3 className="font-bold text-lg text-[#1e293b]">{owner.name}</h3>
                       <div className="flex items-center gap-2 mt-1">
-                        <p className="text-sm text-gray-500 flex items-center">
+                        <p className="text-sm text-[#64748b] flex items-center">
                           <User className="h-3.5 w-3.5 mr-1" />
                           Owner
                         </p>
@@ -350,11 +399,35 @@ export default function Owners() {
                                 ? "text-green-700 border-green-300 bg-green-50 text-xs"
                                 : owner.portalStatus === "invited"
                                 ? "text-blue-700 border-blue-300 bg-blue-50 text-xs"
-                                : "text-gray-600 border-gray-300 bg-gray-50 text-xs"
+                                : "text-[#475569] border-slate-100 bg-slate-50 text-xs"
                             }
                           >
                             {owner.portalStatus}
                           </Badge>
+                        )}
+                        {owner.portalStatus === "invited" && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-5 w-5 p-0" onClick={(e) => e.stopPropagation()}>
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
+                              <DropdownMenuItem onClick={() => resendInviteMutation.mutate(owner.id)}>
+                                <RefreshCw className="h-4 w-4 mr-2 text-blue-600" />
+                                Resend Invite
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => copyInviteLink(owner.id)}>
+                                <Copy className="h-4 w-4 mr-2 text-gray-600" />
+                                Copy Invite Link
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => setCancelInviteOwner(owner)}>
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Cancel Invite
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         )}
                       </div>
                     </div>
@@ -384,7 +457,7 @@ export default function Owners() {
 
                   <div className="mt-4 space-y-2">
                     <div className="flex items-center text-sm">
-                      <Mail className="h-4 w-4 mr-2 text-gray-500" />
+                      <Mail className="h-4 w-4 mr-2 text-[#64748b]" />
                       <a href={`mailto:${owner.email}`} className="text-brand">
                         {owner.email}
                       </a>
@@ -392,8 +465,8 @@ export default function Owners() {
 
                     {owner.phone && (
                       <div className="flex items-center text-sm">
-                        <Phone className="h-4 w-4 mr-2 text-gray-500" />
-                        <a href={`tel:${owner.phone}`} className="text-gray-700">
+                        <Phone className="h-4 w-4 mr-2 text-[#64748b]" />
+                        <a href={`tel:${owner.phone}`} className="text-[#475569]">
                           {owner.phone}
                         </a>
                       </div>
@@ -401,20 +474,20 @@ export default function Owners() {
 
                     {owner.address && (
                       <div className="flex items-start text-sm">
-                        <MapPin className="h-4 w-4 mr-2 text-gray-500 mt-0.5" />
-                        <span className="text-gray-700">{owner.address}</span>
+                        <MapPin className="h-4 w-4 mr-2 text-[#64748b] mt-0.5" />
+                        <span className="text-[#475569]">{owner.address}</span>
                       </div>
                     )}
                   </div>
 
                   {owner.paymentDetails && (
-                    <div className="mt-4 p-3 bg-gray-50 rounded-md text-sm">
-                      <p className="font-medium text-gray-700 mb-1">Payment Details</p>
-                      <p className="text-gray-600">{owner.paymentDetails}</p>
+                    <div className="mt-4 p-3 bg-white rounded-md border border-slate-100 text-sm">
+                      <p className="font-medium text-[#475569] mb-1">Payment Details</p>
+                      <p className="text-[#64748b]">{owner.paymentDetails}</p>
                     </div>
                   )}
 
-                  <div className="mt-4 pt-4 border-t border-gray-100">
+                  <div className="mt-4 pt-4 border-t border-slate-100">
                     <Button
                       variant="outline"
                       size="sm"
@@ -433,10 +506,10 @@ export default function Owners() {
             ))}
           </div>
         ) : (
-          <Card>
+          <Card className="rounded-2xl border-[#f1f5f9] shadow-sm overflow-hidden bg-white">
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-[#f8fafc] border-b border-[#f1f5f9] hover:bg-[#f8fafc]">
                   <TableHead>
                     <Button
                       variant="ghost"
@@ -487,8 +560,8 @@ export default function Owners() {
               </TableHeader>
               <TableBody>
                 {filteredAndSortedOwners.map((owner) => (
-                  <TableRow key={owner.id} className="hover:bg-gray-50">
-                    <TableCell className="font-medium">{owner.name}</TableCell>
+                  <TableRow key={owner.id} className="hover:bg-[#f8fafc] transition-colors border-b border-[#f1f5f9]">
+                    <TableCell className="font-medium text-[#1e293b]">{owner.name}</TableCell>
                     <TableCell>
                       <a href={`mailto:${owner.email}`} className="text-brand hover:underline">
                         {owner.email}
@@ -496,37 +569,63 @@ export default function Owners() {
                     </TableCell>
                     <TableCell>
                       {owner.phone ? (
-                        <a href={`tel:${owner.phone}`} className="text-gray-700 hover:underline">
+                        <a href={`tel:${owner.phone}`} className="text-[#475569] hover:underline">
                           {owner.phone}
                         </a>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-[#94a3b8]">-</span>
                       )}
                     </TableCell>
                     <TableCell>
                       {owner.address ? (
-                        <span className="text-gray-700">{owner.address}</span>
+                        <span className="text-[#475569]">{owner.address}</span>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-[#94a3b8]">-</span>
                       )}
                     </TableCell>
                     <TableCell>
-                      {owner.portalStatus && owner.portalStatus !== "none" ? (
-                        <Badge
-                          variant="outline"
-                          className={
-                            owner.portalStatus === "active"
-                              ? "text-green-700 border-green-300 bg-green-50 text-xs"
-                              : owner.portalStatus === "invited"
-                              ? "text-blue-700 border-blue-300 bg-blue-50 text-xs"
-                              : "text-gray-600 border-gray-300 bg-gray-50 text-xs"
-                          }
-                        >
-                          {owner.portalStatus}
-                        </Badge>
-                      ) : (
-                        <span className="text-gray-400 text-xs">—</span>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {owner.portalStatus && owner.portalStatus !== "none" ? (
+                          <Badge
+                            variant="outline"
+                            className={
+                              owner.portalStatus === "active"
+                                ? "text-green-700 border-green-300 bg-green-50 text-xs"
+                                : owner.portalStatus === "invited"
+                                ? "text-blue-700 border-blue-300 bg-blue-50 text-xs"
+                                : "text-[#475569] border-slate-100 bg-slate-50 text-xs"
+                            }
+                          >
+                            {owner.portalStatus}
+                          </Badge>
+                        ) : (
+                          <span className="text-[#94a3b8] text-xs">—</span>
+                        )}
+                        {owner.portalStatus === "invited" && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-6 w-6 p-0">
+                                <MoreHorizontal className="h-3.5 w-3.5" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              <DropdownMenuItem onClick={() => resendInviteMutation.mutate(owner.id)}>
+                                <RefreshCw className="h-4 w-4 mr-2 text-blue-600" />
+                                Resend Invite
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => copyInviteLink(owner.id)}>
+                                <Copy className="h-4 w-4 mr-2 text-gray-600" />
+                                Copy Invite Link
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-red-600 focus:text-red-600" onClick={() => setCancelInviteOwner(owner)}>
+                                <XCircle className="h-4 w-4 mr-2" />
+                                Cancel Invite
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="flex gap-1">
@@ -562,11 +661,11 @@ export default function Owners() {
         )
       ) : (
         <div className="text-center py-12">
-          <div className="mx-auto h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-            <User className="h-8 w-8 text-gray-400" />
+          <div className="mx-auto h-16 w-16 rounded-full bg-[#f8fafc] flex items-center justify-center mb-4">
+            <User className="h-8 w-8 text-[#cbd5e1]" />
           </div>
-          <h3 className="text-lg font-medium text-gray-900 mb-1">No owners found</h3>
-          <p className="text-gray-500 mb-4">
+          <h3 className="text-lg font-medium text-[#1e293b] mb-1">No owners found</h3>
+          <p className="text-[#64748b] mb-4">
             {searchTerm
               ? "Try adjusting your search"
               : "Get started by adding an aircraft owner"}
@@ -758,6 +857,33 @@ export default function Owners() {
           aircraft={aircraftModal.data}
         />
       )}
+
+      {/* Cancel Invite Confirmation */}
+      <AlertDialog open={!!cancelInviteOwner} onOpenChange={(open) => {
+        if (!open) setCancelInviteOwner(null);
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Invite</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel the portal invite for "{cancelInviteOwner?.name}"? They will no longer be able to use the invite link.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-red-600 text-white hover:bg-red-700"
+              onClick={() => {
+                if (cancelInviteOwner) {
+                  cancelInviteMutation.mutate(cancelInviteOwner.id);
+                }
+              }}
+            >
+              {cancelInviteMutation.isPending ? "Cancelling..." : "Cancel Invite"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

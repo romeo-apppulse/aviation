@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet";
 import { useQuery } from "@tanstack/react-query";
 import { FileText, Download, Search } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -32,6 +33,10 @@ export default function OwnerDocuments() {
     ) || [];
 
     return (
+        <>
+        <Helmet>
+            <title>Contracts & Files — AeroLease Wise</title>
+        </Helmet>
         <div className="p-10 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="space-y-2">
@@ -113,5 +118,6 @@ export default function OwnerDocuments() {
                 </CardContent>
             </Card>
         </div>
+        </>
     );
 }

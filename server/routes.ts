@@ -12,7 +12,8 @@ import {
   insertPaymentSchema,
   insertMaintenanceSchema,
   insertDocumentSchema,
-  insertNotificationSchema
+  insertNotificationSchema,
+  insertPayoutSchema,
 } from "@shared/schema";
 import { ZodError } from "zod";
 import { fromZodError } from "zod-validation-error";
@@ -79,6 +80,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: 'user',
         status: 'pending',
       });
+
+      // Notify admins of new registration
+      try {
+        const admins = await storage.getAdminUsers();
+        for (const admin of admins) {
+          if (admin.email && emailService.isReady()) {
+            emailService.sendNotificationEmail({
+              user: admin,
+              type: "system_update",
+              title: "New Registration Request",
+              message: `New admin registration request from ${user.firstName} ${user.lastName} (${user.email}) is pending review.`,
+              actionUrl: "/admin/users",
+            }).catch(() => {});
+          }
+        }
+      } catch (_) {}
 
       res.status(201).json({
         message: "Registration successful. Your account is pending approval.",
@@ -625,6 +642,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error fetching revenue stats:", error);
       res.status(500).json({ message: "Failed to fetch revenue stats" });
     }
+  });
+
+  // Admin hour verification
+  protectedRouter.get("/admin/hour-submissions", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const logs = await storage.getAllFlightHourLogs();
+      res.json(logs);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch hour submissions" });
+    }
+  });
+
+  protectedRouter.put("/flight-hours/:id/verify", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const schema = z.object({ verifiedHours: z.number().min(0) });
+      const { verifiedHours } = schema.parse(req.body);
+      const log = await storage.verifyFlightHourLog(id, verifiedHours);
+      if (!log) return res.status(404).json({ error: "Flight hour log not found" });
+      res.json(log);
+    } catch (err) { handleZodError(err, res); }
+  });
+
+  // Payout routes
+  protectedRouter.get("/admin/payouts", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const allPayouts = await storage.getAllPayouts();
+      res.json(allPayouts);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch payouts" });
+    }
+  });
+
+  protectedRouter.post("/admin/payouts", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const data = insertPayoutSchema.parse(req.body);
+      const payout = await storage.createPayout(data);
+      res.status(201).json(payout);
+    } catch (err) { handleZodError(err, res); }
+  });
+
+  protectedRouter.put("/admin/payouts/:id", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const schema = z.object({ status: z.string(), processedAt: z.string().optional() });
+      const { status, processedAt } = schema.parse(req.body);
+      const payout = await storage.updatePayoutStatus(id, status, processedAt ? new Date(processedAt) : undefined);
+      if (!payout) return res.status(404).json({ error: "Payout not found" });
+      res.json(payout);
+    } catch (err) { handleZodError(err, res); }
   });
 
   // Portal Routes
@@ -1319,6 +1388,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cancel and invite-link for lessees
+  protectedRouter.delete("/lessees/:id/invite", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const lessee = await storage.getLessee(id);
+      if (!lessee) return res.status(404).json({ error: "Lessee not found" });
+      const existingUser = await storage.getUserByEmail(lessee.email);
+      if (existingUser) {
+        await storage.updateUser(existingUser.id, {
+          inviteToken: null,
+          inviteExpiresAt: null,
+          status: "pending",
+        } as any);
+      }
+      await storage.updateLessee(id, { portalStatus: "none" } as any);
+      res.json({ message: "Invite cancelled" });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to cancel invite" });
+    }
+  });
+
+  protectedRouter.get("/lessees/:id/invite-link", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const lessee = await storage.getLessee(id);
+      if (!lessee) return res.status(404).json({ error: "Lessee not found" });
+      const user = await storage.getUserByEmail(lessee.email);
+      if (!user || !user.inviteToken) return res.status(404).json({ error: "No active invite found" });
+      const link = `${process.env.APP_URL || 'https://your-app.onrender.com'}/accept-invite?token=${user.inviteToken}`;
+      res.json({ link });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to get invite link" });
+    }
+  });
+
   // Invite routes for owners (asset owners)
   protectedRouter.post("/owners/:id/invite", isAdmin, async (req: Request, res: Response) => {
     try {
@@ -1422,6 +1528,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Cancel and invite-link for owners
+  protectedRouter.delete("/owners/:id/invite", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const owner = await storage.getOwner(id);
+      if (!owner) return res.status(404).json({ error: "Owner not found" });
+      const existingUser = await storage.getUserByEmail(owner.email);
+      if (existingUser) {
+        await storage.updateUser(existingUser.id, {
+          inviteToken: null,
+          inviteExpiresAt: null,
+          status: "pending",
+        } as any);
+      }
+      await storage.updateOwner(id, { portalStatus: "none" } as any);
+      res.json({ message: "Invite cancelled" });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to cancel invite" });
+    }
+  });
+
+  protectedRouter.get("/owners/:id/invite-link", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const owner = await storage.getOwner(id);
+      if (!owner) return res.status(404).json({ error: "Owner not found" });
+      const user = await storage.getUserByEmail(owner.email);
+      if (!user || !user.inviteToken) return res.status(404).json({ error: "No active invite found" });
+      const link = `${process.env.APP_URL || 'https://your-app.onrender.com'}/accept-invite?token=${user.inviteToken}`;
+      res.json({ link });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to get invite link" });
+    }
+  });
+
   // Lease routes
   protectedRouter.get("/leases", async (req: Request, res: Response) => {
     try {
@@ -1485,6 +1628,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Lease lifecycle routes
+  protectedRouter.put("/leases/:id/terminate", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const schema = z.object({ reason: z.string().min(1), effectiveDate: z.string().min(1) });
+      const { reason, effectiveDate } = schema.parse(req.body);
+      const lease = await storage.terminateLease(id, reason, effectiveDate);
+      if (!lease) return res.status(404).json({ error: "Lease not found" });
+      res.json(lease);
+    } catch (err) { handleZodError(err, res); }
+  });
+
+  protectedRouter.put("/leases/:id/renew", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const schema = z.object({ endDate: z.string().min(1), monthlyRate: z.number().optional() });
+      const { endDate, monthlyRate } = schema.parse(req.body);
+      const lease = await storage.renewLease(id, endDate, monthlyRate);
+      if (!lease) return res.status(404).json({ error: "Lease not found" });
+      res.json(lease);
+    } catch (err) { handleZodError(err, res); }
+  });
+
+  protectedRouter.put("/leases/:id/suspend", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const schema = z.object({ reason: z.string().min(1) });
+      const { reason } = schema.parse(req.body);
+      const lease = await storage.suspendLease(id, reason);
+      if (!lease) return res.status(404).json({ error: "Lease not found" });
+      res.json(lease);
+    } catch (err) { handleZodError(err, res); }
+  });
+
+  protectedRouter.put("/leases/:id/reactivate", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const lease = await storage.reactivateLease(id);
+      if (!lease) return res.status(404).json({ error: "Lease not found" });
+      res.json(lease);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to reactivate lease" });
+    }
+  });
+
   protectedRouter.get("/aircraft/:id/leases", async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
@@ -1510,12 +1699,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Payment routes
   protectedRouter.get("/payments", async (req: Request, res: Response) => {
     try {
+      const { startDate, endDate, status } = req.query as { startDate?: string; endDate?: string; status?: string };
+      if (startDate || endDate || status) {
+        const filtered = await storage.getAllPaymentsFiltered({ startDate, endDate, status });
+        return res.json(filtered);
+      }
       const payments = await storage.getAllPaymentsWithDetails();
       res.json(payments);
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to fetch payments" });
     }
+  });
+
+  protectedRouter.post("/payments/bulk", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const schema = z.object({
+        ids: z.array(z.number()).min(1),
+        action: z.enum(["mark_paid", "mark_overdue", "delete"]),
+      });
+      const { ids, action } = schema.parse(req.body);
+      const count = await storage.bulkUpdatePayments(ids, action);
+      res.json({ updated: count });
+    } catch (err) { handleZodError(err, res); }
+  });
+
+  protectedRouter.post("/maintenance/bulk", isAdmin, async (req: Request, res: Response) => {
+    try {
+      const schema = z.object({
+        ids: z.array(z.number()).min(1),
+        action: z.enum(["mark_completed", "delete"]),
+      });
+      const { ids, action } = schema.parse(req.body);
+      const count = await storage.bulkUpdateMaintenance(ids, action);
+      res.json({ updated: count });
+    } catch (err) { handleZodError(err, res); }
   });
 
   protectedRouter.get("/payments/:id", async (req: Request, res: Response) => {
@@ -1668,6 +1886,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertMaintenanceSchema.parse(bodyData);
       const maintenanceRecord = await storage.createMaintenance(validatedData);
       res.status(201).json(maintenanceRecord);
+
+      // Notify admins if reported by a flight school
+      if (user.role === 'flight_school' && user.lesseeId) {
+        try {
+          const ac = await storage.getAircraft(validatedData.aircraftId);
+          const lessee = await storage.getLessee(user.lesseeId);
+          const admins = await storage.getAdminUsers();
+          for (const admin of admins) {
+            await storage.createNotification({
+              userId: admin.id,
+              type: "maintenance",
+              priority: "medium",
+              title: "Maintenance Reported by Flight School",
+              message: `${lessee?.name || "A flight school"} reported a maintenance issue: ${validatedData.type} on ${ac?.registration || "aircraft"} scheduled ${validatedData.scheduledDate}.`,
+              relatedType: "maintenance",
+              relatedId: maintenanceRecord.id,
+              actionUrl: `/maintenance/${maintenanceRecord.id}`,
+            });
+            if (emailService.isReady()) {
+              emailService.sendNotificationEmail({
+                user: admin,
+                type: "maintenance_reminder",
+                title: "New Maintenance Report",
+                message: `${lessee?.name || "A flight school"} has reported a new maintenance item: ${validatedData.type} on aircraft ${ac?.registration || validatedData.aircraftId}. Scheduled: ${validatedData.scheduledDate}.`,
+                actionUrl: "/maintenance",
+              }).catch(() => {});
+            }
+          }
+        } catch (_) {}
+      }
     } catch (err) {
       handleZodError(err, res);
     }
@@ -2438,6 +2686,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: "Failed to fetch revenue" });
+    }
+  });
+
+  ownerRouter.get("/payouts", async (req: Request, res: Response) => {
+    try {
+      const user = req.user as User;
+      if (!user.ownerId) return res.status(400).json({ error: "No owner profile linked" });
+      const ownerPayouts = await storage.getPayoutsByOwnerId(user.ownerId);
+      res.json(ownerPayouts);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to fetch payouts" });
+    }
+  });
+
+  ownerRouter.get("/revenue/export", async (req: Request, res: Response) => {
+    try {
+      const user = req.user as User;
+      if (!user.ownerId) return res.status(400).json({ error: "No owner profile linked" });
+
+      const ownerAircraft = await storage.getAircraftByOwnerId(user.ownerId);
+      const aircraftIds = ownerAircraft.map(ac => ac.id);
+      const aircraftById = new Map(ownerAircraft.map(ac => [ac.id, ac]));
+      const allLeases = await storage.getLeasesByAircraftIds(aircraftIds);
+      const leaseById = new Map(allLeases.map(l => [l.id, l]));
+      const allPayments = await storage.getPaymentsByLeaseIds(allLeases.map(l => l.id));
+
+      const rows: string[] = ["Period,Aircraft,Gross Amount,Platform Fee,Net Amount"];
+      for (const p of allPayments) {
+        const lease = leaseById.get(p.leaseId);
+        const ac = lease ? aircraftById.get(lease.aircraftId) : undefined;
+        const registration = ac?.registration || "Unknown";
+        const gross = (p.grossAmount ?? p.amount ?? 0).toFixed(2);
+        const fee = (p.commissionAmount ?? (p.grossAmount || p.amount || 0) * 0.1).toFixed(2);
+        const net = (p.netAmount ?? (p.grossAmount || p.amount || 0) * 0.9).toFixed(2);
+        const period = (p.period || "").replace(/,/g, " ");
+        rows.push(`"${period}","${registration}",${gross},${fee},${net}`);
+      }
+
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader("Content-Disposition", 'attachment; filename="revenue-export.csv"');
+      res.send(rows.join("\n"));
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Failed to export revenue" });
     }
   });
 

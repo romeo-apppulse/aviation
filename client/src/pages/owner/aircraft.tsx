@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet";
 import { useQuery } from "@tanstack/react-query";
 import { Plane, Calendar, AlertTriangle, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -24,6 +25,10 @@ export default function OwnerAircraft() {
     }
 
     return (
+        <>
+        <Helmet>
+            <title>My Aircraft — AeroLease Wise</title>
+        </Helmet>
         <div className="p-10 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-2">
                 <h1 className="text-3xl font-bold text-[#1e293b] tracking-tight">My Aircraft</h1>
@@ -129,5 +134,6 @@ export default function OwnerAircraft() {
                 )}
             </div>
         </div>
+        </>
     );
 }

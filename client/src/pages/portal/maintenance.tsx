@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Wrench, CheckCircle2, Clock, AlertTriangle, Plus, Search, Edit2, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -192,6 +193,10 @@ export default function PortalMaintenance() {
     }
 
     return (
+        <>
+        <Helmet>
+            <title>Maintenance — AeroLease Wise</title>
+        </Helmet>
         <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Page Header */}
             <div className="flex items-start justify-between">
@@ -479,5 +484,6 @@ export default function PortalMaintenance() {
                 </DialogContent>
             </Dialog>
         </div>
+        </>
     );
 }

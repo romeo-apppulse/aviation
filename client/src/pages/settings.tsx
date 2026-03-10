@@ -17,6 +17,8 @@ import { AlertCircle, Save, User as UserIcon, Mail, Lock, Shield, CheckCircle, X
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Helmet } from "react-helmet";
 
 const profileSchema = z.object({
   firstName: z.string().min(1, "First name is required").max(50, "First name must be less than 50 characters"),
@@ -47,8 +49,6 @@ type EmailPreferencesFormData = z.infer<typeof emailPreferencesSchema>;
 
 export default function Settings() {
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"profile" | "password" | "notifications">("profile");
-
   // Email service status
   const { data: emailStatus, isLoading: emailStatusLoading } = useQuery<{
     emailServiceReady: boolean;
@@ -203,45 +203,32 @@ export default function Settings() {
   }
 
   return (
-    <div className="flex">
-      {/* Sidebar Navigation */}
-      <div className="w-64 bg-gray-50 border-r sticky top-0 h-screen">
-        <div className="p-6 border-b">
-          <h1 className="text-xl font-bold text-gray-900">Settings</h1>
+    <>
+      <Helmet><title>Settings — AeroLease Wise</title></Helmet>
+      <div className="p-4 space-y-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
           <p className="text-sm text-gray-600 mt-1">Manage your preferences</p>
         </div>
-        <nav className="p-4 space-y-2">
-          <Button
-            variant={activeTab === "profile" ? "default" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => setActiveTab("profile")}
-          >
-            <UserIcon className="h-4 w-4 mr-2" />
-            Profile
-          </Button>
-          <Button
-            variant={activeTab === "password" ? "default" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => setActiveTab("password")}
-          >
-            <Lock className="h-4 w-4 mr-2" />
-            Password
-          </Button>
-          <Button
-            variant={activeTab === "notifications" ? "default" : "ghost"}
-            className="w-full justify-start"
-            onClick={() => setActiveTab("notifications")}
-          >
-            <Mail className="h-4 w-4 mr-2" />
-            Email Notifications
-          </Button>
-        </nav>
-      </div>
 
-      {/* Main Content Area */}
-      <div className="flex-1 p-4">
-        {activeTab === "profile" && (
-          user ? (
+        <Tabs defaultValue="profile" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="profile">
+              <UserIcon className="h-4 w-4 mr-2" />
+              Profile
+            </TabsTrigger>
+            <TabsTrigger value="password">
+              <Lock className="h-4 w-4 mr-2" />
+              Password
+            </TabsTrigger>
+            <TabsTrigger value="notifications">
+              <Mail className="h-4 w-4 mr-2" />
+              Email Notifications
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="profile">
+          {user ? (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -336,10 +323,10 @@ export default function Settings() {
             </Card>
           ) : (
             <Skeleton className="h-96 w-full" />
-          )
-        )}
+          )}
+          </TabsContent>
 
-        {activeTab === "password" && (
+          <TabsContent value="password">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -414,10 +401,10 @@ export default function Settings() {
               </Form>
             </CardContent>
           </Card>
-        )}
+          </TabsContent>
 
-        {activeTab === "notifications" && (
-          user ? (
+          <TabsContent value="notifications">
+          {user ? (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -651,9 +638,10 @@ export default function Settings() {
             </Card>
           ) : (
             <Skeleton className="h-[400px] w-full" />
-          )
-        )}
+          )}
+          </TabsContent>
+        </Tabs>
       </div>
-    </div >
+    </>
   );
 }

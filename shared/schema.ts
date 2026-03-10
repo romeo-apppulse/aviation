@@ -95,9 +95,13 @@ export const leases = pgTable("leases", {
   hourlyRate: doublePrecision("hourly_rate").notNull(),
   maintenanceTerms: text("maintenance_terms"),
   notes: text("notes"),
-  status: text("status").default("Active"), // Active, Expired, Terminated
+  status: text("status").default("Active"), // Active, Expired, Terminated, Suspended
   documentUrl: text("document_url"),
   createdAt: timestamp("created_at").defaultNow(),
+  terminationReason: text("termination_reason"),
+  terminationDate: date("termination_date"),
+  suspendedAt: timestamp("suspended_at"),
+  suspendedReason: text("suspended_reason"),
 });
 
 // Payments
@@ -197,6 +201,21 @@ export const emailQueue = pgTable("email_queue", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Payouts
+export const payouts = pgTable("payouts", {
+  id: serial("id").primaryKey(),
+  ownerId: integer("owner_id").notNull(),
+  amount: doublePrecision("amount").notNull(),
+  period: text("period").notNull(), // e.g. "March 2026"
+  status: text("status").default("pending"), // pending, processing, completed
+  processedAt: timestamp("processed_at"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+export type Payout = typeof payouts.$inferSelect;
+export type InsertPayout = typeof payouts.$inferInsert;
+export const insertPayoutSchema = createInsertSchema(payouts).omit({ id: true, createdAt: true });
+
 // Create insert schemas
 export const insertAircraftSchema = createInsertSchema(aircraft).omit({ id: true });
 export const insertOwnerSchema = createInsertSchema(owners).omit({ id: true });
@@ -276,6 +295,11 @@ export type InsertFlightHourLog = z.infer<typeof insertFlightHourLogSchema>;
 
 export type EmailQueue = typeof emailQueue.$inferSelect;
 export type InsertEmailQueue = z.infer<typeof insertEmailQueueSchema>;
+
+export type FlightHourLogWithDetails = FlightHourLog & {
+  aircraftRegistration?: string | null;
+  lesseeName?: string | null;
+};
 
 // Dashboard Stats
 export type DashboardStats = {

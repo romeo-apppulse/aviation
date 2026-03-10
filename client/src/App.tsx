@@ -31,6 +31,7 @@ import OwnerAircraftDetail from "@/pages/owner/aircraft-detail";
 import OwnerRevenue from "@/pages/owner/revenue";
 import OwnerDocuments from "@/pages/owner/documents";
 import NotificationsPage from "@/pages/notifications";
+import AdminHourSubmissions from "@/pages/admin-hour-submissions";
 import PendingApproval from "@/pages/pending-approval";
 import Landing from "@/pages/landing";
 import LoginPage from "@/pages/login";
@@ -38,6 +39,7 @@ import RegisterPage from "@/pages/register";
 import Sidebar from "@/components/layout/sidebar";
 import Header from "@/components/layout/header";
 import { useState } from "react";
+import { Plane } from "lucide-react";
 
 function AccessDeniedPage() {
   return (
@@ -57,10 +59,17 @@ function Router() {
   // Show loading only briefly, then show landing page for unauthenticated users
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="bg-[#007AFF] p-3 rounded-2xl shadow-lg shadow-[#007AFF]/20">
+            <Plane className="h-8 w-8 text-white" />
+          </div>
+          <div className="flex flex-col items-center gap-1">
+            <div className="text-[17px] font-bold text-[#1C1C1E] tracking-tight">AeroLease <span className="text-[#007AFF]">Wise</span></div>
+            <div className="h-1 w-24 bg-[#F2F2F7] rounded-full overflow-hidden mt-2">
+              <div className="h-full bg-[#007AFF] rounded-full animate-pulse w-2/3" />
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -118,6 +127,9 @@ function Router() {
       </Route>
       <Route path="/admin/revenue">
         {isAdmin ? <AdminRevenue /> : <NotFound />}
+      </Route>
+      <Route path="/admin/hour-submissions">
+        {isAdmin ? <AdminHourSubmissions /> : <Redirect to="/dashboard" />}
       </Route>
 
       {/* Portal Routes — accessible to flight_school, admin, and super_admin */}

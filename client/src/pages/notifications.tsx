@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Notification } from "@shared/schema";
 import { queryClient, apiRequest } from "@/lib/queryClient";
@@ -112,6 +113,10 @@ export default function NotificationsPage() {
   const groups = groupByDate(notifications);
 
   return (
+    <>
+    <Helmet>
+      <title>Notifications — AeroLease Wise</title>
+    </Helmet>
     <div className="max-w-3xl mx-auto">
       {/* Page Header */}
       <div className="flex items-center justify-between mb-6">
@@ -245,5 +250,6 @@ export default function NotificationsPage() {
         </div>
       )}
     </div>
+    </>
   );
 }

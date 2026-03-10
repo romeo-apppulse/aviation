@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { StatsCard } from "@/components/ui/stat-card";
@@ -46,11 +47,20 @@ export default function PortalDashboard() {
 
     const recentPayments = payments?.slice(0, 5) || [];
 
+    const hasNoData = !isStatsLoading && !isPaymentsLoading && (!aircraft || aircraft.length === 0) && (!payments || payments.length === 0);
+
     return (
+        <>
+        <Helmet>
+            <title>Dashboard — AeroLease Wise</title>
+        </Helmet>
         <div className="p-10 max-w-7xl mx-auto space-y-12 animate-in fade-in duration-700">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="space-y-1.5">
-                    <h1 className="text-3xl font-bold text-[#1C1C1E] tracking-tight">School Operations</h1>
+                    <div className="flex items-center gap-3 mb-1">
+                        <h1 className="text-3xl font-bold text-[#1C1C1E] tracking-tight">School Operations</h1>
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold text-white" style={{ backgroundColor: "#007AFF" }}>Flight School Portal</span>
+                    </div>
                     <p className="text-[#8E8E93] text-[15px] font-medium tracking-tight">Hello, {user?.firstName}. Here's your fleet's status today.</p>
                 </div>
                 <div className="flex items-center gap-4">
@@ -62,6 +72,16 @@ export default function PortalDashboard() {
                     </Button>
                 </div>
             </div>
+
+            {hasNoData ? (
+                <div className="bg-white rounded-2xl border border-[#f1f5f9] shadow-sm p-12 text-center">
+                    <div className="w-16 h-16 rounded-[24px] bg-[#f8fafc] border border-[#f1f5f9] flex items-center justify-center mx-auto mb-4">
+                        <Plane className="h-8 w-8 text-[#C7C7CC]" />
+                    </div>
+                    <p className="text-[17px] font-bold text-[#1C1C1E] tracking-tight">No fleet data yet</p>
+                    <p className="text-[14px] text-[#8E8E93] mt-2 font-medium max-w-sm mx-auto">Your fleet access will appear here once your lease is configured. Contact your account manager to get started.</p>
+                </div>
+            ) : null}
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-7">
                 <StatsCard
@@ -201,5 +221,6 @@ export default function PortalDashboard() {
                 </Card>
             </div>
         </div>
+        </>
     );
 }

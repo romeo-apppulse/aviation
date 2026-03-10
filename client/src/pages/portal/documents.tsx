@@ -91,7 +91,7 @@ export default function PortalDocuments() {
                                                 {doc.aircraftRegistration || doc.relatedType || "—"}
                                             </TableCell>
                                             <TableCell className="px-6 py-4 text-center text-[13px] font-medium text-[#64748b]">
-                                                {formatDate(doc.createdAt)}
+                                                {formatDate(doc.uploadDate)}
                                             </TableCell>
                                             <TableCell className="px-6 py-4 text-center">
                                                 {doc.url ? (

@@ -9,7 +9,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
 import { useModal } from "@/hooks/use-modal";
-import { FileText, Plus, Search, Filter, Download, Trash2, Upload, File, FileSpreadsheet, FilePen, Grid3X3, List, ArrowUpDown, ArrowUp, ArrowDown, Plane, Users, Briefcase, User } from "lucide-react";
+import { FileText, Plus, Search, Filter, Download, Trash2, Upload, File, FileSpreadsheet, FilePen, Grid3X3, ExternalLink, List, ArrowUpDown, ArrowUp, ArrowDown, Plane, Users, Briefcase, User } from "lucide-react";
 import AircraftDetailsModal from "@/components/aircraft/aircraft-details-modal";
 import LesseeDetailDrawer from "@/components/lessees/lessee-detail-drawer";
 import OwnerDetailDrawer from "@/components/owners/owner-detail-drawer";
@@ -287,7 +287,7 @@ export default function Documents() {
   return (
     <>
       <Helmet>
-        <title>Documents - AeroLease Manager</title>
+        <title>Documents — AeroLease Wise</title>
         <meta name="description" content="Store and manage all aircraft-related documents and files" />
       </Helmet>
 
@@ -680,7 +680,7 @@ export default function Documents() {
                         onClick={() => setUploadMode("url")}
                         className="flex-1"
                       >
-                        <Grid3X3 className="h-4 w-4 mr-2" />
+                        <ExternalLink className="h-4 w-4 mr-2" />
                         External URL
                       </Button>
                     </div>

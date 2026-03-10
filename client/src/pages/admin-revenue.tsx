@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet";
 import { useQuery } from "@tanstack/react-query";
 import { DollarSign, TrendingUp, Users, Plane, Calendar, ArrowUpRight, Download, Filter, User } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -99,6 +100,10 @@ export default function AdminRevenue() {
     };
 
     return (
+        <>
+        <Helmet>
+            <title>Revenue Hub — AeroLease Wise</title>
+        </Helmet>
         <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in duration-500">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
@@ -313,5 +318,6 @@ export default function AdminRevenue() {
                 onViewAircraft={(ac) => aircraftModal.openModal(ac)}
             />
         </div>
+        </>
     );
 }

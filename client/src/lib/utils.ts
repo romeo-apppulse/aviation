@@ -82,6 +82,13 @@ export function getDaysDifference(dateStr: string | Date): number {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
+export function formatMonth(ym: string): string {
+  if (!ym) return "—";
+  const [year, month] = ym.split("-");
+  const date = new Date(parseInt(year), parseInt(month) - 1);
+  return date.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+}
+
 export function getRelativeDateLabel(dateStr: string | Date): string {
   const days = getDaysDifference(dateStr);
 

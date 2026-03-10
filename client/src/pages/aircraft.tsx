@@ -183,7 +183,7 @@ export default function Aircraft() {
   return (
     <div className="max-w-[1600px] mx-auto">
       <Helmet>
-        <title>Fleet | AeroLease Wise</title>
+        <title>Total Fleet — AeroLease Wise</title>
       </Helmet>
 
       {/* Page Header */}

@@ -192,6 +192,7 @@ export default function Sidebar({ open, setOpen }: SidebarProps) {
                 <NavLink href="/leases" icon={FileText} label="Agreements" />
                 <NavLink href="/payments" icon={DollarSign} label="Financials" />
                 <NavLink href="/maintenance" icon={Wrench} label="Technical logs" />
+                <NavLink href="/admin/hour-submissions" icon={Clock} label="Hour Submissions" />
                 <NavLink href="/documents" icon={FolderOpen} label="Vault" />
               </nav>
             </div>

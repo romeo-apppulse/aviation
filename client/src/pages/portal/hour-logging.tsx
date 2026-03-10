@@ -1,3 +1,4 @@
+import { Helmet } from "react-helmet";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Clock, CheckCircle2, AlertCircle, Calendar, Plane, History, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -95,6 +96,10 @@ export default function PortalHourLogging() {
     }
 
     return (
+        <>
+        <Helmet>
+            <title>Log Flight Hours — AeroLease Wise</title>
+        </Helmet>
         <div className="p-8 max-w-7xl mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="space-y-2">
                 <h1 className="text-3xl font-bold text-[#1e293b] tracking-tight">Hour Logging</h1>
@@ -323,5 +328,6 @@ export default function PortalHourLogging() {
                 </Card>
             </div>
         </div>
+        </>
     );
 }

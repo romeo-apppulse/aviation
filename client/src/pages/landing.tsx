@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plane, Users, FileText, Wrench, DollarSign, BarChart3, TrendingUp, ShieldCheck, Zap, ArrowRight, Play } from "lucide-react";
+import { Plane, Users, FileText, Wrench, DollarSign, BarChart3, TrendingUp, ShieldCheck, Zap, ArrowRight } from "lucide-react";
 import { useLocation } from "wouter";
 
 export default function Landing() {
@@ -18,11 +18,6 @@ export default function Landing() {
             <h1 className="text-xl font-bold text-[#1e293b] tracking-tight">AeroLease <span className="text-brand">Manager</span></h1>
             <p className="text-[9px] font-bold text-slate-400 tracking-[0.2em] uppercase leading-none mt-0.5">Fleet Intelligence OS</p>
           </div>
-        </div>
-        <div className="hidden md:flex items-center gap-8 text-[13px] font-bold uppercase tracking-widest text-slate-600">
-          <a href="#" className="hover:text-brand transition-colors">Platform</a>
-          <a href="#" className="hover:text-brand transition-colors">Solutions</a>
-          <a href="#" className="hover:text-brand transition-colors">Enterprise</a>
         </div>
         <Button
           variant="ghost"
@@ -53,7 +48,7 @@ export default function Landing() {
             The world's most advanced platform for aircraft leasing, compliance tracking, and predictive maintenance management. Built for enterprise flight operations.
           </p>
 
-          <div className="flex flex-col md:flex-row items-center justify-center gap-4 pt-4">
+          <div className="flex items-center justify-center pt-4">
             <Button
               size="lg"
               className="bg-brand hover:bg-brand-hover text-white rounded-2xl px-10 h-16 text-base font-bold shadow-xl shadow-brand/20 transition-all active:scale-95 flex items-center gap-2"
@@ -62,19 +57,11 @@ export default function Landing() {
               Access Command Center
               <ArrowRight className="h-5 w-5" />
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="bg-white border-slate-200 text-[#1e293b] rounded-2xl px-10 h-16 text-base font-bold hover:bg-slate-50 transition-all flex items-center gap-2"
-            >
-              <Play className="h-4 w-4 fill-[#1e293b]" />
-              Watch Experience
-            </Button>
           </div>
 
           <div className="pt-16 flex items-center justify-center gap-12 text-slate-300">
             <div className="flex flex-col items-center gap-2">
-              <span className="text-2xl font-bold text-[#1e293b]">$84.2b</span>
+              <span className="text-2xl font-bold text-[#1e293b]">$4.2b</span>
               <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Assets Managed</span>
             </div>
             <div className="w-[1px] h-8 bg-slate-100" />
@@ -204,13 +191,8 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="container mx-auto px-6 py-12 border-t border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
-        <p className="text-slate-400 text-sm font-medium">© 2024 AeroLease Wise. All rights reserved globally.</p>
-        <div className="flex items-center gap-8 text-sm font-bold text-slate-400 uppercase tracking-widest">
-          <a href="#" className="hover:text-brand transition-colors">Privacy</a>
-          <a href="#" className="hover:text-brand transition-colors">Terms</a>
-          <a href="#" className="hover:text-brand transition-colors">Security</a>
-        </div>
+      <footer className="container mx-auto px-6 py-12 border-t border-slate-100 flex items-center justify-center">
+        <p className="text-slate-400 text-sm font-medium">© {new Date().getFullYear()} AeroLease Wise. All rights reserved globally.</p>
       </footer>
     </div>
   );
