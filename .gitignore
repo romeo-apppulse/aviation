@@ -7,3 +7,8 @@ vite.config.ts.*
 .env
 .env.local
 .env.production
+.local/
+tmp/
+*.bin
+attached_assets/
+aviation.pdf
